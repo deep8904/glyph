@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IndieBase — For Indie Game Developers</title>
+  <meta name="description" content="IndieBase is the platform for indie game developers who are still building. Profile, devlogs, playtesting, events, and collaboration — all in one place, always free." />
+
+  <!-- Fonts: Geist + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            indigo: {
+              50:  '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+              400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+              900: '#312e81',
+            },
+            cyan: { 500: '#06b6d4' },
+            carbon: '#0f0e13',
+          },
+          fontFamily: {
+            sans: ['Geist', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          borderRadius: { panel: '2.5rem' },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: #0f0e13;
+      color: #111827;
+      font-family: 'Geist', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    ::selection { background: #e0e7ff; color: #312e81; }
+
+    .font-sans { font-family: 'Geist', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .text-balance { text-wrap: balance; }
+
+    /* ── Plasma mesh background ── */
+    .bg-plasma {
+      background-color: #0f0e13;
+      background-image:
+        radial-gradient(at 0% 0%,     hsla(245, 100%, 73%, 0.3) 0px, transparent 50%),
+        radial-gradient(at 100% 0%,   hsla(188, 100%, 65%, 0.2) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, hsla(245, 100%, 73%, 0.3) 0px, transparent 50%),
+        radial-gradient(at 0% 100%,   hsla(280, 100%, 70%, 0.2) 0px, transparent 50%);
+      animation: breathe 15s ease-in-out infinite alternate;
+    }
+    @keyframes breathe {
+      0%   { transform: scale(1);   opacity: 0.8; }
+      100% { transform: scale(1.1); opacity: 1;   }
+    }
+
+    /* ── Scroll reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.active { opacity: 1; transform: translateY(0); }
+    .delay-100 { transition-delay: 100ms; }
+    .delay-200 { transition-delay: 200ms; }
+    .delay-300 { transition-delay: 300ms; }
+    .delay-400 { transition-delay: 400ms; }
+    .delay-500 { transition-delay: 500ms; }
+
+    /* ── Floating panel shadow ── */
+    .panel-shadow {
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.4),
+                  0 20px 40px -10px rgba(0,0,0,0.2),
+                  0 0 100px -20px rgba(79, 70, 229, 0.15);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0f0e13; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+  </style>
+</head>
+
+<body class="min-h-screen relative overflow-x-hidden font-sans">
+
+  <!-- ── Plasma background layer ── -->
+  <div class="fixed inset-0 z-0 bg-plasma pointer-events-none"></div>
+
+  <!-- ── Glass slices overlay ── -->
+  <div class="fixed inset-y-0 right-0 w-[120vw] md:w-[70vw] translate-x-[10%] md:translate-x-0 z-0 flex pointer-events-none opacity-40 mix-blend-overlay">
+    <div class="h-full flex-1 relative border-l border-white/60 shadow-[-15px_0_30px_-10px_rgba(255,255,255,1)]"   style="background: linear-gradient(to right, rgba(255,255,255,0.8), rgba(255,255,255,0.4)); backdrop-filter: blur(20px);"></div>
+    <div class="h-full flex-1 relative border-l border-white/40 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.8)]" style="background: linear-gradient(to right, rgba(255,255,255,0.4), rgba(255,255,255,0.1)); backdrop-filter: blur(10px);"></div>
+    <div class="h-full flex-1 relative border-l border-white/20 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.4)]" style="background: linear-gradient(to right, rgba(255,255,255,0.1), rgba(255,255,255,0));   backdrop-filter: blur(4px);"></div>
+  </div>
+
+  <!-- ── Main floating panel ── -->
+  <main class="relative z-10 w-full max-w-[88rem] mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12 min-h-screen flex flex-col">
+    <div class="flex-1 bg-white/95 backdrop-blur-2xl rounded-panel panel-shadow overflow-hidden flex flex-col border border-white relative">
+
+      <!-- ════════ HEADER ════════ -->
+      <header class="flex items-center justify-between px-8 py-6 md:px-12 md:py-8 border-b border-gray-100/50 reveal">
+        <div class="flex items-center gap-1 text-xl font-semibold tracking-tighter text-gray-900">
+          IndieBase<span class="text-indigo-600 leading-none">°</span>
+        </div>
+
+        <nav class="hidden lg:flex items-center gap-10 text-xs font-mono font-medium text-gray-500 uppercase tracking-widest">
+          <a href="#features"  class="hover:text-gray-900 transition-colors">Features</a>
+          <a href="#community" class="hover:text-gray-900 transition-colors">Community</a>
+          <a href="#events"    class="hover:text-gray-900 transition-colors">Events</a>
+          <a href="#jobs"      class="hover:text-gray-900 transition-colors">Jobs</a>
+        </nav>
+
+        <div class="flex items-center gap-6">
+          <a href="#login" class="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Log in</a>
+          <a href="#signup" class="inline-flex items-center justify-center rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 transition-all duration-300">
+            Sign Up
+          </a>
+        </div>
+      </header>
+
+      <!-- ════════ BODY ════════ -->
+      <div class="px-8 md:px-16 lg:px-24 pb-24 pt-16 md:pt-24 space-y-32">
+
+        <!-- 1. HERO -->
+        <section class="flex flex-col items-center text-center max-w-4xl mx-auto">
+          <div class="reveal mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50/50 px-3 py-1 text-[11px] uppercase tracking-wider font-semibold text-indigo-600 shadow-sm backdrop-blur-md font-mono">
+            <i data-lucide="gamepad-2" class="w-3.5 h-3.5"></i>
+            Platform for Builders
+          </div>
+
+          <h1 class="reveal delay-100 text-5xl sm:text-6xl md:text-[80px] text-gray-900 leading-[1.05] font-light tracking-tighter text-balance mb-8">
+            Your home base <br class="hidden md:block"/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500">before launch.</span>
+          </h1>
+
+          <p class="reveal delay-200 text-base md:text-lg text-gray-500 leading-relaxed max-w-2xl text-balance mb-12">
+            IndieBase is the platform for indie game developers who are still building. Create your profile,
+            document your progress, find playtesters, discover local events, and connect with collaborators —
+            all in one place, always free.
+          </p>
+
+          <div class="reveal delay-300 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <a href="#profile" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 px-8 py-4 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5">
+              Create Your Profile
+              <span class="text-xs font-mono opacity-70 ml-2">IT'S FREE</span>
+            </a>
+            <a href="#how-it-works" class="w-full sm:w-auto inline-flex items-center justify-center rounded-full border border-gray-200 bg-white px-8 py-4 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-300">
+              See How It Works
+            </a>
+          </div>
+        </section>
+
+        <!-- 2. PROBLEM STATEMENT -->
+        <section class="grid md:grid-cols-2 gap-16 items-center">
+          <div class="reveal space-y-6">
+            <h2 class="text-3xl md:text-4xl font-light tracking-tight text-gray-900 text-balance">
+              Your workflow is scattered across 7 platforms. None of them are built for you.
+            </h2>
+            <p class="text-gray-500 leading-relaxed text-sm md:text-base">
+              Indie developers currently split across Reddit, Discord, Twitter/X, itch.io, ArtStation, LinkedIn,
+              and Meetup. Each does one thing. None of them understands a game developer's pre-launch workflow.
+              <br/><br/>
+              The result: isolation and lack of structured feedback.
+            </p>
+          </div>
+
+          <div class="reveal delay-200 relative p-1 rounded-3xl bg-gradient-to-b from-gray-100 to-white">
+            <div class="bg-white rounded-[22px] p-10 md:p-14 shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col items-center justify-center text-center relative overflow-hidden">
+              <div class="absolute top-0 right-0 p-4">
+                <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+              </div>
+              <span class="text-7xl font-light tracking-tighter text-gray-900 mb-4">70%</span>
+              <p class="text-sm font-mono text-gray-500 uppercase tracking-widest leading-relaxed">
+                of indie projects <br/> never reach launch.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. MARKET STATS -->
+        <section id="community" class="space-y-12">
+          <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div class="max-w-xl">
+              <h2 class="text-2xl md:text-3xl font-light tracking-tight text-gray-900 mb-4">
+                The indie market is the biggest it has ever been. The infrastructure hasn't caught up.
+              </h2>
+            </div>
+            <div class="flex gap-2">
+              <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 cursor-pointer hover:bg-indigo-50 hover:text-indigo-600 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></span>
+              <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 cursor-pointer hover:bg-indigo-50 hover:text-indigo-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <!-- Metric card -->
+            <div class="reveal delay-100 relative flex flex-col p-6 rounded-2xl bg-white border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg transition-shadow duration-300">
+              <i data-lucide="arrow-up-right" class="absolute top-5 right-5 w-4 h-4 text-gray-300"></i>
+              <span class="text-[10px] font-mono font-semibold tracking-widest text-gray-400 uppercase mb-4">Global Active</span>
+              <span class="text-4xl md:text-5xl font-light tracking-tighter text-gray-900 mb-1">250K</span>
+              <span class="text-xs font-medium text-gray-500">Active indie developers globally</span>
+            </div>
+            <div class="reveal delay-200 relative flex flex-col p-6 rounded-2xl bg-white border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg transition-shadow duration-300">
+              <i data-lucide="arrow-up-right" class="absolute top-5 right-5 w-4 h-4 text-gray-300"></i>
+              <span class="text-[10px] font-mono font-semibold tracking-widest text-gray-400 uppercase mb-4">2024 Record</span>
+              <span class="text-4xl md:text-5xl font-light tracking-tighter text-gray-900 mb-1">8,554</span>
+              <span class="text-xs font-medium text-gray-500">Indie games released on Steam</span>
+            </div>
+            <div class="reveal delay-300 relative flex flex-col p-6 rounded-2xl bg-white border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg transition-shadow duration-300">
+              <i data-lucide="arrow-up-right" class="absolute top-5 right-5 w-4 h-4 text-gray-300"></i>
+              <span class="text-[10px] font-mono font-semibold tracking-widest text-gray-400 uppercase mb-4">Revenue Share</span>
+              <span class="text-4xl md:text-5xl font-light tracking-tighter text-gray-900 mb-1">48%</span>
+              <span class="text-xs font-medium text-gray-500">Of all Steam full-game revenue</span>
+            </div>
+            <div class="reveal delay-400 relative flex flex-col p-6 rounded-2xl bg-white border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg transition-shadow duration-300">
+              <i data-lucide="arrow-up-right" class="absolute top-5 right-5 w-4 h-4 text-gray-300"></i>
+              <span class="text-[10px] font-mono font-semibold tracking-widest text-gray-400 uppercase mb-4">Market Size</span>
+              <span class="text-4xl md:text-5xl font-light tracking-tighter text-gray-900 mb-1">$10.8B</span>
+              <span class="text-xs font-medium text-gray-500">Projected indie market by 2031</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. FEATURES BENTO -->
+        <section id="features" class="space-y-12 bg-gray-50/50 -mx-8 md:-mx-16 lg:-mx-24 px-8 md:px-16 lg:px-24 py-24 border-y border-gray-100">
+          <div class="reveal max-w-2xl">
+            <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50/50 px-3 py-1 text-[11px] uppercase tracking-wider font-semibold text-indigo-600 shadow-sm backdrop-blur-md font-mono">
+              <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+              Platform Tools
+            </div>
+            <h2 class="text-3xl md:text-4xl font-light tracking-tight text-gray-900 mb-4">
+              Everything you need before launch. Nothing you don't.
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 auto-rows-[minmax(280px,auto)] gap-4 md:gap-6">
+
+            <!-- Developer Profile (wide) -->
+            <div class="group flex flex-col p-8 rounded-3xl bg-gradient-to-br from-white to-gray-50/80 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal delay-100 overflow-hidden relative md:col-span-2">
+              <div class="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <i data-lucide="maximize-2" class="w-6 h-6 text-gray-200"></i>
+              </div>
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
+                <i data-lucide="contact" class="w-6 h-6"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 tracking-tight mb-3">Developer Profile</h3>
+              <p class="text-sm text-gray-500 leading-relaxed max-w-sm flex-1">
+                Your public identity as a developer. Showcase skills, engine, tools, current project, devlog history,
+                and collaboration availability. One link that says everything.
+              </p>
+              <div class="mt-8 flex items-center gap-2 text-xs font-mono font-semibold text-indigo-600 uppercase tracking-wider">
+                View Example Profile
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i>
+              </div>
+            </div>
+
+            <!-- Project Pages (tall, dark) -->
+            <div class="group flex flex-col p-8 rounded-3xl bg-indigo-900 text-white border-none shadow-[0_20px_40px_-15px_rgba(79,70,229,0.3)] hover:shadow-md transition-all duration-300 reveal delay-200 overflow-hidden relative md:row-span-2">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white mb-6 group-hover:scale-110 group-hover:bg-white/20 transition-all duration-300">
+                <i data-lucide="file-text" class="w-6 h-6"></i>
+              </div>
+              <h3 class="text-lg font-medium text-white tracking-tight mb-3">Project Pages &amp; Devlogs</h3>
+              <p class="text-sm text-indigo-200/80 leading-relaxed max-w-sm flex-1">
+                Document your build in public. Post structured updates, build an audience before your game ships,
+                and keep a history of your development process.
+              </p>
+              <div class="mt-8 flex items-center gap-2 text-xs font-mono font-semibold text-indigo-300 uppercase tracking-wider">
+                Start a Devlog
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i>
+              </div>
+            </div>
+
+            <!-- Playtesting -->
+            <div class="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal delay-300 overflow-hidden relative">
+              <div class="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <i data-lucide="maximize-2" class="w-6 h-6 text-gray-200"></i>
+              </div>
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
+                <i data-lucide="gamepad-2" class="w-6 h-6"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 tracking-tight mb-3">Structured Playtesting</h3>
+              <p class="text-sm text-gray-500 leading-relaxed max-w-sm flex-1">
+                Request testers, collect organized feedback by category—gameplay, UI, difficulty—and track how
+                your game improves over time.
+              </p>
+            </div>
+
+            <!-- Local Events -->
+            <div class="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal delay-400 overflow-hidden relative">
+              <div class="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <i data-lucide="maximize-2" class="w-6 h-6 text-gray-200"></i>
+              </div>
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
+                <i data-lucide="map-pin" class="w-6 h-6"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 tracking-tight mb-3">Local Events &amp; Showcases</h3>
+              <p class="text-sm text-gray-500 leading-relaxed max-w-sm flex-1">
+                City-based meetups, game showcases, and game jams with RSVP and demo slots. Find your local
+                developer community.
+              </p>
+            </div>
+
+            <!-- Collaboration (wide) -->
+            <div class="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal delay-500 overflow-hidden relative md:col-span-2">
+              <div class="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <i data-lucide="maximize-2" class="w-6 h-6 text-gray-200"></i>
+              </div>
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
+                <i data-lucide="users" class="w-6 h-6"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 tracking-tight mb-3">Collaboration Board</h3>
+              <p class="text-sm text-gray-500 leading-relaxed max-w-sm flex-1">
+                Full-time, part-time, freelance, rev-share, and volunteer roles. Every listing is linked to a real
+                project page so you know exactly what you're joining.
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 5. HOW IT WORKS -->
+        <section id="how-it-works" class="max-w-4xl mx-auto space-y-16">
+          <div class="reveal text-center">
+            <h2 class="text-3xl md:text-4xl font-light tracking-tight text-gray-900">
+              Up and running in minutes.
+            </h2>
+          </div>
+
+          <div class="relative space-y-12 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
+
+            <!-- Step 01 -->
+            <div class="reveal relative flex items-center justify-between md:justify-normal group">
+              <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-indigo-50 text-indigo-600 font-mono text-xs shrink-0 md:order-1 md:-translate-x-1/2 shadow-sm z-10">01</div>
+              <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-6 md:p-8 rounded-2xl bg-white border border-gray-100 shadow-sm transition-transform duration-300 group-hover:-translate-y-1">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Create your profile</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">Add your name, skills, engine, tools, and current project. Your developer page is public and searchable from day one.</p>
+              </div>
+            </div>
+
+            <!-- Step 02 (right side) -->
+            <div class="reveal relative flex items-center justify-between md:justify-normal md:flex-row-reverse group">
+              <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-indigo-50 text-indigo-600 font-mono text-xs shrink-0 md:order-1 md:translate-x-1/2 shadow-sm z-10">02</div>
+              <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-6 md:p-8 rounded-2xl bg-white border border-gray-100 shadow-sm transition-transform duration-300 group-hover:-translate-y-1">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Start building in public</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">Post devlogs, request playtesters, browse your city's event calendar, and post or find collaboration opportunities.</p>
+              </div>
+            </div>
+
+            <!-- Step 03 -->
+            <div class="reveal relative flex items-center justify-between md:justify-normal group">
+              <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-indigo-50 text-indigo-600 font-mono text-xs shrink-0 md:order-1 md:-translate-x-1/2 shadow-sm z-10">03</div>
+              <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-6 md:p-8 rounded-2xl bg-white border border-gray-100 shadow-sm transition-transform duration-300 group-hover:-translate-y-1">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Grow before you launch</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">Build an audience, collect real feedback, find the right collaborators, and show up to your launch with a community already behind you.</p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 6. ALWAYS FREE -->
+        <section id="events" class="reveal relative overflow-hidden rounded-panel bg-gray-900 text-white p-10 md:p-16 lg:p-20 text-center">
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-indigo-500/10 blur-[100px] pointer-events-none"></div>
+
+          <div class="relative z-10 max-w-3xl mx-auto space-y-8">
+            <div class="inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-indigo-500/20 px-3 py-1 text-[11px] uppercase tracking-wider font-semibold text-indigo-300 shadow-sm backdrop-blur-md font-mono">
+              <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+              Core features — free. Forever.
+            </div>
+            <h2 class="text-3xl md:text-5xl font-light tracking-tight text-white text-balance">
+              Individual developers never pay. <br class="hidden md:block"/>
+              <span class="text-gray-400">That's not a trial. That's the model.</span>
+            </h2>
+            <p class="text-gray-400 leading-relaxed max-w-2xl mx-auto text-base md:text-lg">
+              Developer profiles, project pages, devlogs, playtesting, local events, and the collaboration board
+              are permanently free for individual developers. IndieBase is funded by studios, publishers, and
+              ecosystem companies — not by the people it's built to serve.
+            </p>
+            <div class="pt-4">
+              <a href="#signup" class="inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                Create Free Profile
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. SOCIAL PROOF -->
+        <section id="jobs" class="reveal max-w-3xl mx-auto text-center space-y-6 pb-12">
+          <i data-lucide="square-code" class="w-10 h-10 text-gray-300 mb-4 mx-auto"></i>
+          <h2 class="text-2xl md:text-3xl font-light tracking-tight text-gray-900">
+            Built for the developer who is still in the middle of it.
+          </h2>
+          <p class="text-gray-500 leading-relaxed text-sm md:text-base">
+            IndieBase is for the solo developer working nights and weekends. The team of two who just started
+            their first project. The developer who shipped once and wants to do it better this time.
+            <br/><br/>
+            This is not a platform for games that already succeeded. It's for the work that's still happening.
+          </p>
+        </section>
+
+      </div>
+
+      <!-- ════════ FOOTER ════════ -->
+      <footer class="mt-auto border-t border-gray-100 bg-gray-50/50 px-8 py-12 md:px-16 text-sm">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
+          <div class="col-span-2 lg:col-span-2 space-y-4">
+            <div class="flex items-center gap-1 text-lg font-semibold tracking-tighter text-gray-900">
+              IndieBase<span class="text-indigo-600">°</span>
+            </div>
+            <p class="text-gray-500 max-w-xs">Always free for developers. Your home base before launch.</p>
+          </div>
+
+          <div class="space-y-3">
+            <h4 class="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-400">Platform</h4>
+            <ul class="space-y-2 text-gray-500">
+              <li><a href="#features"  class="hover:text-indigo-600 transition-colors">Features</a></li>
+              <li><a href="#community" class="hover:text-indigo-600 transition-colors">Community</a></li>
+              <li><a href="#events"    class="hover:text-indigo-600 transition-colors">Events</a></li>
+              <li><a href="#jobs"      class="hover:text-indigo-600 transition-colors">Jobs</a></li>
+            </ul>
+          </div>
+
+          <div class="space-y-3">
+            <h4 class="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-400">Company</h4>
+            <ul class="space-y-2 text-gray-500">
+              <li><a href="#" class="hover:text-indigo-600 transition-colors">About</a></li>
+              <li><a href="#" class="hover:text-indigo-600 transition-colors">Press</a></li>
+              <li><a href="#" class="hover:text-indigo-600 transition-colors">Privacy Policy</a></li>
+              <li><a href="#" class="hover:text-indigo-600 transition-colors">Terms of Service</a></li>
+            </ul>
+          </div>
+
+          <div class="space-y-3 col-span-2 md:col-span-4 lg:col-span-1">
+            <h4 class="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-400">Connect</h4>
+            <div class="flex gap-4 text-gray-400">
+              <a href="#" aria-label="X / Twitter" class="hover:text-gray-900 transition-colors"><i data-lucide="twitter" class="w-5 h-5"></i></a>
+              <a href="#" aria-label="Discord" class="hover:text-gray-900 transition-colors"><i data-lucide="message-circle" class="w-5 h-5"></i></a>
+              <a href="#" aria-label="GitHub" class="hover:text-gray-900 transition-colors"><i data-lucide="github" class="w-5 h-5"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-gray-200/60 text-xs text-gray-400 font-mono">
+          <p>© 2026 IndieBase. Built for indie developers.</p>
+          <div class="flex items-center gap-2 mt-4 md:mt-0">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            All systems operational
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  </main>
+
+  <!-- ════════ SCRIPTS ════════ -->
+  <script>
+    // Init Lucide icons
+    lucide.createIcons();
+
+    // Scroll reveal via IntersectionObserver (cubic-bezier handled in CSS)
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add('active');
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+  </script>
+
+</body>
+</html>

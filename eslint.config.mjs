@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated build artifacts and vendored tooling scripts — never lint these.
+    "**/.next/**",
+    ".claude/**",
+    ".agents/**",
   ]),
 ]);
 

@@ -1,44 +1,34 @@
 import type { Metadata } from 'next'
-import { Syne, DM_Sans, JetBrains_Mono } from 'next/font/google'
+import { Geist, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
-import { QueryProvider } from '@/components/providers/query-provider'
+import { DevDebugPanel } from '@/components/DevDebugPanel'
 
-const syne = Syne({
+const geist = Geist({
   subsets: ['latin'],
-  weight: ['700', '800'],
-  variable: '--font-syne',
-})
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['300', '400', '500'],
-  variable: '--font-dm-sans',
+  variable: '--font-geist',
 })
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  weight: ['400', '600'],
-  variable: '--font-mono',
+  variable: '--font-jetbrains-mono',
 })
 
 export const metadata: Metadata = {
-  title: 'Glyph — Build your reputation before launch.',
+  title: 'Glyph — Your home base before launch',
   description:
-    'The pre-launch identity platform for indie game developers. Share projects, write devlogs, collect feedback, and build visibility before your game goes live.',
+    'Glyph is the platform for indie game developers who are still building. Profile, devlogs, playtesting, events, and collaboration — all in one place, always free.',
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html
-      lang="en"
-      className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <QueryProvider>{children}</QueryProvider>
+    <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable}`}>
+      <body className="font-sans bg-[#0f0e13] text-gray-900 antialiased">
+        {children}
+        {process.env.NODE_ENV === 'development' && <DevDebugPanel />}
       </body>
     </html>
   )

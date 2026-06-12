@@ -1,205 +1,65 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
+/* ─────────────────────────────────────────────
+   Glyph design system — Tailwind v4 theme tokens
+   (Tailwind v4 is configured here, not in a JS config file)
+   ───────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-dm-sans);
-  --font-heading: var(--font-syne);
-  --font-mono: var(--font-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-
-  /* Glyph brand blacks — warm, not cold */
-  --color-glyph-black:     #080807;
-  --color-glyph-surface:   #0d0d0b;
-  --color-glyph-surface-2: #141410;
-  --color-glyph-surface-3: #1c1c17;
-  --color-glyph-border:    #28281f;
-  --color-glyph-border-hi: #3c3c30;
-
-  /* Text hierarchy — warm tinted */
-  --color-glyph-text:      #f0ede6;
-  --color-glyph-text-2:    #a09e96;
-  --color-glyph-text-3:    #5a5950;
-
-  /* Brand accent — LOCKED */
-  --color-glyph-orange:    #ff3d00;
-  --color-glyph-orange-lo: rgba(255,61,0,0.12);
-
-  /* Cream (marketing, light sections) */
-  --color-glyph-cream:     #f7f4ef;
-  --color-glyph-cream-2:   #edeae3;
-
-  /* Semantic */
-  --color-glyph-green:     #22c55e;
-  --color-glyph-amber:     #f59e0b;
-  --color-glyph-red:       #ef4444;
-}
-
-:root {
-  --background:        oklch(from #080807 l c h);
-  --foreground:        oklch(from #f0ede6 l c h);
-  --card:              oklch(from #0d0d0b l c h);
-  --card-foreground:   oklch(from #f0ede6 l c h);
-  --popover:           oklch(from #0d0d0b l c h);
-  --popover-foreground: oklch(from #f0ede6 l c h);
-  --primary:           oklch(from #ff3d00 l c h);
-  --primary-foreground: oklch(1 0 0);
-  --secondary:         oklch(from #1c1c17 l c h);
-  --secondary-foreground: oklch(from #f0ede6 l c h);
-  --muted:             oklch(from #1c1c17 l c h);
-  --muted-foreground:  oklch(from #a09e96 l c h);
-  --accent:            oklch(from #1c1c17 l c h);
-  --accent-foreground: oklch(from #f0ede6 l c h);
-  --destructive:       oklch(from #ef4444 l c h);
-  --border:            oklch(from #28281f l c h);
-  --input:             oklch(from #28281f l c h);
-  --ring:              oklch(from #ff3d00 l c h);
-  --radius: 0.75rem;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar:           oklch(from #0d0d0b l c h);
-  --sidebar-foreground: oklch(from #f0ede6 l c h);
-  --sidebar-primary:   oklch(from #ff3d00 l c h);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent:    oklch(from #1c1c17 l c h);
-  --sidebar-accent-foreground: oklch(from #f0ede6 l c h);
-  --sidebar-border:    oklch(from #28281f l c h);
-  --sidebar-ring:      oklch(from #ff3d00 l c h);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  html {
+    scroll-behavior: smooth;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: #0f0e13;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-  html {
-    @apply font-sans;
-  }
-}
-
-@layer utilities {
-  /* Shadows */
-  .shadow-glyph-sm  { box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
-  .shadow-glyph-md  { box-shadow: 0 4px 16px rgba(0,0,0,0.6); }
-  .shadow-glyph-lg  { box-shadow: 0 8px 40px rgba(0,0,0,0.7); }
-  .glow-orange      { box-shadow: 0 0 32px rgba(255,61,0,0.2); }
-  .glow-orange-sm   { box-shadow: 0 0 14px rgba(255,61,0,0.15); }
-  .border-orange-glow { border-color: rgba(255,61,0,0.4); box-shadow: 0 0 0 1px rgba(255,61,0,0.2); }
-
-  /* Stagger reveal */
-  .animate-in-up {
-    animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  /* Fade in */
-  .animate-in-fade {
-    animation: fadeIn 0.3s ease both;
-  }
-
-  /* Pulse glow on accent elements */
-  .pulse-orange {
-    animation: pulseOrange 2.4s ease-in-out infinite;
-  }
-
-  /* Available status dot */
-  .dot-pulse {
-    animation: dotPulse 2s ease-in-out infinite;
-  }
-
-  /* Stagger delays */
-  .delay-75   { animation-delay: 75ms; }
-  .delay-150  { animation-delay: 150ms; }
-  .delay-225  { animation-delay: 225ms; }
-  .delay-300  { animation-delay: 300ms; }
-  .delay-400  { animation-delay: 400ms; }
-
-  /* Skeleton shimmer */
-  .skeleton {
-    background: linear-gradient(
-      90deg,
-      var(--color-glyph-surface) 25%,
-      var(--color-glyph-surface-2) 50%,
-      var(--color-glyph-surface) 75%
-    );
-    background-size: 800px 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
-    border-radius: 8px;
-  }
-
-  /* Profile banner gradient mesh */
-  .banner-gradient {
-    background:
-      radial-gradient(circle at 20% 50%, rgba(255,61,0,0.6) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(255,92,39,0.4) 0%, transparent 40%),
-      linear-gradient(135deg, #1c1c17 0%, #080807 100%);
+  ::selection {
+    background: #e0e7ff;
+    color: #312e81;
   }
 }
 
-@keyframes slideInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ── Plasma background ── */
+.bg-plasma {
+  background-color: #0f0e13;
+  background-image:
+    radial-gradient(at 0% 0%, hsla(245, 100%, 73%, 0.3) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(188, 100%, 65%, 0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(245, 100%, 73%, 0.3) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(280, 100%, 70%, 0.2) 0px, transparent 50%);
+  animation: breathe 15s ease-in-out infinite alternate;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@keyframes breathe {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.1); opacity: 1; }
 }
 
-@keyframes pulseOrange {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.65; }
+/* ── Glass panel shadow ── */
+.panel-shadow {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 20px 40px -10px rgba(0, 0, 0, 0.2),
+    0 0 100px -20px rgba(79, 70, 229, 0.15);
 }
 
-@keyframes dotPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
-  50%       { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+/* ── Scroll reveal ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
 }
+.delay-100 { transition-delay: 100ms; }
+.delay-200 { transition-delay: 200ms; }
+.delay-300 { transition-delay: 300ms; }
+.delay-400 { transition-delay: 400ms; }
+.delay-500 { transition-delay: 500ms; }

@@ -10,6 +10,23 @@
   "tailwindCSS.experimental.classRegex": [
     ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^'\"`]*)"]
   ],
+  "tailwindCSS.files.exclude": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/.claude/**",
+    "**/.agents/**"
+  ],
+  "search.exclude": {
+    "**/.claude": true,
+    "**/.agents": true,
+    "**/.next": true
+  },
+  "files.watcherExclude": {
+    "**/.claude/**": true,
+    "**/.agents/**": true,
+    "**/.next/**": true
+  },
   "files.associations": {
     "*.css": "tailwindcss"
   },

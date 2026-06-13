@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist, JetBrains_Mono } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { DevDebugPanel } from '@/components/DevDebugPanel'
 
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans bg-[#0f0e13] text-gray-900 antialiased">
         {children}
+        <Analytics />
         {process.env.NODE_ENV === 'development' && <DevDebugPanel />}
       </body>
     </html>

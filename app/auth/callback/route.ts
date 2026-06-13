@@ -9,10 +9,26 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
+
     if (!error) {
+      // Route first-time users into onboarding, returning users to their destination.
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, is_onboarded')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (!profile || !profile.is_onboarded) {
+          return NextResponse.redirect(`${origin}/onboarding`)
+        }
+      }
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
 }

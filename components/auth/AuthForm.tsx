@@ -1,12 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Gamepad2, MailCheck, Loader2 } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Gamepad2, MailCheck, Loader2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Mode = 'login' | 'signup'
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const MIN_PASSWORD = 8
+const RESEND_COOLDOWN = 45 // seconds
 
 function GitHubIcon({ className }: { className?: string }) {
   return (
@@ -29,45 +33,102 @@ function GoogleIcon({ className }: { className?: string }) {
 
 export default function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const isSignup = mode === 'signup'
 
   const [view, setView] = useState<'form' | 'verify'>('form')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [token, setToken] = useState('')
   const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<'github' | 'google' | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [cooldown, setCooldown] = useState(0)
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const redirectTo = `${origin}/auth/callback`
 
-  const handleOAuth = async (provider: 'github' | 'google') => {
+  // Success message after returning from email signup verification (derived, no setState).
+  const signupSuccess = !isSignup && searchParams.get('signup') === 'success'
+  const formNotice = notice || (signupSuccess ? 'Account created. Please log in to continue.' : '')
+
+  // Resend cooldown timer.
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const id = setInterval(() => setCooldown((c) => (c > 0 ? c - 1 : 0)), 1000)
+    return () => clearInterval(id)
+  }, [cooldown])
+
+  const reset = () => {
     setError('')
     setNotice('')
-    setLoading(true)
+  }
+
+  // ── OAuth (GitHub / Google) — same provider call signs in or signs up ──
+  const handleOAuth = async (provider: 'github' | 'google') => {
+    reset()
+    setOauthLoading(provider)
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo },
+      options: {
+        redirectTo,
+        ...(provider === 'google'
+          ? { queryParams: { access_type: 'offline', prompt: 'consent' } }
+          : {}),
+      },
     })
     if (error) {
       setError(error.message)
-      setLoading(false)
+      setOauthLoading(null)
     }
+    // On success the browser is redirected to the provider.
   }
 
-  const handleSendMagicLink = async (e: React.FormEvent) => {
+  // ── Email + password login ──
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setNotice('')
-    if (!email) {
-      setError('Enter your email address.')
+    reset()
+    if (!EMAIL_REGEX.test(email) || !password) {
+      setError('Invalid email or password.')
       return
     }
     setLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setLoading(false)
+      // Generic — never reveal whether the email or the password was wrong.
+      setError('Invalid email or password.')
+      return
+    }
+    router.push('/dashboard')
+    router.refresh()
+  }
+
+  // ── Email + password signup → send confirmation OTP ──
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    reset()
+    if (!EMAIL_REGEX.test(email)) {
+      setError('Enter a valid email address.')
+      return
+    }
+    if (password.length < MIN_PASSWORD) {
+      setError(`Password must be at least ${MIN_PASSWORD} characters.`)
+      return
+    }
+    if (password !== confirm) {
+      setError('Passwords don’t match.')
+      return
+    }
+    setLoading(true)
+    const { data, error } = await supabase.auth.signUp({
       email,
+      password,
       options: { emailRedirectTo: redirectTo },
     })
     setLoading(false)
@@ -75,29 +136,21 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       setError(error.message)
       return
     }
+    // If confirmations are disabled, signUp returns a session (auto-login).
+    // We do NOT auto-login: sign out and send them to login.
+    if (data.session) {
+      await supabase.auth.signOut()
+      router.push('/login?signup=success')
+      return
+    }
+    setCooldown(RESEND_COOLDOWN)
     setView('verify')
   }
 
-  const handleResend = async () => {
-    setError('')
-    setNotice('')
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: redirectTo },
-    })
-    setLoading(false)
-    if (error) {
-      setError(error.message)
-      return
-    }
-    setNotice('Sent again — check your inbox.')
-  }
-
+  // ── Verify signup OTP → create account → redirect to login (no auto-login) ──
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setNotice('')
+    reset()
     if (token.length < 6) {
       setError('Enter the 6-digit code from your email.')
       return
@@ -106,20 +159,42 @@ export default function AuthForm({ mode }: { mode: Mode }) {
     const { error } = await supabase.auth.verifyOtp({
       email,
       token,
-      type: 'email',
+      type: 'signup',
+    })
+    if (error) {
+      setLoading(false)
+      setError('That code is invalid or has expired. Request a new one.')
+      return
+    }
+    // Verified — but do not keep them logged in. Clear session, go to login.
+    await supabase.auth.signOut()
+    router.push('/login?signup=success')
+  }
+
+  const handleResend = async () => {
+    if (cooldown > 0) return
+    reset()
+    setLoading(true)
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: redirectTo },
     })
     setLoading(false)
     if (error) {
       setError(error.message)
       return
     }
-    router.push('/dashboard')
+    setCooldown(RESEND_COOLDOWN)
+    setNotice('A new code is on its way — check your inbox.')
   }
 
+  // ── styles (design system unchanged) ──
   const inputCls =
     'w-full rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 font-mono placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all duration-300'
   const primaryBtn =
     'w-full inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 px-6 py-3.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 disabled:opacity-60 disabled:pointer-events-none'
+  const anyLoading = loading || oauthLoading !== null
 
   return (
     <div className="min-h-screen relative overflow-hidden font-sans">
@@ -134,7 +209,6 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       </div>
 
       <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-1 text-2xl font-semibold tracking-tighter text-white mb-8">
           Glyph<span className="text-indigo-400 leading-none">°</span>
         </Link>
@@ -157,11 +231,11 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                 </p>
 
                 <div className="flex flex-col gap-3">
-                  <button onClick={() => handleOAuth('github')} disabled={loading} className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-gray-900 px-6 py-3.5 text-sm font-medium text-white hover:bg-gray-800 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none">
-                    <GitHubIcon className="h-4 w-4" /> Continue with GitHub
+                  <button onClick={() => handleOAuth('github')} disabled={anyLoading} className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-gray-900 px-6 py-3.5 text-sm font-medium text-white hover:bg-gray-800 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none">
+                    {oauthLoading === 'github' ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitHubIcon className="h-4 w-4" />} Continue with GitHub
                   </button>
-                  <button onClick={() => handleOAuth('google')} disabled={loading} className="w-full inline-flex items-center justify-center gap-3 rounded-full border border-gray-200 bg-white px-6 py-3.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none">
-                    <GoogleIcon className="h-4 w-4" /> Continue with Google
+                  <button onClick={() => handleOAuth('google')} disabled={anyLoading} className="w-full inline-flex items-center justify-center gap-3 rounded-full border border-gray-200 bg-white px-6 py-3.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none">
+                    {oauthLoading === 'google' ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon className="h-4 w-4" />} Continue with Google
                   </button>
 
                   <div className="flex items-center gap-4 my-2">
@@ -170,7 +244,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                     <div className="h-px flex-1 bg-gray-200" />
                   </div>
 
-                  <form onSubmit={handleSendMagicLink} className="flex flex-col gap-3">
+                  <form onSubmit={isSignup ? handleSignup : handleLogin} className="flex flex-col gap-3 text-left">
                     <input
                       type="email"
                       value={email}
@@ -179,14 +253,44 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                       autoComplete="email"
                       className={inputCls}
                     />
-                    <button type="submit" disabled={loading} className={primaryBtn}>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={isSignup ? 'Create a password' : 'Password'}
+                        autoComplete={isSignup ? 'new-password' : 'current-password'}
+                        className={`${inputCls} pr-11`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((s) => !s)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {isSignup && (
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)}
+                        placeholder="Confirm password"
+                        autoComplete="new-password"
+                        className={inputCls}
+                      />
+                    )}
+                    <button type="submit" disabled={anyLoading} className={primaryBtn}>
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                      {loading ? 'Sending…' : 'Send Magic Link'}
+                      {loading
+                        ? isSignup ? 'Creating…' : 'Signing in…'
+                        : isSignup ? 'Create Account' : 'Sign In'}
                     </button>
                   </form>
 
-                  {error && <p className="text-xs font-mono text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3 leading-relaxed">{error}</p>}
-                  {notice && <p className="text-xs font-mono text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 leading-relaxed">{notice}</p>}
+                  {error && <p className="text-xs font-mono text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3 leading-relaxed text-left">{error}</p>}
+                  {formNotice && <p className="text-xs font-mono text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 leading-relaxed text-left">{formNotice}</p>}
                 </div>
 
                 <p className="text-sm text-gray-500 mt-8">
@@ -205,9 +309,9 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                   </div>
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-light tracking-tighter text-gray-900 mb-2">Check your email.</h1>
+                <h1 className="text-3xl md:text-4xl font-light tracking-tighter text-gray-900 mb-2">Verify your email.</h1>
                 <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                  We sent a magic link to <span className="font-mono text-gray-700">{email}</span>. Click it to sign in — no password needed. Or enter the 6-digit code below.
+                  We sent a 6-digit code to <span className="font-mono text-gray-700">{email}</span>. Enter it below to finish creating your account.
                 </p>
 
                 <form onSubmit={handleVerify} className="flex flex-col gap-3">
@@ -222,15 +326,26 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                   />
                   <button type="submit" disabled={loading} className={primaryBtn}>
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    {loading ? 'Verifying…' : 'Verify Code'}
+                    {loading ? 'Verifying…' : 'Verify & Create Account'}
                   </button>
                   {error && <p className="text-xs font-mono text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3 leading-relaxed">{error}</p>}
                   {notice && <p className="text-xs font-mono text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 leading-relaxed">{notice}</p>}
                 </form>
 
                 <div className="flex flex-col items-center gap-3 mt-8">
-                  <button onClick={handleResend} disabled={loading} className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors disabled:opacity-60">Resend email</button>
-                  <button onClick={() => { setView('form'); setToken(''); setError(''); setNotice('') }} className="text-xs font-mono text-gray-400 hover:text-gray-600 transition-colors">← Use a different email</button>
+                  <button
+                    onClick={handleResend}
+                    disabled={loading || cooldown > 0}
+                    className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
+                  </button>
+                  <button
+                    onClick={() => { setView('form'); setToken(''); reset() }}
+                    className="text-xs font-mono text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    ← Use a different email
+                  </button>
                 </div>
               </div>
             )}

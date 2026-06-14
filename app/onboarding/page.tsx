@@ -186,7 +186,7 @@ export default function OnboardingPage() {
 
         <div className="w-full max-w-[560px] bg-white/95 backdrop-blur-2xl rounded-[2.5rem] panel-shadow border border-white overflow-hidden">
           {/* Progress */}
-          <div className="px-8 pt-8 md:px-10">
+          <div className="px-6 pt-8 sm:px-8 md:px-10">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-mono font-semibold uppercase tracking-widest text-indigo-600">
                 Step {step} / {TOTAL} — {STEP_TITLES[step - 1]}
@@ -206,7 +206,7 @@ export default function OnboardingPage() {
           </div>
 
           {/* Step content */}
-          <div className="px-8 py-8 md:px-10">
+          <div className="px-6 py-8 sm:px-8 md:px-10">
             {step === 1 && (
               <div className="flex flex-col gap-6">
                 <div>
@@ -368,21 +368,25 @@ export default function OnboardingPage() {
           </div>
 
           {/* Navigation */}
-          <div className="flex items-center justify-between border-t border-gray-100 px-8 py-5 md:px-10">
-            <button
-              onClick={back}
-              disabled={step === 1 || isSubmitting}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-0 disabled:pointer-events-none"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back
-            </button>
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8 md:px-10">
+            {step > 1 ? (
+              <button
+                onClick={back}
+                disabled={isSubmitting}
+                className="inline-flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-40 disabled:pointer-events-none sm:justify-start sm:py-0"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back
+              </button>
+            ) : (
+              <span className="hidden sm:block" />
+            )}
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 w-full sm:w-auto">
               {(step === 3 || step === 4) && (
                 <button
                   onClick={next}
                   disabled={isSubmitting}
-                  className="text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-gray-600 transition-colors"
+                  className="shrink-0 text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {step === 4 ? 'Skip' : 'Skip for now →'}
                 </button>
@@ -390,7 +394,7 @@ export default function OnboardingPage() {
               <button
                 onClick={next}
                 disabled={!canAdvance || isSubmitting}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none disabled:translate-y-0 disabled:shadow-none"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none disabled:translate-y-0 disabled:shadow-none sm:flex-none"
               >
                 {isSubmitting ? (
                   <>

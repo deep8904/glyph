@@ -214,7 +214,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         </Link>
 
         <div className="w-full max-w-[480px] bg-white/95 backdrop-blur-2xl rounded-[2.5rem] panel-shadow border border-white overflow-hidden">
-          <div className="px-8 py-10 md:px-10 md:py-12">
+          <div className="px-6 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12">
             {view === 'form' ? (
               <div className="reveal active flex flex-col text-center">
                 <div className="flex justify-center">

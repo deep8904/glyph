@@ -1,7 +1,6 @@
-
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Gamepad2,
@@ -18,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Menu,
   MessageCircle,
   GitBranch,
 } from 'lucide-react'
@@ -36,6 +36,13 @@ function useReveal() {
     return () => observer.disconnect()
   }, [])
 }
+
+const NAV_LINKS = [
+  { href: '#features', label: 'Features' },
+  { href: '#community', label: 'Community' },
+  { href: '#events', label: 'Events' },
+  { href: '#jobs', label: 'Jobs' },
+]
 
 const METRICS = [
   { label: 'Global Active', value: '250K', sublabel: 'Active indie developers globally', delay: 'delay-100' },
@@ -64,9 +71,18 @@ const STEPS = [
 
 export function Landing({ isAuthed }: { isAuthed: boolean }) {
   useReveal()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Lock body scroll while the mobile menu is open.
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [menuOpen])
 
   return (
-    <div className="min-h-screen relative overflow-hidden font-sans">
+    <div className="min-h-screen relative overflow-x-hidden font-sans">
       {/* Plasma background */}
       <div className="fixed inset-0 z-0 bg-plasma pointer-events-none" />
 
@@ -82,38 +98,81 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
         <div className="flex-1 bg-white/95 backdrop-blur-2xl rounded-[2.5rem] panel-shadow overflow-hidden flex flex-col border border-white relative">
 
           {/* Header */}
-          <header className="flex items-center justify-between px-8 py-6 md:px-12 md:py-8 border-b border-gray-100/50 reveal">
-            <div className="flex items-center gap-1 text-xl font-semibold tracking-tighter text-gray-900">
-              Glyph<span className="text-indigo-600 leading-none">°</span>
+          <header className="border-b border-gray-100/50 reveal">
+            <div className="flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 md:px-12 md:py-8">
+              {/* Logo — always visible */}
+              <div className="flex items-center gap-1 text-xl font-semibold tracking-tighter text-gray-900">
+                Glyph<span className="text-indigo-600 leading-none">°</span>
+              </div>
+              {/* Desktop nav links — hidden on mobile */}
+              <nav className="hidden lg:flex items-center gap-10 text-[10px] font-mono font-medium text-gray-500 uppercase tracking-widest">
+                {NAV_LINKS.map((l) => (
+                  <a key={l.href} href={l.href} className="hover:text-gray-900 transition-colors">{l.label}</a>
+                ))}
+              </nav>
+              {/* Desktop auth actions — hidden on mobile */}
+              <div className="hidden lg:flex items-center gap-6">
+                {isAuthed ? (
+                  <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 transition-all duration-300">
+                    Dashboard <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Log in</Link>
+                    <Link href="/signup" className="inline-flex items-center justify-center rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 transition-all duration-300">Sign Up</Link>
+                  </>
+                )}
+              </div>
+              {/* Mobile hamburger — hidden on desktop */}
+              <button
+                onClick={() => setMenuOpen((o) => !o)}
+                className="lg:hidden flex h-11 w-11 -mr-2 items-center justify-center text-gray-700 hover:text-gray-900 transition-colors"
+                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                aria-expanded={menuOpen}
+              >
+                {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
             </div>
-            <nav className="hidden lg:flex items-center gap-10 text-[10px] font-mono font-medium text-gray-500 uppercase tracking-widest">
-              <a href="#features" className="hover:text-gray-900 transition-colors">Features</a>
-              <a href="#community" className="hover:text-gray-900 transition-colors">Community</a>
-              <a href="#events" className="hover:text-gray-900 transition-colors">Events</a>
-              <a href="#jobs" className="hover:text-gray-900 transition-colors">Jobs</a>
-            </nav>
-            <div className="flex items-center gap-6">
-              {isAuthed ? (
-                <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 transition-all duration-300">
-                  Dashboard <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              ) : (
-                <>
-                  <Link href="/login" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Log in</Link>
-                  <Link href="/signup" className="inline-flex items-center justify-center rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 transition-all duration-300">Sign Up</Link>
-                </>
-              )}
-            </div>
+
+            {/* Mobile dropdown — in normal flow (pushes content down), fully opaque, no overlap */}
+            {menuOpen && (
+              <div className="lg:hidden border-t border-gray-100 bg-white/95 backdrop-blur-xl px-5 sm:px-8 pb-6">
+                <nav className="flex flex-col">
+                  {NAV_LINKS.map((l) => (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setMenuOpen(false)}
+                      className="py-4 text-sm font-mono font-medium uppercase tracking-widest text-gray-600 hover:text-gray-900 border-b border-gray-100 transition-colors"
+                    >
+                      {l.label}
+                    </a>
+                  ))}
+                </nav>
+                <div className="border-t border-gray-100 pt-4 mt-2 flex flex-col gap-3">
+                  {isAuthed ? (
+                    <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-5 py-3.5 text-sm font-medium text-white hover:bg-indigo-600 transition-all duration-300">
+                      Dashboard <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  ) : (
+                    <>
+                      <Link href="/login" onClick={() => setMenuOpen(false)} className="inline-flex items-center justify-center rounded-full border border-gray-200 px-5 py-3.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-300">Log in</Link>
+                      <Link href="/signup" onClick={() => setMenuOpen(false)} className="inline-flex items-center justify-center rounded-full bg-gray-900 px-5 py-3.5 text-sm font-medium text-white hover:bg-indigo-600 transition-all duration-300">Sign Up</Link>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </header>
 
-          <div className="px-8 md:px-16 lg:px-24 pb-24 pt-16 md:pt-24 space-y-32">
+          <div className="px-5 sm:px-8 md:px-16 lg:px-24 pb-16 pt-12 sm:pb-24 sm:pt-16 md:pt-24 space-y-20 sm:space-y-28 lg:space-y-32">
 
             {/* Hero */}
             <section className="flex flex-col items-center text-center max-w-4xl mx-auto">
               <div className="reveal mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50/50 px-3 py-1 text-[11px] uppercase tracking-wider font-semibold text-indigo-600 shadow-sm backdrop-blur-md font-mono">
                 <Gamepad2 className="h-3.5 w-3.5" /> Platform for Builders
               </div>
-              <h1 className="reveal delay-100 text-5xl sm:text-6xl md:text-[80px] text-gray-900 leading-[1.05] font-light tracking-tighter text-balance mb-8">
+              <h1 className="reveal delay-100 text-4xl sm:text-6xl lg:text-[80px] text-gray-900 leading-[1.05] font-light tracking-tighter text-balance mb-8">
                 Your home base <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-cyan-500">before launch.</span>
               </h1>
@@ -131,7 +190,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
             </section>
 
             {/* Problem */}
-            <section className="grid md:grid-cols-2 gap-16 items-center">
+            <section className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
               <div className="reveal space-y-6">
                 <h2 className="text-3xl md:text-4xl font-light tracking-tight text-gray-900 text-balance">
                   Your workflow is scattered across 7 platforms. None of them are built for you.
@@ -143,11 +202,11 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                 </p>
               </div>
               <div className="reveal delay-200 relative p-1 rounded-3xl bg-linear-to-b from-gray-100 to-white">
-                <div className="bg-white rounded-[22px] p-10 md:p-14 shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <div className="bg-white rounded-[22px] p-8 sm:p-10 md:p-14 shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col items-center justify-center text-center relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4">
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                   </div>
-                  <span className="text-7xl font-light tracking-tighter text-gray-900 mb-4">70%</span>
+                  <span className="text-6xl sm:text-7xl font-light tracking-tighter text-gray-900 mb-4">70%</span>
                   <p className="text-sm font-mono text-gray-500 uppercase tracking-widest leading-relaxed">
                     of indie projects <br /> never reach launch.
                   </p>
@@ -168,12 +227,12 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 cursor-pointer hover:bg-indigo-50 hover:text-indigo-600 transition-colors"><ChevronRight className="h-4 w-4" /></span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 {METRICS.map((m) => (
-                  <div key={m.label} className={`relative flex flex-col p-6 rounded-2xl bg-white border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg transition-shadow duration-300 reveal ${m.delay}`}>
+                  <div key={m.label} className={`relative flex flex-col p-5 sm:p-6 rounded-2xl bg-white border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg transition-shadow duration-300 reveal ${m.delay}`}>
                     <ArrowUpRight className="absolute top-5 right-5 h-4 w-4 text-gray-300" />
                     <span className="text-[10px] font-mono font-semibold tracking-widest text-gray-400 uppercase mb-4">{m.label}</span>
-                    <span className="text-4xl md:text-5xl font-light tracking-tighter text-gray-900 mb-1">{m.value}</span>
+                    <span className="text-3xl sm:text-4xl md:text-5xl font-light tracking-tighter text-gray-900 mb-1">{m.value}</span>
                     <span className="text-xs font-medium text-gray-500">{m.sublabel}</span>
                   </div>
                 ))}
@@ -181,7 +240,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
             </section>
 
             {/* Features bento */}
-            <section id="features" className="space-y-12 bg-gray-50/50 -mx-8 md:-mx-16 lg:-mx-24 px-8 md:px-16 lg:px-24 py-24 border-y border-gray-100">
+            <section id="features" className="space-y-12 bg-gray-50/50 -mx-5 sm:-mx-8 md:-mx-16 lg:-mx-24 px-5 sm:px-8 md:px-16 lg:px-24 py-16 sm:py-20 md:py-24 border-y border-gray-100">
               <div className="reveal max-w-2xl">
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50/50 px-3 py-1 text-[11px] uppercase tracking-wider font-semibold text-indigo-600 shadow-sm backdrop-blur-md font-mono">
                   <Layers className="h-3.5 w-3.5" /> Platform Tools
@@ -190,9 +249,9 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                   Everything you need before launch. Nothing you don&apos;t.
                 </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-[minmax(280px,auto)] gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-[minmax(260px,auto)] gap-4 md:gap-6">
                 {/* Developer Profile — 2 col */}
-                <div className="group flex flex-col p-8 rounded-3xl bg-linear-to-br from-white to-gray-50/80 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal delay-100 md:col-span-2">
+                <div className="group flex flex-col p-8 rounded-3xl bg-linear-to-br from-white to-gray-50/80 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal delay-100 sm:col-span-2">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
                     <UserSquare className="h-6 w-6" />
                   </div>
@@ -203,7 +262,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                   </div>
                 </div>
                 {/* Devlogs — 2 row, dark */}
-                <div className="group flex flex-col p-8 rounded-3xl bg-indigo-900 text-white shadow-[0_20px_40px_-15px_rgba(79,70,229,0.3)] transition-all duration-300 reveal delay-200 md:row-span-2">
+                <div className="group flex flex-col p-8 rounded-3xl bg-indigo-900 text-white shadow-[0_20px_40px_-15px_rgba(79,70,229,0.3)] transition-all duration-300 reveal delay-200 lg:row-span-2">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white mb-6 group-hover:scale-110 group-hover:bg-white/20 transition-all duration-300">
                     <FileText className="h-6 w-6" />
                   </div>
@@ -230,7 +289,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                   <p className="text-sm text-gray-500 leading-relaxed max-w-sm flex-1">City-based meetups and game jams with RSVP and demo slots. Find your local developer community.</p>
                 </div>
                 {/* Collaboration — 2 col */}
-                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal delay-500 md:col-span-2">
+                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal delay-500 sm:col-span-2">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
                     <Users className="h-6 w-6" />
                   </div>
@@ -241,11 +300,11 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
             </section>
 
             {/* How it works */}
-            <section id="how-it-works" className="max-w-4xl mx-auto space-y-16">
+            <section id="how-it-works" className="max-w-4xl mx-auto space-y-12 sm:space-y-16">
               <div className="reveal text-center">
                 <h2 className="text-3xl md:text-4xl font-light tracking-tight text-gray-900">Up and running in minutes.</h2>
               </div>
-              <div className="relative space-y-12 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-linear-to-b before:from-transparent before:via-gray-200 before:to-transparent">
+              <div className="relative space-y-8 sm:space-y-12 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-linear-to-b before:from-transparent before:via-gray-200 before:to-transparent">
                 {STEPS.map((item, i) => (
                   <div key={item.step} className={`reveal relative flex items-center justify-between md:justify-normal group ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
                     <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-indigo-50 text-indigo-600 font-mono text-xs shrink-0 md:order-1 shadow-sm z-10 ${i % 2 === 1 ? 'md:translate-x-1/2' : 'md:-translate-x-1/2'}`}>
@@ -261,7 +320,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
             </section>
 
             {/* Always free */}
-            <section id="events" className="reveal relative overflow-hidden rounded-[2.5rem] bg-gray-900 text-white p-10 md:p-16 lg:p-20 text-center">
+            <section id="events" className="reveal relative overflow-hidden rounded-[2.5rem] bg-gray-900 text-white p-8 sm:p-12 md:p-16 lg:p-20 text-center">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-indigo-500/10 blur-[100px] pointer-events-none" />
               <div className="relative z-10 max-w-3xl mx-auto space-y-8">
                 <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-indigo-500/20 px-3 py-1 text-[11px] uppercase tracking-wider font-semibold text-indigo-300 shadow-sm backdrop-blur-md font-mono">
@@ -275,7 +334,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                   Developer profiles, project pages, devlogs, playtesting, local events, and the collaboration board are permanently free. Glyph is funded by studios, publishers, and ecosystem companies — not by the people it&apos;s built to serve.
                 </p>
                 <div className="pt-4">
-                  <Link href="/signup" className="inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                  <Link href="/signup" className="inline-flex w-full sm:w-auto items-center justify-center rounded-full bg-white px-8 py-4 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                     Create Free Profile
                   </Link>
                 </div>
@@ -297,9 +356,9 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
           </div>
 
           {/* Footer */}
-          <footer id="jobs" className="mt-auto border-t border-gray-100 bg-gray-50/50 px-8 py-12 md:px-16 text-sm">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
-              <div className="col-span-2 lg:col-span-2 space-y-4">
+          <footer id="jobs" className="mt-auto border-t border-gray-100 bg-gray-50/50 px-5 py-10 sm:px-8 sm:py-12 md:px-16 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+              <div className="sm:col-span-2 space-y-4">
                 <div className="flex items-center gap-1 text-lg font-semibold tracking-tighter text-gray-900">
                   Glyph<span className="text-indigo-600">°</span>
                 </div>
@@ -323,18 +382,18 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                   <li><a href="#" className="hover:text-indigo-600 transition-colors">Terms of Service</a></li>
                 </ul>
               </div>
-              <div className="space-y-3 col-span-2 md:col-span-4 lg:col-span-1">
+              <div className="space-y-3 sm:col-span-2 lg:col-span-1">
                 <h4 className="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-400">Connect</h4>
                 <div className="flex gap-4 text-gray-400">
-                  <a href="#" aria-label="X" className="hover:text-gray-900 transition-colors"><X className="h-5 w-5" /></a>
-                  <a href="#" aria-label="Discord" className="hover:text-gray-900 transition-colors"><MessageCircle className="h-5 w-5" /></a>
-                  <a href="#" aria-label="GitHub" className="hover:text-gray-900 transition-colors"><GitBranch className="h-5 w-5" /></a>
+                  <a href="#" aria-label="X" className="flex h-9 w-9 items-center justify-center hover:text-gray-900 transition-colors"><X className="h-5 w-5" /></a>
+                  <a href="#" aria-label="Discord" className="flex h-9 w-9 items-center justify-center hover:text-gray-900 transition-colors"><MessageCircle className="h-5 w-5" /></a>
+                  <a href="#" aria-label="GitHub" className="flex h-9 w-9 items-center justify-center hover:text-gray-900 transition-colors"><GitBranch className="h-5 w-5" /></a>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-gray-200/60 text-xs text-gray-400 font-mono">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-200/60 text-xs text-gray-400 font-mono text-center md:text-left">
               <p>© 2026 Glyph. Built for indie developers.</p>
-              <div className="flex items-center gap-2 mt-4 md:mt-0">
+              <div className="flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />

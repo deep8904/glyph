@@ -74,7 +74,7 @@ export default async function ProfilePage({
       <main className="relative z-10 w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12 min-h-screen flex flex-col">
         <div className="flex-1 bg-white/95 backdrop-blur-2xl rounded-[2.5rem] panel-shadow overflow-hidden flex flex-col border border-white relative">
           {/* Top bar */}
-          <div className="flex items-center justify-between px-8 py-6 md:px-10 border-b border-gray-100/50">
+          <div className="flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 md:px-10 border-b border-gray-100/50">
             <Link href="/" className="flex items-center gap-1 text-lg font-semibold tracking-tighter text-gray-900">
               Glyph<span className="text-indigo-600 leading-none">°</span>
             </Link>
@@ -83,7 +83,7 @@ export default async function ProfilePage({
             </span>
           </div>
 
-          <div className="px-8 md:px-12 py-10 md:py-12 space-y-10">
+          <div className="px-5 sm:px-8 md:px-12 py-8 sm:py-10 md:py-12 space-y-10">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-6">
               {profile.avatar_url ? (

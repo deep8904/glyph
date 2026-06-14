@@ -35,6 +35,14 @@ export function FollowButton({
         follower_id: currentUserId,
         followed_id: targetId,
       })
+      // Notify the followed user
+      await supabase.from('notifications').insert({
+        recipient_id: targetId,
+        actor_id: currentUserId,
+        type: 'follow',
+        entity_type: 'profile',
+        entity_id: targetId,
+      })
       setFollowing(true)
     }
     setLoading(false)

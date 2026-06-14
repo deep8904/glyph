@@ -51,6 +51,24 @@ export type DevlogPost = {
   updated_at: string
 }
 
+export type Reaction = {
+  id: string
+  user_id: string
+  devlog_post_id: string
+  reaction_type: 'like' | 'helpful' | 'inspiring' | 'question'
+  created_at: string
+}
+
+export type Comment = {
+  id: string
+  author_id: string
+  devlog_post_id: string
+  parent_comment_id: string | null
+  content: string
+  created_at: string
+  updated_at: string
+}
+
 // Shared option lists for onboarding selects and label lookups.
 export const ROLES = [
   { value: 'programmer', label: 'Programmer' },
@@ -90,6 +108,13 @@ export const COLLAB_STATUS = [
   { value: 'selective', label: 'Selectively Open' },
   { value: 'closed', label: 'Not Available' },
 ] as const
+
+export const REACTION_TYPES = [
+  { type: 'like' as const, emoji: '❤️', label: 'Like' },
+  { type: 'helpful' as const, emoji: '💡', label: 'Helpful' },
+  { type: 'inspiring' as const, emoji: '🔥', label: 'Inspiring' },
+  { type: 'question' as const, emoji: '🤔', label: 'Question' },
+]
 
 export function labelFor(
   list: readonly { value: string; label: string }[],

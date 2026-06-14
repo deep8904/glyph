@@ -3,7 +3,11 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, Calendar } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
-import type { Profile, Project, DevlogPost } from '@/lib/supabase/types'
+import { ReactionsBar } from '@/components/devlog/ReactionsBar'
+import { CommentThread } from '@/components/devlog/CommentThread'
+import { REACTION_TYPES } from '@/lib/supabase/types'
+import type { Profile, Project, DevlogPost, Comment } from '@/lib/supabase/types'
+import type { CommentData } from '@/components/devlog/CommentThread'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -12,6 +16,10 @@ function formatDate(iso: string) {
     day: 'numeric',
     year: 'numeric',
   })
+}
+
+function initials(name: string) {
+  return name.slice(0, 1).toUpperCase()
 }
 
 export default async function DevlogPostPage({
@@ -58,7 +66,69 @@ export default async function DevlogPostPage({
   const isDraft = !post.published_at || new Date(post.published_at) > new Date()
   if (isDraft && !isOwner) notFound()
 
+  // Fetch reactions, comments, and current user's profile in parallel
+  const [
+    { data: allReactions },
+    { data: rawComments },
+    { data: currentProfile },
+  ] = await Promise.all([
+    supabase
+      .from('reactions')
+      .select('id, user_id, reaction_type')
+      .eq('devlog_post_id', post.id),
+    supabase
+      .from('comments')
+      .select('id, author_id, parent_comment_id, content, created_at, profiles!author_id(id, username, display_name, avatar_url)')
+      .eq('devlog_post_id', post.id)
+      .order('created_at', { ascending: true }),
+    currentUser
+      ? supabase.from('profiles').select('id').eq('id', currentUser.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+
+  // Build reaction counts
+  const reactionCounts = REACTION_TYPES.map(({ type }) => ({
+    type,
+    count: (allReactions ?? []).filter((r) => r.reaction_type === type).length,
+    reacted: currentUser
+      ? (allReactions ?? []).some((r) => r.reaction_type === type && r.user_id === currentUser.id)
+      : false,
+  }))
+
+  // Build comment tree (one level deep)
+  type RawComment = {
+    id: string
+    author_id: string
+    parent_comment_id: string | null
+    content: string
+    created_at: string
+    profiles: { id: string; username: string; display_name: string | null; avatar_url: string | null }
+  }
+
+  const rawList = (rawComments ?? []) as unknown as RawComment[]
+  const topLevel: CommentData[] = rawList
+    .filter((c) => !c.parent_comment_id)
+    .map((c) => ({
+      id: c.id,
+      author_id: c.author_id,
+      parent_comment_id: null,
+      content: c.content,
+      created_at: c.created_at,
+      author: c.profiles,
+      replies: rawList
+        .filter((r) => r.parent_comment_id === c.id)
+        .map((r) => ({
+          id: r.id,
+          author_id: r.author_id,
+          parent_comment_id: r.parent_comment_id,
+          content: r.content,
+          created_at: r.created_at,
+          author: r.profiles,
+        })),
+    }))
+
   const ownerName = profile.display_name || profile.username
+  const currentUserId = currentProfile ? currentUser?.id ?? null : null
 
   return (
     <div className="min-h-screen relative overflow-hidden font-sans">
@@ -93,7 +163,7 @@ export default async function DevlogPostPage({
 
             {/* Post header */}
             <header className="mb-8 pb-8 border-b border-gray-100">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
                 <Link
                   href={`/dev/${username}`}
                   className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
@@ -103,7 +173,7 @@ export default async function DevlogPostPage({
                     <img src={profile.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
                   ) : (
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-mono font-semibold text-indigo-600">
-                      {ownerName.charAt(0).toUpperCase()}
+                      {initials(ownerName)}
                     </span>
                   )}
                   {ownerName}
@@ -128,6 +198,25 @@ export default async function DevlogPostPage({
 
             {/* Content */}
             <MarkdownRenderer content={post.content} />
+
+            {/* Reactions */}
+            <div className="mt-10 pt-8 border-t border-gray-100 space-y-2">
+              <p className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">React</p>
+              <ReactionsBar
+                devlogPostId={post.id}
+                currentUserId={currentUserId}
+                initialCounts={reactionCounts}
+              />
+            </div>
+
+            {/* Comments */}
+            <div className="mt-10 pt-8 border-t border-gray-100">
+              <CommentThread
+                devlogPostId={post.id}
+                currentUserId={currentUserId}
+                comments={topLevel}
+              />
+            </div>
 
             {/* Footer */}
             <footer className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">

@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { GitBranch, Gamepad2, X, Globe, ArrowRight } from 'lucide-react'
+import { GitBranch, Gamepad2, X, Globe, ArrowRight, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/Badge'
+import { FollowButton } from '@/components/social/FollowButton'
 import {
   labelFor,
   ROLES,
@@ -34,6 +35,10 @@ export default async function ProfilePage({
   const { username } = await params
   const supabase = await createClient()
 
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser()
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
@@ -42,18 +47,42 @@ export default async function ProfilePage({
 
   if (!profile) notFound()
 
-  const { data: project } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('owner_id', profile.id)
-    .eq('is_primary', true)
-    .maybeSingle<Project>()
+  const [
+    { data: project },
+    { count: followerCount },
+    { count: followingCount },
+    { data: followRow },
+  ] = await Promise.all([
+    supabase
+      .from('projects')
+      .select('*')
+      .eq('owner_id', profile.id)
+      .eq('is_primary', true)
+      .maybeSingle<Project>(),
+    supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('followed_id', profile.id),
+    supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('follower_id', profile.id),
+    currentUser
+      ? supabase
+          .from('follows')
+          .select('follower_id')
+          .eq('follower_id', currentUser.id)
+          .eq('followed_id', profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
 
   const name = profile.display_name || profile.username
   const role = labelFor(ROLES, profile.primary_role)
   const engine = labelFor(ENGINES, profile.primary_engine)
   const experience = labelFor(EXPERIENCE_LEVELS, profile.experience_level)
   const isOpen = profile.collaboration_status === 'open'
+  const isFollowing = !!followRow
 
   const socials = [
     { url: profile.github_url, label: 'GitHub', Icon: GitBranch },
@@ -85,16 +114,18 @@ export default async function ProfilePage({
 
           <div className="px-5 sm:px-8 md:px-12 py-8 sm:py-10 md:py-12 space-y-10">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-              {profile.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatar_url} alt="" className="h-20 w-20 rounded-2xl object-cover" />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-100 font-mono text-2xl font-semibold text-indigo-600">
-                  {initials(name)}
-                </div>
-              )}
-              <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-6">
+              <div className="shrink-0">
+                {profile.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.avatar_url} alt="" className="h-20 w-20 rounded-2xl object-cover" />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-100 font-mono text-2xl font-semibold text-indigo-600">
+                    {initials(name)}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
                 <h1 className="text-3xl font-medium tracking-tight text-gray-900">{name}</h1>
                 <p className="font-mono text-sm text-gray-500">@{profile.username}</p>
                 <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -110,7 +141,33 @@ export default async function ProfilePage({
                     {isOpen ? 'Open to Collaborate' : 'Not Available'}
                   </span>
                 </div>
+
+                {/* Follow counts */}
+                <div className="flex items-center gap-4 pt-1">
+                  <Link
+                    href={`/dev/${username}/followers`}
+                    className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span className="font-medium">{followerCount ?? 0}</span>
+                    <span className="text-gray-400">followers</span>
+                  </Link>
+                  <Link
+                    href={`/dev/${username}/following`}
+                    className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+                  >
+                    <span className="font-medium">{followingCount ?? 0}</span>
+                    <span className="text-gray-400">following</span>
+                  </Link>
+                </div>
               </div>
+
+              {/* Follow button */}
+              <FollowButton
+                targetId={profile.id}
+                currentUserId={currentUser?.id ?? null}
+                initialFollowing={isFollowing}
+              />
             </div>
 
             {/* Bio */}
@@ -150,7 +207,10 @@ export default async function ProfilePage({
                 Current Project
               </h2>
               {project ? (
-                <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                <Link
+                  href={project.slug ? `/p/${username}/${project.slug}` : '#'}
+                  className="block rounded-3xl border border-gray-100 bg-white p-6 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all duration-300"
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-medium tracking-tight text-gray-900">{project.title}</h3>
@@ -165,7 +225,7 @@ export default async function ProfilePage({
                   <div className="mt-6 inline-flex items-center gap-2 text-xs font-mono font-semibold uppercase tracking-wider text-indigo-600">
                     View Project <ArrowRight className="h-3.5 w-3.5" />
                   </div>
-                </div>
+                </Link>
               ) : (
                 <div className="rounded-3xl border border-dashed border-gray-200 bg-gray-50/40 p-8 text-center">
                   <p className="text-sm text-gray-400">No projects yet.</p>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { slugify } from '@/lib/utils'
+import { slugify, stripDangerousUnicode } from '@/lib/utils'
 import { ENGINES, PROJECT_STAGES } from '@/lib/supabase/types'
 import type { Project } from '@/lib/supabase/types'
 
@@ -91,14 +91,22 @@ export function ProjectForm({
 
     setLoading(true)
 
+    const s = (v: string) => stripDangerousUnicode(v.trim())
+
+    if (form.title.length > 200 || form.short_description.length > 200 || form.long_description.length > 5000 || form.genre.length > 100) {
+      setError('One or more fields exceeds the maximum allowed length.')
+      setLoading(false)
+      return
+    }
+
     const payload = {
-      title: form.title.trim(),
+      title: s(form.title),
       slug: form.slug.trim(),
-      short_description: form.short_description.trim() || null,
-      long_description: form.long_description.trim() || null,
+      short_description: s(form.short_description) || null,
+      long_description: s(form.long_description) || null,
       tags,
       engine: form.engine || null,
-      genre: form.genre.trim() || null,
+      genre: s(form.genre) || null,
       stage: form.stage || null,
       visibility: form.visibility,
     }

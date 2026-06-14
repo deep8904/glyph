@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ROLES, ENGINES, EXPERIENCE_LEVELS, COLLAB_STATUS } from '@/lib/supabase/types'
+import { stripDangerousUnicode } from '@/lib/utils'
 import type { Profile } from '@/lib/supabase/types'
 
 const inputCls =
@@ -38,21 +39,28 @@ export function EditProfileForm({ profile }: { profile: Profile }) {
     setLoading(true)
 
     const nn = (v: string) => v.trim() || null
+    const s = (v: string) => stripDangerousUnicode(v.trim()) || null
+
+    if (bio.length > 500 || location.length > 100 || displayName.length > 100) {
+      setError('One or more fields exceeds the maximum allowed length.')
+      setLoading(false)
+      return
+    }
 
     const { error: dbError } = await supabase
       .from('profiles')
       .update({
-        display_name: nn(displayName),
-        bio: nn(bio),
-        location: nn(location),
+        display_name: s(displayName),
+        bio: s(bio),
+        location: s(location),
         primary_role: nn(role),
         primary_engine: nn(engine),
         experience_level: nn(experience),
         collaboration_status: collabStatus,
-        github_url: nn(github),
-        itchio_url: nn(itchio),
-        twitter_url: nn(twitter),
-        website_url: nn(website),
+        github_url: s(github)?.slice(0, 200) ?? null,
+        itchio_url: s(itchio)?.slice(0, 200) ?? null,
+        twitter_url: s(twitter)?.slice(0, 200) ?? null,
+        website_url: s(website)?.slice(0, 200) ?? null,
       })
       .eq('id', profile.id)
 

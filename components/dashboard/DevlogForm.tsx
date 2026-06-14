@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Eye } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { slugify } from '@/lib/utils'
+import { slugify, stripDangerousUnicode } from '@/lib/utils'
 import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
 
 const inputCls =
@@ -47,15 +47,22 @@ export function DevlogForm({
       return
     }
 
+    if (title.length > 200) {
+      setError('Title must be under 200 characters.')
+      return
+    }
+
     setLoading(true)
 
-    const slug = slugify(title)
+    const cleanTitle = stripDangerousUnicode(title.trim())
+    const cleanContent = stripDangerousUnicode(content.trim())
+    const slug = slugify(cleanTitle)
     const { error: dbError } = await supabase.from('devlog_posts').insert({
       project_id: projectId,
       author_id: authorId,
       slug,
-      title: title.trim(),
-      content: content.trim(),
+      title: cleanTitle,
+      content: cleanContent,
       published_at: publishNow ? new Date().toISOString() : null,
     })
 

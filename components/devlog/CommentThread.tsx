@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, Trash2, Edit2, Check, X, CornerDownRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { stripDangerousUnicode } from '@/lib/utils'
 
 const MAX_COMMENT = 5000
 
@@ -76,7 +77,7 @@ function CommentItem({
   const handleEdit = async () => {
     if (!editValue.trim()) return
     setLoading(true)
-    await supabase.from('comments').update({ content: editValue.trim() }).eq('id', comment.id)
+    await supabase.from('comments').update({ content: stripDangerousUnicode(editValue.trim()) }).eq('id', comment.id)
     setLoading(false)
     setEditing(false)
     router.refresh()
@@ -94,7 +95,7 @@ function CommentItem({
       author_id: currentUserId,
       devlog_post_id: devlogPostId,
       parent_comment_id: comment.id,
-      content: replyValue.trim(),
+      content: stripDangerousUnicode(replyValue.trim()),
     })
     setLoading(false)
     if (dbError) { setError(dbError.message); return }
@@ -238,7 +239,7 @@ export function CommentThread({
     const { error: dbError } = await supabase.from('comments').insert({
       author_id: currentUserId,
       devlog_post_id: devlogPostId,
-      content: value.trim(),
+      content: stripDangerousUnicode(value.trim()),
     })
     setLoading(false)
     if (dbError) { setError(dbError.message); return }

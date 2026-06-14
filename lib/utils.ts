@@ -5,6 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Strip zero-width, direction-override, and homoglyph-attack unicode characters
+ * from user-supplied strings before display or storage.
+ */
+export function stripDangerousUnicode(input: string): string {
+  return input
+    // Zero-width characters
+    .replace(/[​-‍﻿]/g, '')
+    // Bidirectional control characters (pastejacking / direction override)
+    .replace(/[‪-‮⁦-⁩‎‏]/g, '')
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()

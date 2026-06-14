@@ -20,11 +20,18 @@ Fill in from **Supabase Dashboard → Project Settings → API**:
 > Note: this project standardizes on `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (not `..._ANON_KEY`). Keep that name.
 
 ## 3. Database migrations
-SQL lives in `supabase/migrations/`. Apply `001_profiles.sql` then `002_projects.sql` by either:
-- **Supabase SQL Editor:** paste each file's contents and run; or
+SQL lives in `supabase/migrations/`. Apply in order by either:
+- **Supabase SQL Editor:** paste each file's contents and run in sequence; or
 - **Supabase CLI:** `supabase db push` (with the project linked).
 
-This creates `profiles` and `projects` (RLS enabled: public read, owner-only write).
+Migrations:
+- `001_profiles.sql` — profiles table (RLS: public read, owner write)
+- `002_projects.sql` — projects table (RLS: public read, owner write)
+- `003_devlogs.sql` — extends projects with slug/tags/visibility, adds devlog_posts
+- `004_follows_feed.sql` — follows table + feed_items view
+- `005_reactions_comments.sql` — reactions and comments with RLS
+- `006_search_fts.sql` — full-text search via trigger-maintained tsvector columns
+- `007_notifications.sql` — notifications table with RLS
 
 ## 4. GitHub OAuth (these steps CANNOT be done in code)
 1. GitHub → **Settings → Developer settings → OAuth Apps → New OAuth App**.
@@ -70,3 +77,16 @@ npm run build    # production build
 - **Login (email + password):** `signInWithPassword` → `/dashboard` (→ `/onboarding` if no profile yet). Wrong credentials show a single generic error.
 - **Signup (email + password):** validate → `signUp` sends a 6-digit code → enter code → `verifyOtp({ type: 'signup' })` → **redirected to `/login` with a success message** (no auto-login). Resend has a 45s cooldown.
 - Public profiles live at `/dev/<username>`.
+
+## 9. Rate limiting
+`lib/rate-limit.ts` uses a module-level in-memory Map. This works per function instance on Vercel Fluid Compute. For multi-instance production hardening, replace with Upstash Redis:
+1. Create a Redis database at [upstash.com](https://upstash.com)
+2. Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to environment variables
+3. Swap the rate limiter implementation to use `@upstash/ratelimit`
+
+## 10. Security notes
+See `SECURITY.md` for the full OWASP mitigation inventory. Key points:
+- Security headers (CSP, HSTS, X-Frame-Options) are set in `next.config.ts`
+- Auth endpoints are protected by Supabase's built-in rate limiting
+- All user text goes through `stripDangerousUnicode()` before storage
+- Run `npm audit` regularly; see SECURITY.md for known exemptions

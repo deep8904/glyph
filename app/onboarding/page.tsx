@@ -112,19 +112,26 @@ export default function OnboardingPage() {
 
     const nn = (v: string) => (v.trim() ? v.trim() : null)
 
+    // Server-side input length caps (belt + suspenders on top of client maxLength)
+    if (data.username.length > 30 || data.bio.length > 500 || data.location.length > 100) {
+      setError('Input too long. Please shorten your entries.')
+      setIsSubmitting(false)
+      return
+    }
+
     const { error: profileError } = await supabase.from('profiles').insert({
       id: user.id,
-      username: data.username,
-      display_name: nn(data.display_name) ?? data.username,
-      bio: nn(data.bio),
-      location: nn(data.location),
+      username: data.username.slice(0, 30),
+      display_name: (nn(data.display_name) ?? data.username).slice(0, 100),
+      bio: nn(data.bio)?.slice(0, 500) ?? null,
+      location: nn(data.location)?.slice(0, 100) ?? null,
       primary_role: nn(data.primary_role),
       primary_engine: nn(data.primary_engine),
       experience_level: nn(data.experience_level),
-      github_url: nn(data.github_url),
-      itchio_url: nn(data.itchio_url),
-      twitter_url: nn(data.twitter_url),
-      website_url: nn(data.website_url),
+      github_url: nn(data.github_url)?.slice(0, 200) ?? null,
+      itchio_url: nn(data.itchio_url)?.slice(0, 200) ?? null,
+      twitter_url: nn(data.twitter_url)?.slice(0, 200) ?? null,
+      website_url: nn(data.website_url)?.slice(0, 200) ?? null,
       is_onboarded: true,
     })
 

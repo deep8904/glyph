@@ -1,17 +1,30 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+function isSafePath(path: string): boolean {
+  // Must start with / and must not contain // (open redirect) or backslash
+  return (
+    typeof path === 'string' &&
+    path.startsWith('/') &&
+    !path.startsWith('//') &&
+    !path.includes('\\') &&
+    !path.toLowerCase().startsWith('/redirect')
+  )
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const rawNext = searchParams.get('next') ?? '/dashboard'
+
+  // Reject non-safe redirect targets — prevents open redirect via the ?next= param
+  const next = isSafePath(rawNext) ? rawNext : '/dashboard'
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Route first-time users into onboarding, returning users to their destination.
       const {
         data: { user },
       } = await supabase.auth.getUser()

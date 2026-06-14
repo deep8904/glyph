@@ -23,11 +23,30 @@ export type Project = {
   owner_id: string
   title: string
   short_description: string | null
+  long_description: string | null
+  slug: string | null
   engine: string | null
   genre: string | null
   stage: string | null
   cover_url: string | null
+  cover_image_url: string | null
+  tags: string[]
+  screenshots: string[]
+  external_links: Record<string, string>
+  visibility: 'public' | 'unlisted' | 'private'
   is_primary: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type DevlogPost = {
+  id: string
+  project_id: string
+  author_id: string
+  slug: string
+  title: string
+  content: string
+  published_at: string | null
   created_at: string
   updated_at: string
 }

@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Glyph°
+
+The platform for indie game developers who are still building. Profile, devlogs, playtesting, events, collaboration, and publisher discovery — all in one place.
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 |
+| Styling | Tailwind v4 (configured via `@theme` in `globals.css`) |
+| Database | Supabase (PostgreSQL + RLS) |
+| Auth | Supabase Auth (email magic link + OAuth) |
+| Storage | Supabase Storage |
+| Payments | Stripe |
+| Email | Resend |
+| Analytics | Plausible / Umami (cookie-free) |
+| Deployment | Vercel |
 
 ## Getting Started
 
-First, run the development server:
+See [SETUP.md](./SETUP.md) for the complete setup guide including database migrations, OAuth configuration, and environment variables.
 
 ```bash
+npm install
+cp .env.example .env.local
+# fill in .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+app/
+  actions/          # Server actions (all mutations)
+  api/              # API routes (webhooks, health, etc.)
+  admin/            # Admin dashboard (protected by admin_users table)
+  dashboard/        # Authenticated user dashboard
+  ...               # Public routes (profiles, projects, events, etc.)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+components/
+  ui/               # Base design system components
+  layout/           # PageShell, PanelHeader, PanelBody, EmptyState
+  admin/            # Admin-specific client components
+  studios/          # Studio management
+  publisher/        # Publisher tools
+  moderation/       # Block/mute/report UI
 
-## Learn More
+lib/
+  supabase/         # Client, server, types
+  email/            # Email infrastructure (Resend)
+  analytics.ts      # Plausible/Umami helper
+  rate-limit.ts     # In-memory rate limiter
+  utils.ts          # slugify, stripDangerousUnicode, cn
 
-To learn more about Next.js, take a look at the following resources:
+supabase/
+  migrations/       # 001-016 SQL migration files
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+messages/           # i18n strings (en, es)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## V-Checklist Status
 
-## Deploy on Vercel
+| Version | Feature | Status |
+|---|---|---|
+| V1 | Auth + Security baseline | ✅ |
+| V2 | Developer profiles + Projects + Devlogs | ✅ |
+| V3 | Community (follows, notifications, reactions) | ✅ |
+| V4 | Playtesting + Events + Collaboration + Game Jams | ✅ |
+| V5 | Studios + Featured Listings + Publisher Tools + Admin | ✅ |
+| V6 | Email + Analytics + Moderation + Accessibility + i18n | ✅ |
+| V7 | Production Hardening + Security + Performance + Deployment | ✅ |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Security
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [SECURITY.md](./SECURITY.md) for the full OWASP A01–A10 mitigation inventory.
+
+## Architecture
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design and data flow.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

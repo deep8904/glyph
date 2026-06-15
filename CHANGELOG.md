@@ -1,29 +1,80 @@
 # Changelog
 
-## V2 — Feature 1: Developer Profile + Onboarding
+All notable changes to Glyph are documented here.
 
-### Database (Supabase, applied to project `glyph`)
-- `supabase/migrations/001_profiles.sql` — `profiles` table: `@username` (unique, format-checked), identity fields (role, engine, experience, collaboration status), social links, `is_onboarded`, RLS (public read, owner write), `updated_at` trigger, username index.
-- `supabase/migrations/002_projects.sql` — `projects` table: owner-linked, title/desc/engine/genre/stage/cover, `is_primary`, RLS, owner index.
+## [V7] — 2026-06-14 — Production Hardening
 
-### Features
-- **Onboarding wizard** (`app/onboarding/page.tsx`) — 4 steps (Identity → About → Project → Socials), progress bar, debounced real-time username availability, skippable optional steps, back preserves data, writes `profiles` (+ optional primary `projects` row), sets `is_onboarded`, redirects to `/dashboard`. Guards already-onboarded users back to the dashboard.
-- **Public profile** (`app/dev/[username]/page.tsx`) — server-rendered; `notFound()` on miss; avatar/initials, identity badges, social links (shown only when set), current-project card or empty state, "member since".
-- **Dashboard** (`app/dashboard/page.tsx` + `components/dashboard/DashboardClient.tsx`) — now server-fetches the profile, redirects to `/onboarding` if not onboarded, shows "View your public profile", and a "Complete your profile" prompt listing missing fields.
-- **Auth-aware landing** — `app/page.tsx` is now a server component; header shows **Dashboard →** when authenticated (landing UI moved to `components/landing/Landing.tsx`).
+### Added
+- `/api/health` endpoint: database + env checks, returns 503 on failure
+- Security headers via `proxy.ts`: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- Extended `proxy.ts` protected routes: `/admin`, `/dashboard/publisher`, `/dashboard/studios`, `/dashboard/billing`
+- `vercel.json`: framework config + 5-minute health check cron
+- `README.md`: complete project overview, stack, structure, version checklist
+- `ARCHITECTURE.md`: request flow, auth pattern, DB schema map, security header docs
+- `RUNBOOK.md`: deploy, rollback, env vars, migrations, incident response, Stripe webhook setup
+- `THREAT_MODEL.md`: OWASP A01–A10 mitigations, attack surface, known acceptable risks
+- `CONTRIBUTING.md`: code conventions, PR checklist, design system rules
 
-### Components / API / types
-- `components/ui/Badge.tsx`, `components/UsernameInput.tsx`, `components/ProfileCard.tsx`.
-- `app/api/profile/check-username/route.ts` — format-validates + checks availability.
-- `lib/supabase/types.ts` — `Profile`/`Project` types + shared option lists (`ROLES`, `ENGINES`, `EXPERIENCE_LEVELS`, `PROJECT_STAGES`, `COLLAB_STATUS`) and `labelFor()`.
+## [V6] — 2026-06-14 — Email, Analytics, Moderation, Accessibility
 
-## V1 — hardening
-- `app/auth/callback/route.ts` — routes first-time users to `/onboarding` (checks `profiles.is_onboarded`).
-- `proxy.ts` — protects `/onboarding` in addition to `/dashboard` (Next 16 uses `proxy.ts`, not `middleware.ts`).
-- `components/auth/AuthForm.tsx` — Google OAuth now sends `access_type: offline` + `prompt: consent`.
-- `.env.example` added (documents `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, incl. the 2025 `sb_publishable_…` format).
-- Docs: `AUDIT.md`, `SETUP.md`, `V2_RESEARCH_REPORT.md`, `NEXT_FEATURE.md`.
+### Added
+- Migration 016: `user_blocks`, `user_mutes`, `user_bans` tables
+- Email infrastructure (`lib/email/`): Resend via fetch, dev stub, 4 HTML templates
+- Server actions: `blockUser`, `unblockUser`, `muteUser`, `unmuteUser`, `banUser`, `unbanUser`
+- `BlockMuteButtons` client component with inline report form
+- `lib/analytics.ts`: Plausible + Umami integration (cookie-free), `trackEvent()` helper
+- Analytics script in root layout via `next/script` `afterInteractive`
+- Skip-to-content link in root layout
+- `globals.css`: `prefers-reduced-motion`, WCAG AA `:focus-visible`, 44px mobile touch targets
+- i18n: `messages/en.json` + `messages/es.json` (full UI string coverage)
 
-### Earlier this cycle
-- Fixed Vercel `ERESOLVE` by removing unused React-18-only `@studio-freight/react-lenis`; added `.npmrc` `legacy-peer-deps=true`.
-- Added `@vercel/analytics` to the root layout.
+## [V5] — 2026-06-14 — Studios, Payments, Publisher Tools, Admin
+
+### Added
+- Migrations 012–015: studios, subscriptions/featured_listings, publisher tools, admin system
+- Studio pages: `/studios/[slug]`, `/dashboard/studios/new`, `/dashboard/studios/[slug]`
+- Pricing page: 3-tier Free/Pro/Team
+- Billing page: subscription status
+- Publisher flow: directory, dashboard, registration
+- Admin dashboard: 7 sections with live counters
+- Stripe webhook: `/api/webhooks/stripe`
+- Server actions: studios, publisher, admin (all mutations write audit_log)
+- `EmptyState` icon prop updated to `React.ReactNode`
+
+## [V4] — 2026-06-13 — Playtesting, Events, Collaboration, Game Jams
+
+### Added
+- Migrations 008–011: playtests, events, collaboration, game jams
+- 20 new routes across 4 feature areas
+- `PageShell`, `PanelHeader`, `PanelBody`, `EmptyState` shared layout components
+- iCal feed: RFC 5545 VCALENDAR export for events
+- Anti-abuse limits: max 5 active playtest requests, max 3 concurrent tester sessions
+- Admin approval flow for game jams
+
+## [V3] — 2026-06-12 — Community Features
+
+### Added
+- Migrations 005–007: follows, notifications, reactions
+- Follow/unfollow with follower counts
+- Notification system with real-time-ready structure
+- Reaction types: like, helpful, inspiring, question
+- `SECURITY.md`: OWASP A01–A10 inventory
+
+## [V2] — 2026-06-11 — Developer Profiles, Projects, Devlogs
+
+### Added
+- Migrations 001–004: profiles, projects, devlog_posts, comments
+- 4-step onboarding wizard
+- Developer profile pages at `/dev/[username]`
+- Project pages at `/p/[username]/[slug]`
+- Devlog with Markdown rendering and comment threads
+- Username availability API
+
+## [V1] — 2026-06-09 — Auth Baseline
+
+### Added
+- Next.js 16 App Router project
+- Supabase Auth: magic link + GitHub/Google OAuth
+- `proxy.ts` middleware for route protection
+- Plasma background design system
+- Waitlist landing page

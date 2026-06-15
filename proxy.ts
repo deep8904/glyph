@@ -38,7 +38,9 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/settings') ||
     pathname.startsWith('/notifications') ||
-    pathname.startsWith('/feed')
+    pathname.startsWith('/feed') ||
+    pathname.startsWith('/collaborate/new') ||
+    pathname.startsWith('/events/') && pathname.includes('/manage')
 
   if (!user && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url))

@@ -72,7 +72,7 @@ export default async function CollaboratePage({
 
         {posts.length === 0 ? (
           <EmptyState
-            icon={Handshake}
+            icon={<Handshake className="h-8 w-8 text-gray-300" />}
             title="No collaboration posts"
             description="Be the first to post a collaboration opportunity or advertise your availability."
             action={

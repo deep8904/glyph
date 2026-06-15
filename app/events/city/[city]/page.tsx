@@ -37,7 +37,7 @@ export default async function CityEventsPage({ params }: { params: Promise<{ cit
         <h1 className="text-xl font-semibold tracking-tight text-gray-900 mb-6">Events in {city}</h1>
         {events.length === 0 ? (
           <EmptyState
-            icon={Calendar}
+            icon={<Calendar className="h-8 w-8 text-gray-300" />}
             title={`No events in ${city}`}
             description="Check back later or host the first event in this city."
             action={<Link href="/events" className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20">Browse all events</Link>}

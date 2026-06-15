@@ -79,7 +79,7 @@ export default async function EventsPage({
 
         {events.length === 0 ? (
           <EmptyState
-            icon={Calendar}
+            icon={<Calendar className="h-8 w-8 text-gray-300" />}
             title="No upcoming events"
             description="Be the first to host a meetup in your city."
             action={

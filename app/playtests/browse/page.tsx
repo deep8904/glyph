@@ -51,7 +51,7 @@ export default async function PlaytestsBrowsePage() {
         </div>
         {requests.length === 0 ? (
           <EmptyState
-            icon={Users}
+            icon={<Users className="h-8 w-8 text-gray-300" />}
             title="No open playtests"
             description="Be the first to request testers for your game."
             action={

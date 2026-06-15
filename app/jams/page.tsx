@@ -82,7 +82,7 @@ export default async function JamsPage() {
       <PanelBody>
         {activeJams.length === 0 && pastJams.length === 0 ? (
           <EmptyState
-            icon={Trophy}
+            icon={<Trophy className="h-8 w-8 text-gray-300" />}
             title="No game jams yet"
             description="Game jams will appear here once hosted and approved."
             action={

@@ -304,3 +304,161 @@ export function labelFor(
   if (!value) return null
   return list.find((o) => o.value === value)?.label ?? value
 }
+
+// ── V5 Types ──────────────────────────────────────────────────
+
+export type Studio = {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  logo_url: string | null
+  banner_url: string | null
+  website: string | null
+  founded_year: number | null
+  location: string | null
+  size: 'solo' | '2-10' | '11-50' | '50+'
+  verified: boolean
+  verified_at: string | null
+  plan: 'free' | 'pro' | 'team'
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  status: 'active' | 'suspended' | 'deleted'
+  created_at: string
+  updated_at: string
+}
+
+export type StudioMember = {
+  id: string
+  studio_id: string
+  user_id: string
+  role: 'owner' | 'admin' | 'member'
+  created_at: string
+}
+
+export type StudioProject = {
+  id: string
+  studio_id: string
+  project_id: string
+  created_at: string
+}
+
+export type Subscription = {
+  id: string
+  user_id: string | null
+  studio_id: string | null
+  stripe_subscription_id: string
+  plan: 'pro' | 'team'
+  status: 'active' | 'past_due' | 'canceled' | 'trialing'
+  current_period_end: string
+  created_at: string
+  updated_at: string
+}
+
+export type FeaturedListing = {
+  id: string
+  entity_type: 'project' | 'collab_post'
+  entity_id: string
+  payer_id: string
+  starts_at: string
+  ends_at: string
+  position_rank: number
+  amount_cents: number
+  stripe_payment_intent_id: string
+  created_at: string
+}
+
+export type PublisherAccount = {
+  id: string
+  user_id: string
+  company_name: string
+  verified: boolean
+  plan: 'free' | 'pro'
+  created_at: string
+  updated_at: string
+}
+
+export type PublisherShortlist = {
+  id: string
+  publisher_id: string
+  name: string
+  items: string[]
+  created_at: string
+  updated_at: string
+}
+
+export type PublisherContact = {
+  id: string
+  publisher_id: string
+  developer_id: string
+  message: string
+  status: 'sent' | 'read' | 'replied' | 'archived'
+  created_at: string
+}
+
+export type AdminUser = {
+  id: string
+  user_id: string
+  role: 'admin' | 'moderator' | 'support'
+  created_at: string
+}
+
+export type ModerationItem = {
+  id: string
+  entity_type: 'profile' | 'project' | 'devlog_post' | 'comment' | 'collaboration_post' | 'event' | 'studio'
+  entity_id: string
+  reason: 'spam' | 'harassment' | 'csam' | 'copyright' | 'scam' | 'other'
+  reported_by: string | null
+  description: string | null
+  status: 'pending' | 'reviewing' | 'actioned' | 'dismissed'
+  assigned_to: string | null
+  resolved_at: string | null
+  resolution: string | null
+  created_at: string
+}
+
+export type AuditEntry = {
+  id: string
+  admin_id: string
+  action: string
+  target_type: string | null
+  target_id: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export type FeatureFlag = {
+  id: string
+  key: string
+  enabled: boolean
+  conditions: Record<string, unknown>
+  description: string | null
+  updated_at: string
+}
+
+export const STUDIO_SIZES = [
+  { value: 'solo', label: 'Solo' },
+  { value: '2-10', label: '2–10 people' },
+  { value: '11-50', label: '11–50 people' },
+  { value: '50+', label: '50+ people' },
+] as const
+
+export const STUDIO_PLANS = [
+  { value: 'free', label: 'Free' },
+  { value: 'pro', label: 'Pro — $19/mo' },
+  { value: 'team', label: 'Team — $49/mo' },
+] as const
+
+export const MODERATION_REASONS = [
+  { value: 'spam', label: 'Spam' },
+  { value: 'harassment', label: 'Harassment' },
+  { value: 'csam', label: 'Illegal Content' },
+  { value: 'copyright', label: 'Copyright Infringement' },
+  { value: 'scam', label: 'Scam / Fraud' },
+  { value: 'other', label: 'Other' },
+] as const
+
+export const FEATURED_LISTING_PRICES: Record<'project' | 'collab_post', number> = {
+  project: 1999,       // $19.99 for 30 days
+  collab_post: 999,    // $9.99 for 14 days
+}

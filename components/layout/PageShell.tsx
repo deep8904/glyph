@@ -68,12 +68,12 @@ export function PanelBody({ children, className = '' }: { children: React.ReactN
 }
 
 export function EmptyState({
-  icon: Icon,
+  icon,
   title,
   description,
   action,
 }: {
-  icon: React.ElementType
+  icon: React.ReactNode
   title: string
   description: string
   action?: React.ReactNode
@@ -81,7 +81,7 @@ export function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center text-center py-20">
       <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-600 mb-4">
-        <Icon className="h-8 w-8" />
+        {icon}
       </div>
       <h2 className="text-lg font-medium tracking-tight text-gray-900 mb-2">{title}</h2>
       <p className="text-sm text-gray-500 max-w-xs mb-6">{description}</p>

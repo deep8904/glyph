@@ -462,3 +462,28 @@ export const FEATURED_LISTING_PRICES: Record<'project' | 'collab_post', number> 
   project: 1999,       // $19.99 for 30 days
   collab_post: 999,    // $9.99 for 14 days
 }
+
+// ── V6 Types ──────────────────────────────────────────────────
+
+export type UserBlock = {
+  id: string
+  blocker_id: string
+  blocked_id: string
+  created_at: string
+}
+
+export type UserMute = {
+  id: string
+  muter_id: string
+  muted_id: string
+  created_at: string
+}
+
+export type UserBan = {
+  id: string
+  user_id: string
+  banned_by: string
+  reason: string
+  expires_at: string | null
+  created_at: string
+}

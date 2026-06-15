@@ -1,0 +1,96 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "dashboard": "Panel",
+    "explore": "Explorar",
+    "feed": "Feed",
+    "events": "Eventos",
+    "collaborate": "Colaborar",
+    "jams": "Game Jams",
+    "settings": "Ajustes",
+    "login": "Iniciar sesión",
+    "signup": "Registrarse",
+    "logout": "Cerrar sesión"
+  },
+  "profile": {
+    "editProfile": "Editar perfil",
+    "viewProfile": "Ver perfil",
+    "memberSince": "Miembro desde {date}",
+    "openToCollaborate": "Abierto a colaborar",
+    "selectivelyOpen": "Selectivamente abierto",
+    "notAvailable": "No disponible",
+    "noProjects": "Sin proyectos aún",
+    "noBio": "Sin biografía aún"
+  },
+  "projects": {
+    "new": "Nuevo proyecto",
+    "edit": "Editar proyecto",
+    "delete": "Eliminar proyecto",
+    "confirmDelete": "¿Seguro que quieres eliminar este proyecto? Esta acción no se puede deshacer.",
+    "stage": {
+      "concept": "Concepto",
+      "prototype": "Prototipo",
+      "alpha": "Alfa",
+      "beta": "Beta",
+      "released": "Lanzado"
+    }
+  },
+  "playtests": {
+    "request": "Solicitar testers",
+    "browse": "Ver playtests",
+    "myRequests": "Mis solicitudes",
+    "requestSession": "Probar este juego",
+    "sessionRequested": "Solicitud enviada",
+    "sessionAccepted": "Aceptado",
+    "sessionCompleted": "Completado",
+    "submitFeedback": "Enviar opinión"
+  },
+  "events": {
+    "rsvp": "Confirmar asistencia",
+    "going": "Voy",
+    "maybe": "Quizás",
+    "cancelRsvp": "Cancelar asistencia",
+    "addToCalendar": "Agregar al calendario",
+    "host": "Anfitrión",
+    "attendees": "{count} asistentes"
+  },
+  "collaborate": {
+    "postOpportunity": "Publicar oportunidad",
+    "applyNow": "Aplicar ahora",
+    "applied": "Aplicado",
+    "seeking": "Buscando",
+    "available": "Disponible"
+  },
+  "jams": {
+    "submit": "Enviar entrada",
+    "vote": "Votar",
+    "results": "Resultados",
+    "pendingApproval": "Pendiente de aprobación",
+    "upcoming": "Próximamente",
+    "running": "En curso",
+    "voting": "Votación",
+    "completed": "Completado"
+  },
+  "errors": {
+    "notFound": "Página no encontrada",
+    "unauthorized": "Debes iniciar sesión",
+    "forbidden": "No tienes permiso para hacer eso",
+    "generic": "Algo salió mal. Inténtalo de nuevo."
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "loading": "Cargando…",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "submit": "Enviar",
+    "or": "o",
+    "and": "y",
+    "by": "por",
+    "on": "el",
+    "at": "a las",
+    "optional": "opcional"
+  }
+}

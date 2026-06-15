@@ -1,0 +1,96 @@
+{
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "explore": "Explore",
+    "feed": "Feed",
+    "events": "Events",
+    "collaborate": "Collaborate",
+    "jams": "Game Jams",
+    "settings": "Settings",
+    "login": "Log in",
+    "signup": "Sign up",
+    "logout": "Log out"
+  },
+  "profile": {
+    "editProfile": "Edit Profile",
+    "viewProfile": "View Profile",
+    "memberSince": "Member since {date}",
+    "openToCollaborate": "Open to Collaborate",
+    "selectivelyOpen": "Selectively Open",
+    "notAvailable": "Not Available",
+    "noProjects": "No projects yet",
+    "noBio": "No bio yet"
+  },
+  "projects": {
+    "new": "New Project",
+    "edit": "Edit Project",
+    "delete": "Delete Project",
+    "confirmDelete": "Are you sure you want to delete this project? This action cannot be undone.",
+    "stage": {
+      "concept": "Concept",
+      "prototype": "Prototype",
+      "alpha": "Alpha",
+      "beta": "Beta",
+      "released": "Released"
+    }
+  },
+  "playtests": {
+    "request": "Request Testers",
+    "browse": "Browse Playtests",
+    "myRequests": "My Requests",
+    "requestSession": "Test This Game",
+    "sessionRequested": "Request Sent",
+    "sessionAccepted": "Accepted",
+    "sessionCompleted": "Completed",
+    "submitFeedback": "Submit Feedback"
+  },
+  "events": {
+    "rsvp": "RSVP",
+    "going": "Going",
+    "maybe": "Maybe",
+    "cancelRsvp": "Cancel RSVP",
+    "addToCalendar": "Add to Calendar",
+    "host": "Host",
+    "attendees": "{count} attending"
+  },
+  "collaborate": {
+    "postOpportunity": "Post Opportunity",
+    "applyNow": "Apply Now",
+    "applied": "Applied",
+    "seeking": "Seeking",
+    "available": "Available"
+  },
+  "jams": {
+    "submit": "Submit Entry",
+    "vote": "Vote",
+    "results": "Results",
+    "pendingApproval": "Pending Approval",
+    "upcoming": "Upcoming",
+    "running": "Running",
+    "voting": "Voting",
+    "completed": "Completed"
+  },
+  "errors": {
+    "notFound": "Page not found",
+    "unauthorized": "You must be signed in",
+    "forbidden": "You don't have permission to do that",
+    "generic": "Something went wrong. Please try again."
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading…",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "or": "or",
+    "and": "and",
+    "by": "by",
+    "on": "on",
+    "at": "at",
+    "optional": "optional"
+  }
+}

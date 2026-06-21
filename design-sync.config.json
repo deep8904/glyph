@@ -1,0 +1,18 @@
+{
+  "pkg": "glyph",
+  "globalName": "GlyphDS",
+  "shape": "package",
+  "srcDir": "components/ui",
+  "tsconfig": "./tsconfig.json",
+  "cssEntry": ".design-sync/tailwind.css",
+  "componentSrcMap": {
+    "Badge": "components/ui/Badge.tsx"
+  },
+  "previewArgs": {
+    "Badge": {
+      "children": "Indie Dev",
+      "variant": "default",
+      "size": "md"
+    }
+  }
+}

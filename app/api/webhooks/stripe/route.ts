@@ -1,33 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Stripe webhook. Requires stripe npm package + STRIPE_WEBHOOK_SECRET + STRIPE_SECRET_KEY.
-// Install: npm install stripe
+// Stripe webhook handler — no stripe npm package required.
+// Verifies signatures using the Web Crypto API (available in all Next.js runtimes).
+// Requires: STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY
+
+async function verifyStripeSignature(
+  payload: string,
+  sigHeader: string,
+  secret: string
+): Promise<boolean> {
+  const parts = Object.fromEntries(
+    sigHeader.split(',').map((p) => p.split('=') as [string, string])
+  )
+  const timestamp = parts['t']
+  const sig = parts['v1']
+  if (!timestamp || !sig) return false
+
+  // Reject if timestamp is more than 5 minutes old
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false
+
+  const signedPayload = `${timestamp}.${payload}`
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload))
+  const expected = Array.from(new Uint8Array(mac))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+
+  return expected === sig
+}
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
-  const signature = req.headers.get('stripe-signature')
-
-  if (!signature) {
-    return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 })
-  }
+  const sigHeader = req.headers.get('stripe-signature') ?? ''
 
   const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+
   if (!stripeWebhookSecret || !stripeSecretKey) {
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 })
   }
 
-  // Dynamic import so build succeeds without stripe installed (stripe is an optional peer dep)
+  if (!sigHeader) {
+    return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 })
+  }
+
+  const valid = await verifyStripeSignature(rawBody, sigHeader, stripeWebhookSecret)
+  if (!valid) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let event: { type: string; data: { object: Record<string, any> } }
   try {
-    // This will throw at runtime if stripe is not installed
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Stripe = require('stripe')
-    const stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-01-27.acacia' })
-    event = stripe.webhooks.constructEvent(rawBody, signature, stripeWebhookSecret)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: `Webhook error: ${msg}` }, { status: 400 })
+    event = JSON.parse(rawBody)
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   const { createClient } = await import('@/lib/supabase/server')

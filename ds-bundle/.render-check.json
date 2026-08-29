@@ -1,0 +1,25 @@
+[
+  {
+    "name": "Badge",
+    "group": "general",
+    "rel": "components/general/Badge/Badge.html",
+    "errs": 0,
+    "caught": 0,
+    "firstErr": null,
+    "pngBytes": 7693,
+    "blank": false,
+    "rootEmpty": false,
+    "thin": false,
+    "nameOnly": false,
+    "allHollow": false,
+    "collapsed": false,
+    "hasPlaceholder": false,
+    "nPlaceholder": 0,
+    "maxHeight": 27,
+    "variantsIdentical": false,
+    "bad": false,
+    "texts": [
+      "Indie Dev"
+    ]
+  }
+]

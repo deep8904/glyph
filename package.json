@@ -12,7 +12,7 @@
     "@hookform/resolvers": "^5.4.0",
     "@lottiefiles/react-lottie-player": "^3.6.0",
     "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.6.1",
+    "@react-three/fiber": "^9.7.0",
     "@react-three/postprocessing": "^3.0.4",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",

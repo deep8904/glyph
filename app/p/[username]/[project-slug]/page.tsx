@@ -1,12 +1,22 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Tag, Globe, GitBranch, Joystick } from 'lucide-react'
+import { ArrowLeft, Tag, Globe, GitBranch, Joystick, Gamepad2, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/Badge'
 import { DevlogCard } from '@/components/devlog/DevlogCard'
 import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
 import { labelFor, ENGINES, PROJECT_STAGES } from '@/lib/supabase/types'
 import type { Profile, Project, DevlogPost } from '@/lib/supabase/types'
+
+type PlaytestRequest = {
+  id: string
+  description: string
+  platforms: string[]
+  focus_areas: string[]
+  requested_testers: number
+  current_testers: number
+  status: string
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -45,16 +55,27 @@ export default async function PublicProjectPage({
 
   if (project.visibility === 'private' && !isOwner) notFound()
 
-  const { data: devlogs } = await supabase
-    .from('devlog_posts')
-    .select('id, slug, title, content, published_at')
-    .eq('project_id', project.id)
-    .not('published_at', 'is', null)
-    .lte('published_at', new Date().toISOString())
-    .order('published_at', { ascending: false })
-    .limit(50)
+  const [{ data: devlogs }, { data: openPlaytest }] = await Promise.all([
+    supabase
+      .from('devlog_posts')
+      .select('id, slug, title, content, published_at')
+      .eq('project_id', project.id)
+      .not('published_at', 'is', null)
+      .lte('published_at', new Date().toISOString())
+      .order('published_at', { ascending: false })
+      .limit(50),
+    supabase
+      .from('playtest_requests')
+      .select('id, description, platforms, focus_areas, requested_testers, current_testers, status')
+      .eq('project_id', project.id)
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<PlaytestRequest>(),
+  ])
 
   const typedDevlogs = (devlogs ?? []) as Pick<DevlogPost, 'id' | 'slug' | 'title' | 'content' | 'published_at'>[]
+  const screenshots = (project.screenshots as string[] | null) ?? []
 
   const engine = labelFor(ENGINES, project.engine)
   const stage = labelFor(PROJECT_STAGES, project.stage)
@@ -148,6 +169,55 @@ export default async function PublicProjectPage({
                   About
                 </h2>
                 <MarkdownRenderer content={project.long_description} />
+              </div>
+            )}
+
+            {/* Screenshots gallery */}
+            {screenshots.length > 0 && (
+              <div>
+                <h2 className="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+                  Screenshots
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {screenshots.map((url, i) => (
+                    <div key={i} className="rounded-2xl overflow-hidden bg-gray-100 aspect-video">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Open playtest card */}
+            {openPlaytest && (
+              <div className="rounded-3xl border border-indigo-100 bg-indigo-50/40 p-6">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Gamepad2 className="h-4 w-4 text-indigo-500" />
+                    <span className="text-sm font-semibold text-gray-900">Open Playtest</span>
+                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-mono font-semibold text-green-700">OPEN</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <Users className="h-3.5 w-3.5" />
+                    {openPlaytest.current_testers}/{openPlaytest.requested_testers} testers
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-2">{openPlaytest.description}</p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {openPlaytest.platforms.map((p) => (
+                    <span key={p} className="rounded-full border border-indigo-200 bg-white px-2.5 py-0.5 text-[11px] font-mono text-indigo-600">{p}</span>
+                  ))}
+                  {openPlaytest.focus_areas.map((f) => (
+                    <span key={f} className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-[11px] font-mono text-gray-500">{f.replace(/_/g, ' ')}</span>
+                  ))}
+                </div>
+                <Link
+                  href={`/playtests/${openPlaytest.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-md shadow-indigo-600/20"
+                >
+                  Sign Up to Test
+                </Link>
               </div>
             )}
 

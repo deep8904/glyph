@@ -56,7 +56,16 @@ export async function createStudio(formData: FormData): Promise<ActionResult> {
 
     if (insertErr || !studio) return { error: 'Failed to create studio. Please try again.' }
 
-    await supabase.from('studio_members').insert({ studio_id: studio.id, user_id: user.id, role: 'owner' })
+    const { error: memberErr } = await supabase
+      .from('studio_members')
+      .insert({ studio_id: studio.id, user_id: user.id, role: 'owner' })
+
+    if (memberErr) {
+      // Don't leave an orphaned, ownerless studio behind — the create
+      // wasn't fully successful, so undo the half of it that landed.
+      await supabase.from('studios').delete().eq('id', studio.id)
+      return { error: 'Failed to create studio. Please try again.' }
+    }
 
     return { success: true, slug: studio.slug }
   } catch {

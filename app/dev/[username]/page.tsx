@@ -4,6 +4,7 @@ import { GitBranch, Gamepad2, X, Globe, ArrowRight, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/Badge'
 import { FollowButton } from '@/components/social/FollowButton'
+import { BlockMuteButtons } from '@/components/moderation/BlockMuteButtons'
 import {
   labelFor,
   ROLES,
@@ -52,6 +53,8 @@ export default async function ProfilePage({
     { count: followerCount },
     { count: followingCount },
     { data: followRow },
+    { data: blockRow },
+    { data: muteRow },
   ] = await Promise.all([
     supabase
       .from('projects')
@@ -73,6 +76,22 @@ export default async function ProfilePage({
           .select('follower_id')
           .eq('follower_id', currentUser.id)
           .eq('followed_id', profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    currentUser
+      ? supabase
+          .from('user_blocks')
+          .select('blocker_id')
+          .eq('blocker_id', currentUser.id)
+          .eq('blocked_id', profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    currentUser
+      ? supabase
+          .from('user_mutes')
+          .select('muter_id')
+          .eq('muter_id', currentUser.id)
+          .eq('muted_id', profile.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ])
@@ -169,6 +188,15 @@ export default async function ProfilePage({
                 initialFollowing={isFollowing}
               />
             </div>
+
+            {currentUser && currentUser.id !== profile.id && (
+              <BlockMuteButtons
+                targetId={profile.id}
+                targetUsername={profile.username}
+                isBlocked={!!blockRow}
+                isMuted={!!muteRow}
+              />
+            )}
 
             {/* Bio */}
             {profile.bio && (

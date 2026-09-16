@@ -204,6 +204,7 @@ export default async function DevlogPostPage({
               <p className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">React</p>
               <ReactionsBar
                 devlogPostId={post.id}
+                devlogAuthorId={profile.id}
                 currentUserId={currentUserId}
                 initialCounts={reactionCounts}
               />
@@ -213,6 +214,7 @@ export default async function DevlogPostPage({
             <div className="mt-10 pt-8 border-t border-gray-100">
               <CommentThread
                 devlogPostId={post.id}
+                devlogAuthorId={profile.id}
                 currentUserId={currentUserId}
                 comments={topLevel}
               />

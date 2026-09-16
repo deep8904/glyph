@@ -46,11 +46,13 @@ function CommentItem({
   comment,
   currentUserId,
   devlogPostId,
+  devlogAuthorId,
   depth = 0,
 }: {
   comment: CommentData
   currentUserId: string | null
   devlogPostId: string
+  devlogAuthorId: string
   depth?: number
 }) {
   const router = useRouter()
@@ -99,6 +101,15 @@ function CommentItem({
     })
     setLoading(false)
     if (dbError) { setError(dbError.message); return }
+    if (comment.author_id !== currentUserId) {
+      await supabase.from('notifications').insert({
+        recipient_id: comment.author_id,
+        actor_id: currentUserId,
+        type: 'reply',
+        entity_type: 'devlog_post',
+        entity_id: devlogPostId,
+      })
+    }
     setReplyValue('')
     setReplying(false)
     router.refresh()
@@ -203,6 +214,7 @@ function CommentItem({
               comment={reply}
               currentUserId={currentUserId}
               devlogPostId={devlogPostId}
+              devlogAuthorId={devlogAuthorId}
               depth={1}
             />
           ))}
@@ -214,10 +226,12 @@ function CommentItem({
 
 export function CommentThread({
   devlogPostId,
+  devlogAuthorId,
   currentUserId,
   comments,
 }: {
   devlogPostId: string
+  devlogAuthorId: string
   currentUserId: string | null
   comments: CommentData[]
 }) {
@@ -243,6 +257,15 @@ export function CommentThread({
     })
     setLoading(false)
     if (dbError) { setError(dbError.message); return }
+    if (devlogAuthorId !== currentUserId) {
+      await supabase.from('notifications').insert({
+        recipient_id: devlogAuthorId,
+        actor_id: currentUserId,
+        type: 'comment',
+        entity_type: 'devlog_post',
+        entity_id: devlogPostId,
+      })
+    }
     setValue('')
     router.refresh()
   }
@@ -293,6 +316,7 @@ export function CommentThread({
                 comment={comment}
                 currentUserId={currentUserId}
                 devlogPostId={devlogPostId}
+                devlogAuthorId={devlogAuthorId}
               />
             </div>
           ))}

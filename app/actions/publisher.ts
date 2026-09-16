@@ -135,11 +135,19 @@ export async function contactDeveloper(developerId: string, message: string): Pr
 
     if (error) return { error: 'Failed to send message.' }
 
+    // Note: this insert was previously broken — wrong column (user_id
+    // instead of recipient_id), a nonexistent `body` column, and a `type`
+    // value ('publisher_contact') the notifications table's check
+    // constraint doesn't allow. It silently failed every time, so no
+    // developer ever received a notification for a publisher contact.
+    // 'mention' is the closest existing type; entity_type/entity_id point
+    // back to the publisher_contacts row so the UI can link to it later.
     await supabase.from('notifications').insert({
-      user_id: developerId,
+      recipient_id: developerId,
       actor_id: user.id,
-      type: 'publisher_contact',
-      body: 'A publisher wants to connect with you.',
+      type: 'mention',
+      entity_type: 'publisher_contact',
+      entity_id: publisher.id,
     })
 
     return { success: true }

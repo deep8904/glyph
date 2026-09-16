@@ -10,10 +10,12 @@ type ReactionCount = { type: Reaction['reaction_type']; count: number; reacted: 
 
 export function ReactionsBar({
   devlogPostId,
+  devlogAuthorId,
   currentUserId,
   initialCounts,
 }: {
   devlogPostId: string
+  devlogAuthorId: string
   currentUserId: string | null
   initialCounts: ReactionCount[]
 }) {
@@ -51,6 +53,15 @@ export function ReactionsBar({
         devlog_post_id: devlogPostId,
         reaction_type: type,
       })
+      if (devlogAuthorId !== currentUserId) {
+        await supabase.from('notifications').insert({
+          recipient_id: devlogAuthorId,
+          actor_id: currentUserId,
+          type: 'reaction',
+          entity_type: 'devlog_post',
+          entity_id: devlogPostId,
+        })
+      }
     }
 
     setPending(null)

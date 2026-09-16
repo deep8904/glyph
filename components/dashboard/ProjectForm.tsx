@@ -30,7 +30,7 @@ function toForm(p?: Partial<Project>): ProjectFormData {
     engine: p?.engine ?? '',
     genre: p?.genre ?? '',
     stage: p?.stage ?? '',
-    visibility: p?.visibility ?? 'public',
+    visibility: p?.visibility ?? 'private',
   }
 }
 
@@ -244,7 +244,14 @@ export function ProjectForm({
           </select>
         </div>
         <div>
-          <label className={labelCls}>Visibility</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className={labelCls} style={{ marginBottom: 0 }}>Visibility</label>
+            {form.visibility === 'private' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-900 px-2.5 py-0.5 text-[10px] font-mono font-semibold text-white tracking-wider">
+                🔒 Private by default
+              </span>
+            )}
+          </div>
           <select
             className={selectCls}
             value={form.visibility}

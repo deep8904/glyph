@@ -4,43 +4,51 @@ import Link from 'next/link'
 import { Folder, Calendar, Handshake, Plus, ArrowUpRight, ExternalLink } from 'lucide-react'
 import { AppShell } from '@/components/dashboard/AppShell'
 
-const WORKSPACE_CARDS = [
-  {
-    Icon: Folder,
-    title: 'Projects',
-    body: 'No projects yet.',
-    bullets: ['Post devlogs as you build', 'Public page, searchable from day one'],
-    action: 'Create your first project',
-    href: '/dashboard/projects/new',
-  },
-  {
-    Icon: Calendar,
-    title: 'Events',
-    body: 'Nothing on your calendar.',
-    bullets: ['Host or RSVP to local meetups', 'Run a game jam with a real deadline'],
-    action: 'Host an event',
-    href: '/dashboard/events/new',
-  },
-  {
-    Icon: Handshake,
-    title: 'Collaborations',
-    body: 'No open roles yet.',
-    bullets: ['Post a role linked to a real project', 'Full-time, freelance, or revenue-share'],
-    action: 'Post a role',
-    href: '/collaborate/new',
-  },
-]
+function workspaceCards(projectCount: number, eventCount: number, collabCount: number) {
+  return [
+    {
+      Icon: Folder,
+      title: 'Projects',
+      body: projectCount > 0 ? `${projectCount} project${projectCount === 1 ? '' : 's'}` : 'No projects yet.',
+      bullets: ['Post devlogs as you build', 'Public page, searchable from day one'],
+      action: projectCount > 0 ? 'View your projects' : 'Create your first project',
+      href: projectCount > 0 ? '/dashboard/projects' : '/dashboard/projects/new',
+    },
+    {
+      Icon: Calendar,
+      title: 'Events',
+      body: eventCount > 0 ? `${eventCount} hosted event${eventCount === 1 ? '' : 's'}` : 'Nothing on your calendar.',
+      bullets: ['Host or RSVP to local meetups', 'Run a game jam with a real deadline'],
+      action: 'Host an event',
+      href: '/dashboard/events/new',
+    },
+    {
+      Icon: Handshake,
+      title: 'Collaborations',
+      body: collabCount > 0 ? `${collabCount} open role${collabCount === 1 ? '' : 's'}` : 'No open roles yet.',
+      bullets: ['Post a role linked to a real project', 'Full-time, freelance, or revenue-share'],
+      action: 'Post a role',
+      href: '/collaborate/new',
+    },
+  ]
+}
 
 export function DashboardClient({
   displayName,
   email,
   username,
   missing,
+  projectCount,
+  eventCount,
+  collabCount,
 }: {
   displayName: string
   email: string
   username: string
   missing: string[]
+  projectCount: number
+  eventCount: number
+  collabCount: number
 }) {
   return (
     <AppShell
@@ -104,7 +112,7 @@ export function DashboardClient({
 
         {/* Workspace cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-          {WORKSPACE_CARDS.map(({ Icon, title, body, bullets, action, href }) => (
+          {workspaceCards(projectCount, eventCount, collabCount).map(({ Icon, title, body, bullets, action, href }) => (
             <Link
               key={title}
               href={href}

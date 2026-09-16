@@ -31,12 +31,21 @@ export default async function DashboardPage() {
   if (!profile.experience_level) missing.push('Experience')
   if (!profile.avatar_url) missing.push('Avatar')
 
+  const [{ count: projectCount }, { count: eventCount }, { count: collabCount }] = await Promise.all([
+    supabase.from('projects').select('*', { count: 'exact', head: true }).eq('owner_id', user.id),
+    supabase.from('events').select('*', { count: 'exact', head: true }).eq('host_id', user.id),
+    supabase.from('collaboration_posts').select('*', { count: 'exact', head: true }).eq('author_id', user.id).eq('status', 'open'),
+  ])
+
   return (
     <DashboardClient
       displayName={profile.display_name || profile.username}
       email={user.email ?? ''}
       username={profile.username}
       missing={missing}
+      projectCount={projectCount ?? 0}
+      eventCount={eventCount ?? 0}
+      collabCount={collabCount ?? 0}
     />
   )
 }

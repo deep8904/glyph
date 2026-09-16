@@ -66,7 +66,7 @@ export function NewCollabForm({ projects }: { projects: { id: string; title: str
         <div>
           <label className={labelCls}>Project (required for Seeking) *</label>
           {projects.length === 0 ? (
-            <p className="text-sm text-red-500">You need a project to post a "Seeking collaborator" listing. <a href="/dashboard/projects/new" className="underline">Create one first.</a></p>
+            <p className="text-sm text-red-500">You need a project to post a &quot;Seeking collaborator&quot; listing. <a href="/dashboard/projects/new" className="underline">Create one first.</a></p>
           ) : (
             <select className={selectCls} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
               <option value="">— Select project —</option>

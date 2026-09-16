@@ -145,32 +145,66 @@ While testing jam creation, it failed with a real error: `Could not find the tab
 
 After applying: jam creation, studio creation, and publisher registration were retested and confirmed working (see below).
 
-## New Finding: RLS Correlation Bug — Multi-Tenant Isolation Break (P0, security — found, NOT fixed, needs your explicit approval)
+## RLS Correlation Bug — Multi-Tenant Isolation Break (P0, security) — **FIXED AND VERIFIED**
 
-While diagnosing why a freshly-created studio ended up with no owner (see Studios testing below), I found a real, exploitable authorization bug in the RLS policies I had just applied from the repo's own committed migration files (011/012/013), **not something introduced by this session's edits** — the bug was already latent in the migration SQL as written; applying it just brought it live.
+**Status: FIXED.** Applied with your explicit approval (2026-09-16) and verified against the live database's actual authorization behavior — not frontend visibility, not source-code review. Three migrations were required, not one; the process of verifying the first fix surfaced two further real bugs in the same authorization surface, both also now fixed and verified.
 
-**The bug:** several RLS policies use a correlated `EXISTS` subquery of the form:
+### 1. The original bug and its fix (`017_fix_studio_rls_correlation_bug.sql`)
+
+Several RLS policies used a correlated `EXISTS` subquery of the form:
 ```sql
 exists (select 1 from public.studio_members m where m.studio_id = studio_id and m.user_id = auth.uid() and m.role in ('owner','admin'))
 ```
-When the outer table (the one the policy is attached to) has a column with the *same name* as a column in the subquery's own table (here, `studio_id`), Postgres resolves the bare, unqualified `studio_id` to the **subquery's own table** (`m.studio_id`), not the outer row being checked. This turns `m.studio_id = studio_id` into the tautology `m.studio_id = m.studio_id` — always true. The check silently degrades from "is this user owner/admin **of this specific studio**" to "is this user owner/admin **of any studio at all**."
+Because the outer table shared a column name (`studio_id`) with the subquery's own table, Postgres resolved the bare `studio_id` to the subquery's own row, not the outer row being checked — `m.studio_id = studio_id` silently became the tautology `m.studio_id = m.studio_id`, always true. **Before behavior:** any owner/admin of *any* studio passed the check for *every* studio.
 
-**Confirmed affected (verified via `pg_policy` inspection of the actual applied expressions, not just the source file):**
+**Migration applied:** `017_fix_studio_rls_correlation_bug.sql` — qualified every outer reference with the table's own name (`studio_members.studio_id`, `studio_projects.studio_id`, `subscriptions.studio_id`) to disambiguate from the inner alias. Also closed a secondary gap in the same investigation: `studios_insert` had `with check (true)`, allowing unauthenticated inserts at the RLS layer; changed to `auth.uid() is not null`.
 
-| Table | Policy | Real-world impact |
-|---|---|---|
-| `studio_members` | `studio_members_read` | Any member of *any* studio can read membership rows of *every* studio. |
-| `studio_members` | `studio_members_insert` | Any owner/admin of *any* studio can insert themselves (or anyone) into *any other* studio's member list, including as `owner`. |
-| `studio_members` | `studio_members_delete` | Any owner/admin of *any* studio can remove members from *any other* studio. |
-| `studio_projects` | `studio_projects_insert` | Any owner/admin of *any* studio can attach *any* project to *any other* studio. |
-| `studio_projects` | `studio_projects_delete` | Any owner/admin of *any* studio can detach projects from *any other* studio. |
-| `subscriptions` | `subscriptions_read` | Any member of *any* studio can read the billing/subscription records of *every* studio. |
+**Policies changed:** `studio_members_read`, `studio_members_insert`, `studio_members_delete`, `studio_projects_insert`, `studio_projects_delete`, `subscriptions_read`, `studios_insert`. `studios_update` was inspected and confirmed *not* affected (different, non-colliding column names) — left untouched.
 
-`studios_update` uses the same subquery pattern but against a differently-named outer column (`id`, not `studio_id`), so it does **not** have this bug — confirmed by inspecting its actual applied expression too, not assumed safe by pattern-matching.
+### 2. A second bug surfaced by the first fix: infinite recursion (`018_fix_studio_rls_recursion.sql`)
 
-**Why this wasn't fixed:** I wrote a corrective migration (qualifying the outer reference as `studio_members.studio_id` / `studio_projects.studio_id` / `subscriptions.studio_id` to disambiguate it from the inner alias) and attempted to apply it, but it was blocked by the environment's own auto-mode permission classifier as a new database-modifying action beyond the single migration-application approval already granted. I did not attempt to work around that block. **This is currently live on your database and needs your explicit go-ahead to fix** — I have the corrected SQL ready; it just needs you to approve running it (the same way you approved applying the missing migrations).
+Applying migration 017 and then testing it immediately failed with `ERROR: 42P17: infinite recursion detected in policy for relation "studio_members"`. Root cause: once the subquery in `studio_members_read` correctly depended on real data (rather than a tautology the planner could short-circuit), evaluating it re-triggered `studio_members`' own read policy — which does the same kind of subquery on itself — infinite recursion. This affected every policy referencing `studio_members` in a subquery, not just the read policy.
 
-**Secondary, lower-severity finding from the same investigation:** `studios_insert` has `with check (true)` — RLS alone would allow an unauthenticated request to create a studio row; the only thing currently preventing that is the calling server action's own auth check. I also have a fix ready for this (`auth.uid() is not null`) pending the same approval.
+**Migration applied:** `018_fix_studio_rls_recursion.sql` — added `public.is_studio_member(studio_id, roles)`, a `SECURITY DEFINER` helper function matching the existing `public.is_admin()` pattern already in this codebase (`015_admin.sql`), which bypasses RLS internally and breaks the recursion. Rewrote `studio_members_read/insert/delete`, `studio_projects_insert/delete`, `subscriptions_read`, and `studios_update` (this one needed the same treatment even though its correlation was already correct, to avoid the same recursion) to call the helper instead of a raw subquery.
+
+### 3. A third, distinct bug surfaced by live authorization testing: self-insert privilege escalation (`019_fix_studio_members_self_insert_escalation.sql`)
+
+Running the actual cross-tenant authorization test matrix (below) against the 017+018 fix caught a real, separate vulnerability: `studio_members_insert`'s `auth.uid() = user_id` clause allowed **any authenticated user to self-insert into any studio's member list, as any role including `owner`, with no restriction on which studio.** Live-tested and confirmed exploitable: Account A successfully inserted itself as owner of Account B's studio, then successfully renamed that studio and attached a project to it.
+
+**Migration applied:** `019_fix_studio_members_self_insert_escalation.sql` — added `public.studio_has_members(studio_id)`, another `SECURITY DEFINER` helper, and restricted the self-insert clause to only the legitimate bootstrapping case: a brand-new studio with zero existing members. `(auth.uid() = user_id and not public.studio_has_members(studio_id)) or public.is_studio_member(studio_id, array['owner','admin'])`.
+
+A fourth, minor migration (`020_harden_studio_helper_functions_search_path.sql`) closed a `function_search_path_mutable` advisory the Supabase security linter flagged on the two new helper functions after they were created.
+
+### Authorization verification — actual database/API path, not frontend
+
+Per your instruction not to treat frontend visibility as proof, verification was done as live SQL against the actual RLS-enforced authorization path, using two genuinely distinct, real `auth.users` identities already in the database (the primary account and the `pateldeep8904@gmail.com` account found during the A-05 investigation) — role-impersonated via `set local role authenticated; set local request.jwt.claims`, all wrapped in a transaction that was rolled back afterward so no test data persisted. Both a full run against the broken 017+018-only state (to confirm the bugs were real, not theoretical) and a full run after the 019 fix were performed.
+
+**Full results after all three fixes (12/12 pass):**
+
+| Test | Expected | Actual | Result |
+|---|---|---|---|
+| A: read own Studio A members | rows > 0 | 1 | PASS |
+| A: read Studio B members (cross-tenant) | rows = 0 | 0 | PASS |
+| A: read Studio B subscription (cross-tenant) | rows = 0 | 0 | PASS |
+| A: delete Studio B project link (cross-tenant) | 0 rows deleted | 0 | PASS |
+| A: insert self into Studio B as owner (cross-tenant) | denied | denied by RLS | PASS |
+| A: attach project to Studio B (cross-tenant) | denied | denied by RLS | PASS |
+| A: update Studio B name (cross-tenant) | 0 rows updated | 0 rows affected | PASS |
+| B: read own Studio B members | rows > 0 | 1 | PASS |
+| B: read Studio A members (cross-tenant) | rows = 0 | 0 | PASS |
+| B: delete A from Studio A members (cross-tenant) | 0 rows deleted | 0 rows affected | PASS |
+| B: insert self into Studio A as owner (cross-tenant) | denied | denied by RLS | PASS |
+| anon: create a studio unauthenticated | denied | denied by RLS | PASS |
+
+Confirmed via direct query afterward that the test fixtures (`authz-test-studio-a`/`-b`) left zero residue — the transaction rollback worked as intended.
+
+### Legitimate access still works (no regression)
+
+Re-tested the real studio-creation lifecycle through the actual browser UI as the primary account: create → the owner row is now correctly created (previously silently failed) → studio management page shows "Team Members (1): Deep — OWNER" → edited the description and saved successfully → public studio page renders correctly with the team list. Full lifecycle confirmed working, not just creation.
+
+### Remaining limitation
+
+All of the above used real, distinct database identities via SQL-level role impersonation — the actual authorization mechanism the application relies on — which is a stronger test than frontend clicking would have been. It is **not** the same as two people using two live browser sessions concurrently through the real UI end-to-end (queuing, UI-level race conditions, etc.), which remains BLOCKED for the same reason documented earlier (no way to safely create a second authenticated browser session in this environment).
 
 ## New Finding: `createStudio` Silently Swallowed a Real Failure (P1 — found and fixed)
 
@@ -198,12 +232,14 @@ Test data cleanup: the real jam created during this pass was deleted via direct 
 
 | Test | Result |
 |---|---|
-| Studio creation (`/dashboard/studios/new`) | **FAIL → error now surfaces correctly** (was: silent false success, orphaned studio; now: honest error, rollback). Root cause is the RLS bug above, still unresolved pending your approval. |
-| Studio profile page | Not reachable — creation currently fails at the members-insert step, so there is no successful studio to view. Once the RLS fix above is approved and applied, this needs a follow-up test. |
-| Editing, members, projects, roles, invitations, ownership, leaving | **BLOCKED** — all depend on a studio actually being created successfully, which the RLS bug currently prevents. |
-| Unauthorized access | Partially verified by *finding* the authorization bug itself — i.e., the negative case (cross-tenant access should be denied) currently fails, which is the P0 finding above. |
+| Studio creation (`/dashboard/studios/new`) | **PASS (after the RLS fix).** Real browser test: created a studio, owner row correctly created, redirected to the management page showing "Team Members (1): Deep — OWNER". |
+| Studio profile page | PASS — public studio page (`/studios/[slug]`) renders correctly with name, size, and team list. |
+| Editing | PASS — edited the description field, saved, redirected correctly, change persisted. |
+| Members, roles, invitations, leaving | Not separately re-tested this pass — the underlying RLS policies for these were part of the fixed/verified set (`studio_members_insert/delete`), but the UI flows for inviting another member or leaving a studio were not clicked through, since they'd require a second account to be meaningful. |
+| Cross-tenant authorization (owner of Studio A vs Studio B) | **PASS — verified at the actual database/authorization layer**, not frontend visibility. See the RLS fix section above for the full 12-test matrix. |
+| Unauthenticated studio creation | **PASS (denied)** — verified via direct role-impersonated SQL test (`anon` role), not assumed. |
 
-Test data cleanup: the two orphaned test studio rows created during this pass were removed via direct database access (no studio-delete feature exists in the app).
+Test data cleanup: the two orphaned test studio rows from the first pass, the real studio created during authorization verification, and the SQL-level test fixtures (rolled back via transaction) were all removed — confirmed zero residue via direct query (no studio-delete feature exists in the app, so cleanup for the UI-created ones was via direct database access, consistent with the earlier project-deletion gap).
 
 ## Publisher — Interactively Tested
 
@@ -279,43 +315,43 @@ These are reasonable numbers for a Next.js app with GSAP + Lenis + Supabase, not
 | **Core functionality** (auth, projects, devlogs) | READY | Fully tested including the new delete flow; no known issues |
 | **UI/UX** | READY | Consistent shell across all migrated surfaces; minor reveal-animation flash noted, not blocking |
 | **Authentication** | READY | Google OAuth + email/password both confirmed working; session redirects correct |
-| **Authorization** | **NEEDS FIX** | The studio/studio_projects/subscriptions RLS correlation bug (P0, security) is live and unresolved pending your approval to apply the fix |
+| **Authorization** | **READY** | The studio_members/studio_projects/subscriptions RLS correlation bug (P0, security), the recursion bug it surfaced, and the self-insert privilege-escalation bug it also surfaced are all fixed and verified via a live 12-test cross-tenant authorization matrix at the actual database layer |
 | **Community** (feed, follow, explore, search) | NEEDS FIX (partial) | Feed/explore/search all PASS; follow itself is BLOCKED — untestable with one account |
 | **Playtesting** | NEEDS FIX (partial) | Single-account flows PASS; the actual tester-side flow is BLOCKED — untestable with one account |
 | **Events** | READY | PASS in both audit passes; creation form not submitted (would create a real dated event with no cleanup path) but renders and validates correctly |
 | **Collaboration** | READY | Full post-creation flow verified end-to-end in the first audit |
-| **Jams** | NEEDS FIX | Full host→approve→publish flow now works after the migration fix; submission/voting is BLOCKED — untestable with one account |
-| **Studios** | **NEEDS FIX** | Currently cannot be successfully created at all until the RLS bug above is fixed — this is the most concretely broken area in the product right now |
+| **Jams** | NEEDS FIX (partial) | Full host→approve→publish flow verified working; submission/voting is BLOCKED — untestable with one account |
+| **Studios** | READY | Full create→manage→edit→public-view lifecycle verified working through the real UI after the RLS fix; member-invite/leave flows not separately re-tested this pass (need a second account to be meaningful) |
 | **Publisher** | READY | Registration and shortlist creation both verified working end-to-end |
 | **Settings** | READY | Profile/account/danger-zone all verified; danger-zone safeguard confirmed real, not cosmetic |
 | **Responsive** | READY | No overflow found at any tested breakpoint; sweep was a representative sample, not exhaustive |
 | **Accessibility** | NEEDS FIX (minor) | Keyboard nav and Escape-to-close both verified working; one minor heading-hierarchy gap found, nothing severe |
 | **Performance** | READY | Real production-build numbers are reasonable; no Lighthouse run possible in this environment |
-| **Deployment** | READY (preview only) | Build/typecheck/lint clean, preview redeployed; production/main untouched by design; direct browser verification of the deployed URL still blocked by SSO protection |
+| **Deployment** | READY (preview only) | Build/typecheck/lint clean, preview redeployed with all security fixes; production/main untouched by design; direct browser verification of the deployed URL still blocked by SSO protection |
 
 ### MUST FIX BEFORE PRODUCTION
-1. **The studio_members/studio_projects/subscriptions RLS correlation bug** — a live, exploitable cross-tenant authorization break. Fix is written and ready, blocked only on your approval to apply it.
-2. **Studios cannot currently be created successfully at all** — direct consequence of #1. Once #1 is fixed, this needs a follow-up retest.
+*(none remaining from this pass)* — the one item in this category, the RLS authorization break, is now fixed and verified.
 
 ### SHOULD FIX BEFORE PRODUCTION
-3. No delete feature for studios or jams (mirrors the project-deletion gap this pass fixed) — owners currently have no way to remove what they created.
-4. `studios_insert` RLS allows unauthenticated inserts at the database layer (defense-in-depth gap; currently masked by the server action's own auth check).
-5. The landing page's ~1–2 second near-blank flash before the reveal animation fires on first load.
-6. The dashboard's `H1 → H3` heading-hierarchy skip.
+1. No delete feature for studios or jams (mirrors the project-deletion gap this pass fixed) — owners currently have no way to remove what they created.
+2. The landing page's ~1–2 second near-blank flash before the reveal animation fires on first load.
+3. The dashboard's `H1 → H3` heading-hierarchy skip.
+4. `security_definer_view` advisory on the pre-existing `public.feed_items` view (unrelated to this pass's changes, surfaced by the same security-advisor check) — worth a look, not touched here as it's outside this fix's scope.
 
 ### CAN WAIT
-7. CSP defined in two places (`next.config.ts` and `proxy.ts`) with different allowlists — config-drift risk, not a live bug.
-8. The pre-existing `ProjectForm.tsx` `set-state-in-effect` lint error (not introduced by any session in this engagement).
-9. Full Lighthouse/Core Web Vitals run once a tool supporting it is available.
-10. Full accessibility pass with a screen reader and a contrast-checking tool.
+5. CSP defined in two places (`next.config.ts` and `proxy.ts`) with different allowlists — config-drift risk, not a live bug.
+6. The pre-existing `ProjectForm.tsx` `set-state-in-effect` lint error (not introduced by any session in this engagement).
+7. Full Lighthouse/Core Web Vitals run once a tool supporting it is available.
+8. Full accessibility pass with a screen reader and a contrast-checking tool.
+9. `is_admin()`, `is_studio_member()`, `studio_has_members()`, and `rls_auto_enable()` are all directly callable via RPC by any signed-in (or, for `is_admin`/`rls_auto_enable`, anonymous) user — flagged by the Supabase security linter. None leak data beyond a boolean the caller could already infer from normal app usage, and `is_admin()` already had this exact property before this pass touched anything, so this is a pattern already accepted in this codebase, not a regression — noted for your awareness, not fixed.
 
 ### NOT TESTABLE (this environment)
-11. All multi-account workflows (follow, collaboration applications, playtest participation, cross-account notifications) — no second account obtainable without risking the only working session.
-12. Stripe payment flows — no test payment method.
-13. Resend email delivery — no test inbox.
-14. Direct browser verification of the deployed preview/production URL — blocked by Vercel deployment protection (SSO) in this environment.
-15. Full 6-breakpoint × 20-feature responsive matrix — representative sample only was completed given time.
+10. Real concurrent two-browser-session multi-account workflows (follow, collaboration applications, playtest participation, cross-account notifications) — no second browser session obtainable without risking the only working one. The authorization *mechanism* itself (RLS) was verified with real distinct account identities via direct database role-impersonation, which is a stronger test of the security boundary than clicking through a UI would have been — but it is not the same as an actual two-person concurrent UI session.
+11. Stripe payment flows — no test payment method.
+12. Resend email delivery — no test inbox.
+13. Direct browser verification of the deployed preview/production URL — blocked by Vercel deployment protection (SSO) in this environment.
+14. Full 6-breakpoint × 20-feature responsive matrix — representative sample only was completed given time.
 
 ---
 
-*This Release Readiness Pass reflects only what was actually exercised in a real browser session, verified by direct database/code inspection, or explicitly approved by the user before acting (the missing-migrations fix). Every BLOCKED item names the specific missing infrastructure or account rather than being silently skipped or assumed to pass.*
+*This Release Readiness Pass reflects only what was actually exercised in a real browser session, verified by direct database/code inspection, or explicitly approved by the user before acting (the missing-migrations fix and the RLS security fix). Every BLOCKED item names the specific missing infrastructure or account rather than being silently skipped or assumed to pass. The RLS fix is marked FIXED only because its corrected authorization behavior was verified with a live 12-test matrix against real distinct account identities at the actual database layer — not because the migration was merely applied.*

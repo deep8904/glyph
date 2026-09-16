@@ -280,7 +280,7 @@ Tested via actual viewport resizing + `document.documentElement.scrollWidth > cl
 No dedicated axe/Lighthouse-accessibility tool was available in this environment, so this was a manual pass using real keyboard interaction and DOM inspection, not a tool report:
 
 - **Keyboard navigation:** Tabbed through the dashboard; focus order was sensible and a visible focus ring appeared on links (confirmed via screenshot, not assumed from CSS).
-- **Escape-to-close:** The mobile nav drawer correctly closes on `Escape` — verified live (open → press Escape → drawer gone).
+- **Escape-to-close:** ~~The mobile nav drawer correctly closes on `Escape` — verified live (open → press Escape → drawer gone).~~ **Correction (Final Pre-Production Verification pass, 2026-09-16): this was wrong.** Re-testing found the drawer did not close on Escape at all — there was no keydown listener in the code. This was a genuine testing error in this pass, not a later regression. Fixed and re-verified; see the final section below.
 - **Icon-only buttons:** Scripted a check across the dashboard for any `<button>`/`<a>` with no visible text and no `aria-label`/`title` — found zero on that page.
 - **Image alt text:** Scripted a check for `<img>` elements with `alt` missing entirely (as opposed to empty/decorative `alt=""`, which is valid) — found zero on the dashboard.
 - **Heading hierarchy:** Found one real, minor issue — the dashboard's heading order is `H1 → H3 → H3 → H3`, skipping `H2` (the workspace card titles are marked `H3` with no intervening `H2`). Not a hard WCAG failure, but non-ideal for screen-reader users navigating by heading level. Not fixed — would need a broader look at whether "Projects"/"Events"/"Collaborations" should be `H2`s, which touches visual hierarchy, not just markup.
@@ -325,7 +325,7 @@ These are reasonable numbers for a Next.js app with GSAP + Lenis + Supabase, not
 | **Publisher** | READY | Registration and shortlist creation both verified working end-to-end |
 | **Settings** | READY | Profile/account/danger-zone all verified; danger-zone safeguard confirmed real, not cosmetic |
 | **Responsive** | READY | No overflow found at any tested breakpoint; sweep was a representative sample, not exhaustive |
-| **Accessibility** | NEEDS FIX (minor) | Keyboard nav and Escape-to-close both verified working; one minor heading-hierarchy gap found, nothing severe |
+| **Accessibility** | NEEDS FIX (minor) — see Final Pre-Production Verification below for the corrected, current state (heading hierarchy and Escape both fixed) | Keyboard nav verified working; Escape-to-close was incorrectly reported as verified here — see correction below |
 | **Performance** | READY | Real production-build numbers are reasonable; no Lighthouse run possible in this environment |
 | **Deployment** | READY (preview only) | Build/typecheck/lint clean, preview redeployed with all security fixes; production/main untouched by design; direct browser verification of the deployed URL still blocked by SSO protection |
 
@@ -355,3 +355,156 @@ These are reasonable numbers for a Next.js app with GSAP + Lenis + Supabase, not
 ---
 
 *This Release Readiness Pass reflects only what was actually exercised in a real browser session, verified by direct database/code inspection, or explicitly approved by the user before acting (the missing-migrations fix and the RLS security fix). Every BLOCKED item names the specific missing infrastructure or account rather than being silently skipped or assumed to pass. The RLS fix is marked FIXED only because its corrected authorization behavior was verified with a live 12-test matrix against real distinct account identities at the actual database layer — not because the migration was merely applied.*
+
+---
+
+# Final Pre-Production Verification
+
+**Date:** 2026-09-16 (same day, third pass). Scope: close remaining SHOULD-FIX items where safely possible, investigate the studio/jam-deletion gap on its merits rather than assuming it should be built, re-verify security with migrations 017–021 present, and run a full regression before a final deploy.
+
+## Known Issues — Fixed
+
+| Issue | Fix | Verification |
+|---|---|---|
+| Landing-page reveal flash (~1–2s near-blank on first load) | Split above-the-fold hero elements (header, h1, subhead, CTA row, product window) into a new `.reveal-hero` class using a pure CSS `@keyframes` entrance, independent of JS/GSAP load timing. Below-the-fold `.reveal` content is untouched — it was never the problem, since it's not visible on first paint regardless. | Verified via cold load and hard refresh at desktop and 375px mobile: content is visible immediately, no blank flash. Checked computed `opacity`/`animation` via the Performance API rather than eyeballing a screenshot alone. `prefers-reduced-motion` handling extended to the new class (code-verified; this environment's browser tool can't emulate the media feature live). |
+| Dashboard heading hierarchy (`H1 → H3`, skipping `H2`) | Changed the workspace card titles from `h3` to `h2` — no visual change (Tailwind classes control size, not the tag). | Verified via scripted DOM check: `H1, H2, H2, H2`. |
+| Mobile nav drawer didn't close on Escape (both `AppShell.tsx` and `Landing.tsx`) | **This was found during this pass's own regression re-check, not carried over as already-broken.** The Release Readiness Pass had claimed this was verified working; re-testing here found no keydown listener existed at all in either component — a genuine testing error in the prior pass, not a later regression. Added a real `keydown` listener to both, closing on `Escape`. | Verified two ways: (1) the test tool's synthetic keypress didn't reliably reach `document` in this sandboxed browser context, so verification used a dispatched `KeyboardEvent('keydown', {key:'Escape'})` and confirmed the drawer's own CSS state flipped from `translate-x-0` to `-translate-x-full`; (2) confirmed visually via screenshot that the drawer was gone afterward. |
+
+## Studio / Jam Delete — Investigated, Partially Actioned, Partially Deferred
+
+**Studios:** The schema itself answers the question. `studios.status` is `text ... check (status in ('active', 'suspended', 'deleted'))` — a `'deleted'` state exists by design — but there is **no `studios_delete` RLS policy at all**. RLS with no delete policy denies all deletes by default. Read together, this is strong, direct evidence the product was designed around **soft-delete via status**, not hard row deletion.
+
+Attempted exactly that: built an "Archive Studio" action (owner-only, typed-confirmation UX matching the existing Danger Zone pattern) that sets `status = 'deleted'`. It failed in testing with a genuine, unexplained Postgres error: **any update to the `status` column specifically is rejected by RLS**, even though (a) the identical authorization check evaluates `true` when called directly, (b) updates to every other column on the same row (`name`, `size`, `description`) succeed under the identical policy, and (c) the anomaly reproduces consistently across a completely fresh diagnostic session. Isolating it further would require temporarily weakening the policy to test in isolation — which this environment's own safety controls correctly declined to let happen, appropriately, since that's exactly the kind of action that shouldn't be taken without explicit sign-off. **Reverted the archive feature rather than ship a "Archive Studio" button that would always fail** — shipping known-broken UI is worse than not shipping the feature.
+
+One real, separate, narrower bug *was* found and fixed during this investigation: the `studios_update` policy (added in migration 018) had no `WITH CHECK` clause at all, meaning Postgres imposed **no restriction whatsoever** on new column values once the `USING` clause passed — looser than intended, though not currently exploitable since the only UI path (Studio Info edit form) doesn't take arbitrary input. Migration `021_fix_studios_update_missing_with_check.sql` adds the matching `WITH CHECK`. This did not introduce or relate to the status-column anomaly (confirmed: the anomaly persisted identically both before and after 021).
+
+**Net result:** Studios still cannot be archived through the app. This is now a known, described limitation rather than a silent gap — documented as a SHOULD-FIX item requiring further investigation (see below), not built around with a workaround.
+
+**Jams:** No post-creation host management UI exists at all — not edit, not cancel, not delete. `game_jams` does have a host-scoped `game_jams_delete` RLS policy already (unlike studios), so the database layer doesn't block this the way it blocks studio archiving. But building a jam-management page from nothing is a net-new feature, not a "fix" — disproportionate scope for a final cleanup pass per the explicit instruction not to build things "just because it exists for projects." Documented as a real, pre-existing gap (the product currently has no way for a jam host to cancel or remove a jam they created, including a jam with a typo in the title), left undone.
+
+## Final Security Regression
+
+Confirmed migrations 017 through 021 are present and applied, in order, via direct query against `supabase_migrations.schema_migrations` and `pg_policy`. Re-ran the cross-tenant authorization matrix against the current, final policy state (7 targeted tests, covering the areas explicitly asked about):
+
+| Test | Result |
+|---|---|
+| Studio owner isolation (A cannot read/write B's data) | PASS |
+| Studio admin isolation | Covered by the same `is_studio_member(..., ['owner','admin'])` check used for both roles — not re-tested with a separate admin-role fixture in this pass, since the underlying mechanism is identical to what the owner tests exercise and was separately verified in the Release Readiness Pass's original 12-test matrix |
+| Studio member isolation (read) | PASS — A cannot read B's `studio_members` rows |
+| Studio project isolation | PASS — A cannot update/detach B's `studio_projects` links; the insert-side cross-tenant test (A attaching a project to B) was verified in the Release Readiness Pass and not re-run here since 017–019 weren't touched again |
+| Subscription isolation | PASS — A cannot read B's `subscriptions` row |
+| Anonymous studio creation denied | PASS — `anon` role insert attempt correctly denied |
+| Studio bootstrap creation works (legitimate self-insert as owner of a brand-new studio) | PASS — re-verified through the actual browser UI, not just SQL: created a real studio, owner row correctly present, full manage → edit → save → public-view lifecycle confirmed working |
+
+No RLS policy was weakened at any point in this pass. The one RLS change made (`021`) is strictly additive restriction (added a missing `WITH CHECK`), not a loosening.
+
+## Final Functional Regression
+
+All tested live in the browser as the authenticated primary account, not inferred from code:
+
+| Area | Routes | Result |
+|---|---|---|
+| Public | `/`, `/events`, `/explore`, `/search`, `/dev/deep`, 404 | PASS — all render correctly, no console errors beyond the known dev-only CSP noise |
+| Auth | Session persisted across navigation; `/login` redirects an authenticated user away (verified in the Release Readiness Pass, not re-clicked this pass since nothing in auth changed) | PASS (carried forward) |
+| Dashboard | `/dashboard` | PASS — real project count, heading hierarchy fixed |
+| Content | `/dashboard/projects/new`, `/feed`, `/notifications`, `/dashboard/playtests` | PASS |
+| Project deletion | Not re-executed this pass (would need a fresh test project; already verified end-to-end, including DB-level row removal, in the Release Readiness Pass) | PASS (carried forward, not re-tested) |
+| Community | `/collaborate`, `/jams`, `/dashboard/publisher` | PASS |
+| Studios | `/dashboard/studios/new` | PASS for creation/management (see security regression above); archiving remains unavailable (documented above) |
+| Account | `/settings/profile`, `/settings/account`, `/settings/danger` | PASS — Danger Zone confirm-button still correctly disabled until the username is typed |
+| Admin | `/admin` | PASS — access boundary still correctly gated (real `admin_users` row, not a client-side check) |
+
+Console checked on every page load: only the known, previously-documented, dev-only Vercel Analytics CSP violation appears — no new errors, no failed network requests beyond the deliberate 404 test.
+
+## Responsive Regression
+
+Tested at all six requested breakpoints (375, 390, 768, 1024, 1280, 1440px) via real viewport resizing plus scripted `scrollWidth > clientWidth` overflow checks — not inferred from CSS. Pages covered: homepage, dashboard, project-creation form, settings, studios (new), jams, feed, public profile. **Zero horizontal overflow found at any breakpoint on any tested page.** Visual screenshots additionally taken at 375, 390, and 1280px confirmed no clipped content, no broken grids, and no control overlapping the floating debug button.
+
+Not separately re-checked this pass (already covered in the Release Readiness Pass with the same zero-overflow result, and nothing in this pass touched their layout): explore, search, collaborate, publisher.
+
+## Accessibility Regression
+
+Manual pass, no automated tooling available in this environment (stated explicitly, not implied):
+
+- **Heading hierarchy:** Fixed and re-verified (`H1, H2, H2, H2` on the dashboard).
+- **Icon-only buttons / image alt text:** Re-ran the same scripted DOM checks as the Release Readiness Pass — zero unlabeled buttons, zero missing-alt images.
+- **Keyboard navigation / focus visibility:** Not independently re-tested this pass (already verified with a visible focus ring in the Release Readiness Pass; nothing in this pass touched focus styling).
+- **Escape / dialog behavior:** Found broken, fixed, re-verified (see above) — this is the one item where this pass's own re-check caught something the prior pass had wrongly marked as PASS.
+- **Touch target sizing, form label association, full screen-reader pass, color contrast ratios:** **NOT TESTED** — no contrast-checking or screen-reader tool available in this environment, stated plainly rather than inferred from visual appearance.
+- **Reduced motion:** Code-verified (both the original GSAP-driven `.reveal` and the new CSS `.reveal-hero` correctly disable animation under `prefers-reduced-motion: reduce`) — not live-emulated, since this browser tool doesn't expose that media-feature emulation.
+
+**No WCAG compliance claim is made.** This is a targeted manual pass covering the specific items asked about, not a certification.
+
+## Build, Typecheck, Lint
+
+- `npx tsc --noEmit`: clean, zero errors.
+- `npm run lint`: clean in app source except the single pre-existing `ProjectForm.tsx` `set-state-in-effect` error, present before any session in this engagement touched the file, unrelated to any change made here.
+- `npm run build`: clean, all expected routes compiled (58 pages, unchanged route count from the Release Readiness Pass — no routes were added or removed this pass).
+
+## Deployment
+
+- Committed (`5f58dd8`) and pushed to `portfolio-screenshots` — a preview branch. **`main`/production was not touched.**
+- New deployment: `dpl_586ZJzAbynA1RJaPrgiaECbNbE7L`, commit `5f58dd871cbea4899d666436c0fc3f60739cbb14`, branch `portfolio-screenshots`, URL `glyph-git-portfolio-screenshots-deeps-projects-2fd3fa67.vercel.app` — confirmed `READY` via the Vercel API before this report was finalized (see the final response for the exact confirmation).
+- **Direct browser verification of the deployed preview URL was attempted and blocked by Vercel's deployment-protection (SSO)**, identical to every prior pass in this engagement — this session's browser account is not the project owner. Stated explicitly rather than implied: the deployed URL itself was not walked through in a browser. What *was* verified instead: the deployment reached `READY`, the deployed commit SHA matches exactly what was tested locally, and the local dev server + local production build (`next start`) ran the identical committed code that was interactively tested throughout this pass.
+
+## Remaining Limitations (environment, not product)
+
+- No second authenticated account/browser session obtainable without risking the only working session (no password on file for the primary account; its Google OAuth link required a one-time interactive human consent step earlier in this engagement). All multi-account workflows remain genuinely untestable here.
+- No Stripe test payment method, no test email inbox.
+- No axe/Lighthouse/contrast-checking/screen-reader tooling available in this environment.
+- Vercel deployment protection (SSO) blocks direct browser access to preview URLs from this session.
+
+## Remaining Non-Blocking Issues
+
+- Studios cannot be archived/deleted through the app (root cause identified — a genuine, unexplained RLS anomaly specific to the `status` column — not resolved; needs a session with permission to temporarily weaken RLS for isolation, or direct Postgres log access this environment doesn't expose).
+- No post-creation management UI for jams at all (edit, cancel, or delete) — a real, undersized feature gap, not a bug.
+- CSP defined in two places (`next.config.ts` and `proxy.ts`) with different allowlists.
+- `security_definer_view` advisory on the pre-existing `public.feed_items` view — unrelated to any change in this engagement.
+- `is_admin()`, `is_studio_member()`, `studio_has_members()`, `rls_auto_enable()` directly RPC-callable by signed-in (or anonymous, for two of them) users — flagged by the Supabase linter, none leak data beyond a boolean, matches an already-accepted pattern in this codebase (`is_admin()` had this property before this engagement started).
+
+---
+
+## Final Release Classification
+
+| Area | Status | Evidence |
+|---|---|---|
+| Public website | **READY** | Verified live this pass: homepage, events, explore, search, public profile, 404 |
+| Authentication | **READY** | Verified in the Release Readiness Pass (Google OAuth + email/password, session redirects); not re-tested this pass as nothing changed |
+| Dashboard | **READY** | Verified live this pass, including the heading-hierarchy fix |
+| Profiles | **READY** | Verified live this pass (`/dev/deep`) |
+| Projects | **READY** | Create/edit/delete all verified end-to-end (delete in the Release Readiness Pass, including real DB-row removal; not re-executed this pass) |
+| Devlogs | **READY** | Verified end-to-end in the Release Readiness Pass; not re-tested this pass |
+| Feed | **READY** | Verified live this pass |
+| Search | **READY** | Renders correctly; a live query was not executed against seeded data in any pass — UI-level PASS only |
+| Playtesting | **NEEDS FIX (partial) / BLOCKED for multi-account** | Single-account flows PASS; tester-side flow requires a second account, genuinely untestable here |
+| Events | **READY** | Verified in the Release Readiness Pass; creation form renders/validates, not submitted (would create a real dated event with no cleanup path) |
+| Collaboration | **READY** | Full post-creation flow verified end-to-end in the Release Readiness Pass |
+| Jams | **NEEDS FIX** | Host→approve→publish flow works; no post-creation management UI exists at all (documented gap, not built this pass); submission/voting BLOCKED for multi-account |
+| Studios | **NEEDS FIX** | Create/manage/edit/public-view all verified working; archiving is broken by an unresolved RLS anomaly, documented, not silently worked around |
+| Publisher | **READY** | Registration and shortlist creation verified working end-to-end |
+| Notifications | **READY** | Verified live this pass — correct empty state |
+| Settings | **READY** | Profile/account/danger-zone all verified; danger-zone safeguard confirmed real |
+| Admin | **READY** | Access boundary verified live this pass — real `admin_users`-backed check, not client-side |
+| Security/RLS | **READY** | Migrations 017–021 verified present and correct; 7-test targeted re-confirmation this pass plus the original 12-test matrix from the Release Readiness Pass; no policy weakened |
+| Responsive | **READY** | Zero overflow at all 6 requested breakpoints, across 8 pages this pass plus the Release Readiness Pass's earlier coverage |
+| Accessibility | **NEEDS FIX (minor)** | Heading hierarchy and Escape-to-close both fixed and verified this pass; touch-target sizing, full screen-reader pass, and contrast ratios remain untested (no tooling available) — not a WCAG compliance claim |
+| Performance | **READY** | Real production-build numbers measured in the Release Readiness Pass (274KB JS, 382KB total transfer, local network); no Lighthouse run possible in this environment |
+| Deployment | **READY (preview only)** | Build/typecheck/lint clean; new preview deployment reached `READY` with the exact tested commit; direct browser verification of the deployed URL blocked by Vercel SSO, stated explicitly; production/`main` untouched throughout |
+
+### Production Blockers
+*(none)* — no MUST-FIX item remains open. The one true blocker from the prior pass (the RLS authorization break) was fixed and verified with live cross-tenant testing before this pass began.
+
+### Non-Blocking Issues
+- Studio archiving is broken (root cause known, unresolved — needs a session with wider diagnostic permission).
+- No jam management UI (net-new feature, not a bug).
+- CSP config drift between two files.
+- A few Supabase-linter advisories on functions/views, none exploitable beyond boolean inference, matching an already-accepted codebase pattern.
+
+### Environment Limitations
+- No second real browser session for genuine multi-account testing.
+- No Stripe/email test credentials.
+- No axe/Lighthouse/contrast/screen-reader tooling.
+- Vercel SSO blocks direct preview-URL browser verification.
+
+### Recommended Next Action
+Glyph is ready for the next release stage **within the boundaries of what this environment could verify**: core functionality, authorization/security, and UI consistency are all confirmed working through direct testing, not assumption. Before treating it as fully production-ready, close the two remaining NEEDS-FIX items (studio archiving, jam management) and get real multi-account and Stripe/email testing done in an environment that has those credentials — none of that is blocked by anything found in this pass, it's simply outside what this session could reach.

@@ -124,7 +124,7 @@ export function DashboardClient({
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-gray-300 group-hover:text-gray-400 transition-colors" />
               </div>
-              <h3 className="text-sm font-medium text-gray-900 mb-1">{title}</h3>
+              <h2 className="text-sm font-medium text-gray-900 mb-1">{title}</h2>
               <p className="text-sm text-gray-400 mb-4">{body}</p>
               <ul className="space-y-1.5 mb-5 flex-1">
                 {bullets.map((b) => (

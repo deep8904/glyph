@@ -118,6 +118,15 @@ export function AppShell({
     }
   }, [drawerOpen])
 
+  useEffect(() => {
+    if (!drawerOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [drawerOpen])
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/')

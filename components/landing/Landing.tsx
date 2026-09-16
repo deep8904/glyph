@@ -194,6 +194,15 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
     }
   }, [menuOpen])
 
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [menuOpen])
+
   return (
     <div ref={scopeRef} className="min-h-screen relative overflow-x-hidden font-sans">
       {/* Backdrop */}
@@ -204,7 +213,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
         <div className="flex-1 bg-white rounded-[2.5rem] panel-shadow overflow-hidden flex flex-col border border-white relative">
 
           {/* Header */}
-          <header className="border-b border-gray-100/50 reveal">
+          <header className="border-b border-gray-100/50 reveal-hero reveal-hero-1">
             <div className="flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 md:px-12 md:py-8">
               {/* Logo — always visible */}
               <div className="flex items-center gap-1 text-xl font-display font-semibold tracking-tighter text-gray-900">
@@ -276,15 +285,15 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
             {/* Hero */}
             <section className="grid lg:grid-cols-[1fr_1fr] gap-10 lg:gap-8 items-start">
               <div className="text-left lg:pt-2">
-                <h1 className="reveal text-[40px] sm:text-6xl lg:text-[68px] text-gray-900 leading-[0.98] font-display tracking-tighter text-balance mb-5">
+                <h1 className="reveal-hero reveal-hero-2 text-[40px] sm:text-6xl lg:text-[68px] text-gray-900 leading-[0.98] font-display tracking-tighter text-balance mb-5">
                   <span className="font-light">Your</span> <span className="font-semibold">home base</span>
                   <br />
                   <span className="font-semibold text-indigo-600">before launch.</span>
                 </h1>
-                <p className="reveal text-base md:text-lg text-gray-500 leading-relaxed max-w-md text-balance mb-8">
+                <p className="reveal-hero reveal-hero-3 text-base md:text-lg text-gray-500 leading-relaxed max-w-md text-balance mb-8">
                   For developers who are still building. Post devlogs, find playtesters, and meet other indies — all in one place, always free.
                 </p>
-                <div className="reveal flex flex-wrap items-center gap-x-6 gap-y-3">
+                <div className="reveal-hero reveal-hero-4 flex flex-wrap items-center gap-x-6 gap-y-3">
                   <Link href="/signup" className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-7 py-3.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5">
                     Create Your Profile
                   </Link>
@@ -295,7 +304,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
               </div>
 
               {/* Product window — one coherent moment: a real project page */}
-              <div className="reveal hidden lg:block lg:pl-6">
+              <div className="reveal-hero reveal-hero-5 hidden lg:block lg:pl-6">
                 <HeroProductWindow />
               </div>
             </section>

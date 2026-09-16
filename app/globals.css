@@ -50,17 +50,36 @@
     0 24px 48px -16px rgba(15, 14, 19, 0.35);
 }
 
-/* ── Scroll reveal: initial state only — GSAP (ScrollTrigger) animates in ── */
+/* ── Scroll reveal: initial state only — GSAP (ScrollTrigger) animates in ──
+   Only for below-the-fold content: it's not visible until the user scrolls
+   to it anyway, so there's no dependency on JS load timing to worry about. ── */
 .reveal {
   opacity: 0;
   transform: translateY(20px);
 }
 
+/* ── Above-the-fold entrance: pure CSS, no JS/GSAP dependency, so it can
+   never flash a near-blank page while a JS bundle loads and hydrates. ── */
+@keyframes reveal-hero-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.reveal-hero {
+  animation: reveal-hero-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.reveal-hero-1 { animation-delay: 0s; }
+.reveal-hero-2 { animation-delay: 0.08s; }
+.reveal-hero-3 { animation-delay: 0.16s; }
+.reveal-hero-4 { animation-delay: 0.24s; }
+.reveal-hero-5 { animation-delay: 0.1s; }
+
 /* ── Accessibility: reduce motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
+  .reveal,
+  .reveal-hero {
     opacity: 1;
     transform: none;
+    animation: none;
   }
   * {
     animation-duration: 0.01ms !important;

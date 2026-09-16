@@ -1,13 +1,12 @@
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody } from '@/components/layout/PageShell'
+import { getSidebarIdentity } from '@/lib/dashboard/identity'
+import { AppShell } from '@/components/dashboard/AppShell'
 import { NewPlaytestForm } from '@/components/playtests/NewPlaytestForm'
 import type { Project } from '@/lib/supabase/types'
 
 export default async function NewPlaytestPage() {
+  const { user, displayName, email } = await getSidebarIdentity()
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const { data: projects } = await supabase
     .from('projects')
@@ -18,11 +17,10 @@ export default async function NewPlaytestPage() {
   const typedProjects = (projects ?? []) as Pick<Project, 'id' | 'title'>[]
 
   return (
-    <PageShell>
-      <PanelHeader breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Playtests', href: '/dashboard/playtests' }, { label: 'New Request' }]} />
-      <PanelBody>
+    <AppShell displayName={displayName} email={email} headerLabel="Request Playtesters">
+      <div className="max-w-2xl">
         <div className="mb-6">
-          <h1 className="text-lg font-semibold tracking-tight text-gray-900 mb-1">Request Playtesters</h1>
+          <h1 className="text-2xl font-display font-medium tracking-tight text-gray-900 mb-1">Request Playtesters</h1>
           <p className="text-sm text-gray-500">Share your build with community testers and collect structured feedback.</p>
         </div>
         {typedProjects.length === 0 ? (
@@ -32,7 +30,7 @@ export default async function NewPlaytestPage() {
         ) : (
           <NewPlaytestForm projects={typedProjects} />
         )}
-      </PanelBody>
-    </PageShell>
+      </div>
+    </AppShell>
   )
 }

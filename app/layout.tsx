@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Geist, JetBrains_Mono } from 'next/font/google'
+import { Geist, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import Script from 'next/script'
 import './globals.css'
@@ -16,6 +16,11 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
 })
 
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-display',
+})
+
 export const metadata: Metadata = {
   title: 'Glyph — Your home base before launch',
   description:
@@ -30,7 +35,7 @@ export default function RootLayout({
   const analyticsProps = analyticsScriptProps()
 
   return (
-    <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable}`}>
       <head>
         {analyticsProps && <Script {...analyticsProps} strategy="afterInteractive" />}
       </head>

@@ -1,8 +1,8 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { Plus, Joystick, Users, CheckCircle, Clock } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody, EmptyState } from '@/components/layout/PageShell'
+import { getSidebarIdentity } from '@/lib/dashboard/identity'
+import { AppShell } from '@/components/dashboard/AppShell'
 
 type MyRequest = {
   id: string
@@ -39,9 +39,8 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default async function DashboardPlaytestsPage() {
+  const { user, displayName, email } = await getSidebarIdentity()
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const [{ data: myRequests }, { data: mySessions }] = await Promise.all([
     supabase
@@ -60,21 +59,21 @@ export default async function DashboardPlaytestsPage() {
   const sessions = (mySessions ?? []) as unknown as MySession[]
 
   return (
-    <PageShell wide>
-      <PanelHeader
-        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Playtests' }]}
-        action={
-          <Link href="/dashboard/playtests/new" className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Request testers</span>
-          </Link>
-        }
-      />
-      <PanelBody>
+    <AppShell
+      displayName={displayName}
+      email={email}
+      headerLabel="Playtests"
+      headerAction={
+        <Link href="/dashboard/playtests/new" className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300">
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Request testers</span>
+        </Link>
+      }
+    >
         <div className="space-y-10">
           {/* My Playtest Requests */}
           <section>
-            <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-4">My Playtest Requests</h2>
+            <h2 className="text-[11px] uppercase tracking-widest text-gray-400 mb-4">My Playtest Requests</h2>
             {requests.length === 0 ? (
               <div className="text-center py-10 text-sm text-gray-400">No requests yet. <Link href="/dashboard/playtests/new" className="text-indigo-600 hover:underline">Create one →</Link></div>
             ) : (
@@ -87,17 +86,17 @@ export default async function DashboardPlaytestsPage() {
                           <span className="text-base font-medium text-gray-900">{req.projects?.title ?? 'Project'}</span>
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider ${STATUS_COLORS[req.status] ?? 'bg-gray-100 text-gray-500'}`}>{req.status}</span>
                         </div>
-                        <span className="text-[11px] font-mono text-gray-400">{req.current_testers}/{req.requested_testers} testers · {req.build_type}</span>
+                        <span className="text-[11px] text-gray-400">{req.current_testers}/{req.requested_testers} testers · {req.build_type}</span>
                       </div>
-                      <Link href={`/playtests/${req.id}`} className="text-[11px] font-mono text-indigo-600 hover:underline shrink-0">View →</Link>
+                      <Link href={`/playtests/${req.id}`} className="text-[11px] font-medium text-indigo-600 hover:underline shrink-0">View →</Link>
                     </div>
                     {req.playtest_sessions.length > 0 && (
                       <div className="mt-3 space-y-2">
-                        <p className="text-[10px] font-mono uppercase tracking-widest text-gray-300">Tester sessions</p>
+                        <p className="text-[10px] uppercase tracking-widest text-gray-300">Tester sessions</p>
                         {req.playtest_sessions.map((s) => (
                           <div key={s.id} className="flex items-center justify-between rounded-xl border border-gray-50 bg-gray-50 px-3 py-2">
                             <span className="text-sm text-gray-700">{s.profiles?.display_name ?? s.profiles?.username ?? 'Tester'}</span>
-                            <span className={`text-[10px] font-mono rounded-full px-2 py-0.5 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>{s.status}</span>
+                            <span className={`text-[10px] rounded-full px-2 py-0.5 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>{s.status}</span>
                           </div>
                         ))}
                       </div>
@@ -110,10 +109,10 @@ export default async function DashboardPlaytestsPage() {
 
           {/* My Testing Sessions */}
           <section>
-            <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-4">Games I'm Testing</h2>
+            <h2 className="text-[11px] uppercase tracking-widest text-gray-400 mb-4">Games I&apos;m Testing</h2>
             {sessions.length === 0 ? (
               <div className="text-center py-10 text-sm text-gray-400">
-                You haven't requested to test any games. <Link href="/playtests/browse" className="text-indigo-600 hover:underline">Browse playtests →</Link>
+                You haven&apos;t requested to test any games. <Link href="/playtests/browse" className="text-indigo-600 hover:underline">Browse playtests →</Link>
               </div>
             ) : (
               <div className="space-y-3">
@@ -123,12 +122,12 @@ export default async function DashboardPlaytestsPage() {
                     <div key={s.id} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{req?.projects?.title ?? 'Unknown project'}</div>
-                        <div className="text-[11px] font-mono text-gray-400">by {req?.profiles?.display_name ?? req?.profiles?.username ?? 'unknown'}</div>
+                        <div className="text-[11px] text-gray-400">by {req?.profiles?.display_name ?? req?.profiles?.username ?? 'unknown'}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-mono rounded-full px-2 py-0.5 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>{s.status}</span>
+                        <span className={`text-[10px] rounded-full px-2 py-0.5 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>{s.status}</span>
                         {s.status === 'accepted' && !s.playtest_feedback && (
-                          <Link href={`/playtests/${req?.id}/test/${s.id}`} className="text-[11px] font-mono text-indigo-600 hover:underline">
+                          <Link href={`/playtests/${req?.id}/test/${s.id}`} className="text-[11px] font-medium text-indigo-600 hover:underline">
                             Submit feedback →
                           </Link>
                         )}
@@ -140,7 +139,6 @@ export default async function DashboardPlaytestsPage() {
             )}
           </section>
         </div>
-      </PanelBody>
-    </PageShell>
+    </AppShell>
   )
 }

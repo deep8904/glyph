@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Bell, CheckCheck } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { getSidebarIdentity } from '@/lib/dashboard/identity'
+import { AppShell } from '@/components/dashboard/AppShell'
 import { MarkAllReadButton } from '@/components/notifications/MarkAllReadButton'
 
 type NotifType = 'follow' | 'comment' | 'reply' | 'reaction' | 'mention'
@@ -43,11 +45,8 @@ function initials(name: string) {
 }
 
 export default async function NotificationsPage() {
+  const { user, displayName, email } = await getSidebarIdentity()
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -83,31 +82,13 @@ export default async function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.read_at).length
 
   return (
-    <div className="min-h-screen relative overflow-hidden font-sans">
-      <div className="fixed inset-0 z-0 bg-plasma pointer-events-none" />
-      <div className="fixed inset-y-0 right-0 w-[120vw] md:w-[70vw] translate-x-[10%] md:translate-x-0 z-0 flex pointer-events-none opacity-40 mix-blend-overlay">
-        <div className="h-full flex-1 relative border-l border-white/60 shadow-[-15px_0_30px_-10px_rgba(255,255,255,1)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.8), rgba(255,255,255,0.4))', backdropFilter: 'blur(20px)' }} />
-        <div className="h-full flex-1 relative border-l border-white/40 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.8)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.4), rgba(255,255,255,0.1))', backdropFilter: 'blur(10px)' }} />
-        <div className="h-full flex-1 relative border-l border-white/20 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.4)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.1), rgba(255,255,255,0))', backdropFilter: 'blur(4px)' }} />
-      </div>
-
-      <main className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12 min-h-screen flex flex-col">
-        <div className="flex-1 bg-white/95 backdrop-blur-2xl rounded-[2.5rem] panel-shadow border border-white overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 md:px-10 border-b border-gray-100/50">
-            <Link href="/dashboard" className="flex items-center gap-1 text-lg font-semibold tracking-tighter text-gray-900">
-              Glyph<span className="text-indigo-600 leading-none">°</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              {unreadCount > 0 && (
-                <MarkAllReadButton recipientId={user.id} />
-              )}
-              <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-gray-400">
-                <Bell className="h-3.5 w-3.5" /> Notifications
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 px-5 sm:px-8 md:px-10 py-8">
+    <AppShell
+      displayName={displayName}
+      email={email}
+      headerLabel="Notifications"
+      headerAction={unreadCount > 0 ? <MarkAllReadButton recipientId={user.id} /> : undefined}
+    >
+      <div className="max-w-2xl">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center py-20">
                 <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-50 text-gray-300 mb-4">
@@ -160,9 +141,7 @@ export default async function NotificationsPage() {
                 })}
               </div>
             )}
-          </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   )
 }

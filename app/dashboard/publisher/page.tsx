@@ -1,14 +1,13 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody, EmptyState } from '@/components/layout/PageShell'
+import { getSidebarIdentity } from '@/lib/dashboard/identity'
+import { AppShell } from '@/components/dashboard/AppShell'
 import { PublisherDashboardClient } from '@/components/publisher/PublisherDashboardClient'
 import { Building2 } from 'lucide-react'
 
 export default async function PublisherDashboardPage() {
+  const { user, displayName, email } = await getSidebarIdentity()
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const { data: publisher } = await supabase
     .from('publisher_accounts')
@@ -18,21 +17,18 @@ export default async function PublisherDashboardPage() {
 
   if (!publisher) {
     return (
-      <PageShell>
-        <PanelHeader breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Publisher' }]} />
-        <PanelBody>
-          <EmptyState
-            icon={<Building2 className="h-8 w-8 text-gray-300" />}
-            title="No publisher account"
-            description="Register as a publisher to discover games and contact developers."
-            action={
-              <Link href="/dashboard/publisher/register" className="rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:-translate-y-0.5">
-                Register as Publisher
-              </Link>
-            }
-          />
-        </PanelBody>
-      </PageShell>
+      <AppShell displayName={displayName} email={email} headerLabel="Publisher">
+        <div className="flex flex-col items-center justify-center text-center py-20">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-4">
+            <Building2 className="h-7 w-7" />
+          </div>
+          <h2 className="text-lg font-display font-medium tracking-tight text-gray-900 mb-2">No publisher account</h2>
+          <p className="text-sm text-gray-500 max-w-xs mb-6">Register as a publisher to discover games and contact developers.</p>
+          <Link href="/dashboard/publisher/register" className="rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300">
+            Register as Publisher
+          </Link>
+        </div>
+      </AppShell>
     )
   }
 
@@ -52,18 +48,23 @@ export default async function PublisherDashboardPage() {
   type Contact = { id: string; message: string; status: string; created_at: string; profiles: { username: string; display_name: string | null } | null }
 
   return (
-    <PageShell wide>
-      <PanelHeader
-        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Publisher' }]}
-        action={!publisher.verified ? <span className="text-[10px] font-mono text-amber-500 uppercase tracking-wider">Pending verification</span> : <span className="text-[10px] font-mono text-green-600 uppercase tracking-wider">Verified</span>}
+    <AppShell
+      displayName={displayName}
+      email={email}
+      headerLabel="Publisher"
+      headerAction={
+        !publisher.verified ? (
+          <span className="text-xs font-medium text-amber-600">Pending verification</span>
+        ) : (
+          <span className="text-xs font-medium text-green-600">Verified</span>
+        )
+      }
+    >
+      <PublisherDashboardClient
+        publisher={publisher}
+        shortlists={shortlists ?? []}
+        contacts={(contacts ?? []) as unknown as Contact[]}
       />
-      <PanelBody>
-        <PublisherDashboardClient
-          publisher={publisher}
-          shortlists={shortlists ?? []}
-          contacts={(contacts ?? []) as unknown as Contact[]}
-        />
-      </PanelBody>
-    </PageShell>
+    </AppShell>
   )
 }

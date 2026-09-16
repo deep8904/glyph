@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody } from '@/components/layout/PageShell'
+import { getSidebarIdentity } from '@/lib/dashboard/identity'
+import { AppShell } from '@/components/dashboard/AppShell'
 import { NewStudioForm } from '@/components/studios/NewStudioForm'
 
 export default async function NewStudioPage() {
+  const { user, displayName, email } = await getSidebarIdentity()
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const { data: existing } = await supabase
     .from('studio_members')
@@ -22,15 +22,12 @@ export default async function NewStudioPage() {
   }
 
   return (
-    <PageShell>
-      <PanelHeader breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Studios', href: '/dashboard/studios/new' }, { label: 'New Studio' }]} />
-      <PanelBody>
-        <div className="max-w-xl mx-auto">
-          <h1 className="text-xl font-semibold tracking-tight text-gray-900 mb-1">Create a Studio</h1>
-          <p className="text-sm text-gray-500 mb-8">A studio page groups your projects and team under one verified presence.</p>
-          <NewStudioForm />
-        </div>
-      </PanelBody>
-    </PageShell>
+    <AppShell displayName={displayName} email={email} headerLabel="New Studio">
+      <div className="max-w-xl">
+        <h1 className="text-2xl font-display font-medium tracking-tight text-gray-900 mb-1">Create a Studio</h1>
+        <p className="text-sm text-gray-500 mb-8">A studio page groups your projects and team under one verified presence.</p>
+        <NewStudioForm />
+      </div>
+    </AppShell>
   )
 }

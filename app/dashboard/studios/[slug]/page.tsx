@@ -1,14 +1,14 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody } from '@/components/layout/PageShell'
+import { getSidebarIdentity } from '@/lib/dashboard/identity'
+import { AppShell } from '@/components/dashboard/AppShell'
 import { StudioManageClient } from '@/components/studios/StudioManageClient'
 
 export default async function StudioManagePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+  const { user, displayName, email } = await getSidebarIdentity()
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const { data: studio } = await supabase.from('studios').select('*').eq('slug', slug).maybeSingle()
   if (!studio) notFound()
@@ -42,20 +42,19 @@ export default async function StudioManagePage({ params }: { params: Promise<{ s
   type SP = { project_id: string; projects: { id: string; title: string; slug: string | null } | null }
 
   return (
-    <PageShell wide>
-      <PanelHeader
-        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: studio.name }]}
-        action={<Link href={`/studios/${studio.slug}`} className="text-xs text-indigo-600 hover:underline">View public page →</Link>}
+    <AppShell
+      displayName={displayName}
+      email={email}
+      headerLabel={studio.name}
+      headerAction={<Link href={`/studios/${studio.slug}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-700">View public page →</Link>}
+    >
+      <StudioManageClient
+        studio={studio}
+        userRole={member.role}
+        members={(allMembers ?? []) as unknown as Member[]}
+        studioProjects={(studioProjects ?? []) as unknown as SP[]}
+        myProjects={myProjects ?? []}
       />
-      <PanelBody>
-        <StudioManageClient
-          studio={studio}
-          userRole={member.role}
-          members={(allMembers ?? []) as unknown as Member[]}
-          studioProjects={(studioProjects ?? []) as unknown as SP[]}
-          myProjects={myProjects ?? []}
-        />
-      </PanelBody>
-    </PageShell>
+    </AppShell>
   )
 }

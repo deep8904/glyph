@@ -38,7 +38,7 @@ const sanitizeSchema: SanitizeOptions = {
 export function MarkdownRenderer({ content, className }: { content: string; className?: string }) {
   return (
     <div
-      className={`prose prose-sm sm:prose-base max-w-none prose-headings:font-medium prose-headings:tracking-tight prose-headings:text-gray-900 prose-p:text-gray-600 prose-p:leading-relaxed prose-a:text-indigo-600 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 prose-code:text-gray-800 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-blockquote:border-indigo-300 prose-blockquote:text-gray-500 prose-img:rounded-2xl prose-hr:border-gray-200 ${className ?? ''}`}
+      className={`prose prose-glyph max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-h1:text-h2 prose-h2:text-h2 prose-h3:text-h3 prose-a:underline-offset-2 hover:prose-a:text-accent-hover prose-code:rounded prose-code:bg-surface-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.875em] prose-code:font-medium prose-code:before:content-none prose-code:after:content-none prose-pre:rounded-media prose-img:rounded-media prose-blockquote:font-normal ${className ?? ''}`}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}

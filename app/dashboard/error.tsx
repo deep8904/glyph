@@ -16,7 +16,7 @@ export default function DashboardError({
   }, [error])
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-6">
+    <div id="main-content" className="min-h-screen bg-white flex items-center justify-center px-6">
       <div className="text-center max-w-sm">
         <div className="flex items-center justify-center gap-1 text-xl font-display font-semibold tracking-tighter text-gray-900 mb-6">
           Glyph<span className="text-indigo-600 leading-none">°</span>

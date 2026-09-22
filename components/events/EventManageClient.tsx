@@ -1,28 +1,37 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Check, X, Loader2, Users, Presentation } from 'lucide-react'
 import { updateEventStatus, acceptDemoSlot } from '@/app/actions/events'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Section } from '@/components/ui/Section'
+import { StatusText } from '@/components/workflow/StatusLabel'
 
 type Rsvp = { id: string; status: string; profiles: { username: string; display_name: string | null } | null }
 type DemoSlot = { id: string; accepted: boolean; slot_time: string | null; projects: { title: string } | null; profiles: { username: string; display_name: string | null } | null }
 type Event = { id: string; status: string; rsvp_count: number }
 
-const STATUS_COLORS: Record<string, string> = {
-  going: 'bg-green-50 text-green-700',
-  maybe: 'bg-yellow-50 text-yellow-700',
-  cancelled: 'bg-gray-100 text-gray-500',
+const STATE: Record<string, { label: string; tone: 'neutral' | 'positive' | 'attention' | 'negative' }> = {
+  draft: { label: 'Draft — not public', tone: 'attention' },
+  published: { label: 'Published', tone: 'positive' },
+  completed: { label: 'Finished', tone: 'negative' },
+  cancelled: { label: 'Cancelled', tone: 'negative' },
+}
+const RSVP: Record<string, { label: string; tone: 'neutral' | 'positive' | 'attention' | 'negative' }> = {
+  going: { label: 'Going', tone: 'positive' },
+  maybe: { label: 'Maybe', tone: 'attention' },
+  cancelled: { label: 'Cancelled', tone: 'negative' },
 }
 
+/** The host's view of one event: where it stands and what can change, who is coming, and which projects want to demo. */
 export function EventManageClient({ event, rsvps, demoSlots }: { event: Event; rsvps: Rsvp[]; demoSlots: DemoSlot[] }) {
   const [evtStatus, setEvtStatus] = useState(event.status)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState('')
-  const [acceptedSlots, setAcceptedSlots] = useState<Record<string, boolean>>(
-    Object.fromEntries(demoSlots.map((s) => [s.id, s.accepted]))
-  )
+  const [acceptedSlots, setAcceptedSlots] = useState<Record<string, boolean>>(Object.fromEntries(demoSlots.map((s) => [s.id, s.accepted])))
 
   const handleStatusChange = (status: 'published' | 'cancelled' | 'completed') => {
+    setError('')
     startTransition(async () => {
       const result = await updateEventStatus(event.id, status)
       if (result?.error) setError(result.error)
@@ -31,6 +40,7 @@ export function EventManageClient({ event, rsvps, demoSlots }: { event: Event; r
   }
 
   const handleAcceptSlot = (slotId: string) => {
+    setError('')
     startTransition(async () => {
       const result = await acceptDemoSlot(slotId, event.id)
       if (result?.error) setError(result.error)
@@ -40,80 +50,54 @@ export function EventManageClient({ event, rsvps, demoSlots }: { event: Event; r
 
   const going = rsvps.filter((r) => r.status === 'going')
   const maybe = rsvps.filter((r) => r.status === 'maybe')
+  const st = STATE[evtStatus] ?? { label: evtStatus, tone: 'neutral' as const }
 
   return (
     <div className="space-y-8">
-      {/* Status controls */}
-      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
-        <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-3">Event Status</div>
+      <Section id="ev-state" title="Status" action={<StatusText label={st.label} tone={st.tone} />}>
         <div className="flex flex-wrap gap-2">
-          {evtStatus !== 'published' && (
-            <button onClick={() => handleStatusChange('published')} disabled={pending} className="rounded-full bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors disabled:opacity-60">
-              Publish
-            </button>
-          )}
-          {evtStatus === 'published' && (
-            <button onClick={() => handleStatusChange('completed')} disabled={pending} className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-60">
-              Mark Completed
-            </button>
-          )}
-          {evtStatus !== 'cancelled' && (
-            <button onClick={() => handleStatusChange('cancelled')} disabled={pending} className="rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60">
-              Cancel Event
-            </button>
-          )}
+          {evtStatus !== 'published' && <Button variant="primary" onClick={() => handleStatusChange('published')} disabled={pending}>Publish</Button>}
+          {evtStatus === 'published' && <Button variant="secondary" onClick={() => handleStatusChange('completed')} disabled={pending}>Mark as finished</Button>}
+          {evtStatus !== 'cancelled' && <Button variant="danger" onClick={() => handleStatusChange('cancelled')} disabled={pending}>Cancel event</Button>}
         </div>
-        {error && <p className="mt-2 text-xs font-mono text-red-500">{error}</p>}
-      </div>
+        {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
+      </Section>
 
-      {/* RSVPs */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="h-4 w-4 text-indigo-500" />
-          <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400">RSVPs ({going.length} going, {maybe.length} maybe)</h2>
-        </div>
+      <Section id="ev-rsvps" title="RSVPs" description={`${going.length} going, ${maybe.length} maybe`}>
         {rsvps.length === 0 ? (
-          <p className="text-sm text-gray-400">No RSVPs yet.</p>
+          <EmptyState kind="first-use" className="border-y-0 py-2" title="No RSVPs yet" description="People who respond appear here." />
         ) : (
-          <div className="space-y-2">
-            {rsvps.map((r) => (
-              <div key={r.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-2.5">
-                <span className="text-sm text-gray-900">{r.profiles?.display_name ?? r.profiles?.username ?? 'Anonymous'}</span>
-                <span className={`text-[10px] font-mono rounded-full px-2 py-0.5 ${STATUS_COLORS[r.status] ?? 'bg-gray-100 text-gray-500'}`}>{r.status}</span>
-              </div>
-            ))}
-          </div>
+          <ul className="divide-y divide-line-subtle border-y border-line-subtle">
+            {rsvps.map((r) => {
+              const s = RSVP[r.status] ?? { label: r.status, tone: 'neutral' as const }
+              return (
+                <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-body text-fg">
+                  <span>{r.profiles?.display_name ?? r.profiles?.username ?? 'Someone'}</span>
+                  <StatusText label={s.label} tone={s.tone} />
+                </li>
+              )
+            })}
+          </ul>
         )}
-      </section>
+      </Section>
 
-      {/* Demo slots */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-          <Presentation className="h-4 w-4 text-indigo-500" />
-          <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400">Demo Slot Requests ({demoSlots.length})</h2>
-        </div>
+      <Section id="ev-demos" title="Demo requests" count={demoSlots.length || undefined} description="Projects offered for a demo. Accepted ones are listed on the event page.">
         {demoSlots.length === 0 ? (
-          <p className="text-sm text-gray-400">No demo slot requests yet.</p>
+          <EmptyState kind="first-use" className="border-y-0 py-2" title="No demo requests yet" description="Developers can offer a project from the event page." />
         ) : (
-          <div className="space-y-2">
+          <ul className="divide-y divide-line-subtle border-y border-line-subtle">
             {demoSlots.map((slot) => (
-              <div key={slot.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3">
-                <div>
-                  <span className="text-sm font-medium text-gray-900">{slot.projects?.title ?? 'Unknown project'}</span>
-                  <span className="ml-2 text-[11px] font-mono text-gray-400">by {slot.profiles?.display_name ?? slot.profiles?.username}</span>
-                </div>
-                {acceptedSlots[slot.id] ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-mono text-green-600"><Check className="h-3 w-3" /> Accepted</span>
-                ) : (
-                  <button onClick={() => handleAcceptSlot(slot.id)} disabled={pending} className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-60">
-                    {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Accept
-                  </button>
-                )}
-              </div>
+              <li key={slot.id} className="flex items-center justify-between gap-3 py-3">
+                <span className="min-w-0">
+                  <span className="block text-body font-medium text-fg [overflow-wrap:anywhere]">{slot.projects?.title ?? 'Unknown project'}</span>
+                  <span className="block text-small text-fg-muted">by {slot.profiles?.display_name ?? slot.profiles?.username}</span>
+                </span>
+                {acceptedSlots[slot.id] ? <StatusText label="Accepted" tone="positive" /> : <Button size="sm" variant="primary" onClick={() => handleAcceptSlot(slot.id)} disabled={pending}>Accept</Button>}
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </section>
+      </Section>
     </div>
   )
 }

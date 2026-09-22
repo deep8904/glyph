@@ -1,24 +1,22 @@
 import type { Metadata } from 'next'
-import { Geist, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import Script from 'next/script'
 import './globals.css'
 import { DevDebugPanel } from '@/components/DevDebugPanel'
+import { Toaster } from '@/components/ui/Toast'
 import { analyticsScriptProps } from '@/lib/analytics'
 
-const geist = Geist({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-geist',
+  variable: '--font-inter',
+  display: 'swap',
 })
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-jetbrains-mono',
-})
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-display',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -35,7 +33,7 @@ export default function RootLayout({
   const analyticsProps = analyticsScriptProps()
 
   return (
-    <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
         {analyticsProps && <Script {...analyticsProps} strategy="afterInteractive" />}
       </head>
@@ -46,9 +44,8 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        <div id="main-content">
-          {children}
-        </div>
+        {children}
+        <Toaster />
         <Analytics />
         {process.env.NODE_ENV === 'development' && <DevDebugPanel />}
       </body>

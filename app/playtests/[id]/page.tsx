@@ -1,134 +1,124 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Monitor, Download, Key, Users, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody } from '@/components/layout/PageShell'
-import { Badge } from '@/components/ui/Badge'
-import { RequestSessionButton } from '@/components/playtests/RequestSessionButton'
+import { DiscoveryFrame } from '@/components/discovery/DiscoveryFrame'
+import { TesterPanel } from '@/components/playtests/TesterPanel'
+import { PlaytestStatusControl } from '@/components/playtests/PlaytestStatusControl'
+import { PLAYTEST_STATUS, StatusLabel } from '@/components/workflow/StatusLabel'
+import { MetadataBar } from '@/components/ui/MetadataBar'
+import { BUILD_TYPES } from '@/lib/supabase/types'
+import { relativeTime } from '@/lib/utils'
 
-const BUILD_ICONS = { browser: Monitor, download: Download, steam_key: Key }
-const BUILD_LABELS = { browser: 'Browser / Web', download: 'Download', steam_key: 'Steam Key' }
+type RequestRow = {
+  id: string
+  project_id: string
+  author_id: string
+  build_type: 'browser' | 'download' | 'steam_key'
+  platforms: string[]
+  description: string
+  focus_areas: string[]
+  requested_testers: number
+  current_testers: number
+  status: 'open' | 'full' | 'closed'
+  created_at: string
+  projects: { title: string; slug: string | null; short_description: string | null } | null
+  profiles: { username: string; display_name: string | null }
+}
 
-export default async function PlaytestDetailPage({ params }: { params: Promise<{ id: string }> }) {
+const BUILD_LABELS = Object.fromEntries(BUILD_TYPES.map((b) => [b.value, b.label]))
+
+export default async function PlaytestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Explicit columns only: build_url is not selectable (migration 032). RLS lets
+  // strangers see open/full playtests on non-private projects, and lets the
+  // developer and any tester with a sign-up see it in every state.
   const { data: req } = await supabase
     .from('playtest_requests')
-    .select('*, projects!project_id(id, title, slug, short_description), profiles!author_id(username, display_name)')
+    .select('id, project_id, author_id, build_type, platforms, description, focus_areas, requested_testers, current_testers, status, created_at, projects!project_id(title, slug, short_description), profiles!author_id(username, display_name)')
     .eq('id', id)
-    .maybeSingle()
-
+    .maybeSingle<RequestRow>()
   if (!req) notFound()
 
-  type Req = typeof req & {
-    projects: { id: string; title: string; slug: string | null; short_description: string | null }
-    profiles: { username: string; display_name: string | null }
+  const isAuthor = user?.id === req.author_id
+  const authorName = req.profiles.display_name || req.profiles.username
+  const title = req.projects?.title ?? 'Playtest'
+
+  const { data: session } = user && !isAuthor
+    ? await supabase.from('playtest_sessions').select('id, status').eq('request_id', id).eq('tester_id', user.id).maybeSingle()
+    : { data: null }
+
+  const showBuild = isAuthor || session?.status === 'accepted' || session?.status === 'completed'
+  const { data: buildRows } = showBuild ? await supabase.rpc('get_playtest_build', { p_request: id }) : { data: null }
+  const build = (buildRows as { build_url: string; build_type: string }[] | null)?.[0] ?? null
+
+  let waiting = 0
+  if (isAuthor) {
+    const { count } = await supabase.from('playtest_sessions').select('id', { count: 'exact', head: true }).eq('request_id', id).eq('status', 'requested')
+    waiting = count ?? 0
   }
-  const r = req as unknown as Req
 
-  let sessionStatus: string | null = null
-  if (user) {
-    const { data: session } = await supabase
-      .from('playtest_sessions')
-      .select('status')
-      .eq('request_id', id)
-      .eq('tester_id', user.id)
-      .maybeSingle()
-    sessionStatus = session?.status ?? null
-  }
-
-  const isOwner = user?.id === r.profiles.username // checked by author_id below
-  const { data: rawReq2 } = await supabase.from('playtest_requests').select('author_id').eq('id', id).maybeSingle()
-  const isAuthor = rawReq2?.author_id === user?.id
-
-  const BuildIcon = BUILD_ICONS[r.build_type as keyof typeof BUILD_ICONS] ?? Monitor
+  const st = PLAYTEST_STATUS[req.status]
+  const projectHref = req.projects?.slug ? `/p/${req.profiles.username}/${req.projects.slug}` : null
+  const left = Math.max(req.requested_testers - req.current_testers, 0)
 
   return (
-    <PageShell>
-      <PanelHeader
-        breadcrumb={[
-          { label: 'Playtests', href: '/playtests/browse' },
-          { label: r.projects?.title ?? 'Playtest' },
-        ]}
-      />
-      <PanelBody>
-        <div className="mb-6">
-          <Link href="/playtests/browse" className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-gray-400 hover:text-indigo-600 transition-colors mb-4">
-            <ArrowLeft className="h-3 w-3" /> Back to browse
-          </Link>
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <h1 className="text-xl font-semibold tracking-tight text-gray-900">{r.projects?.title ?? 'Playtest Request'}</h1>
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider ${r.status === 'open' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-              {r.status}
-            </span>
-          </div>
-          <p className="text-sm text-gray-500">
-            by{' '}
-            <Link href={`/dev/${r.profiles.username}`} className="text-indigo-600 hover:underline">
-              {r.profiles.display_name ?? r.profiles.username}
-            </Link>
-          </p>
-        </div>
+    <DiscoveryFrame label="Playtests">
+      {() => (
+        <article className="max-w-2xl">
+          <Link href={isAuthor ? '/dashboard/playtests' : '/playtests/browse'} className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">{isAuthor ? '← Your playtests' : '← Playtests'}</Link>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-1">Build Type</div>
-            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-              <BuildIcon className="h-4 w-4 text-indigo-500" />
-              {BUILD_LABELS[r.build_type as keyof typeof BUILD_LABELS] ?? r.build_type}
+          <header className="mt-1">
+            <p className="text-small font-medium text-fg-muted">Playtest</p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="text-display font-semibold text-fg [overflow-wrap:anywhere]">{title}</h1>
+              <StatusLabel label={st.label} tone={st.tone} />
             </div>
-          </div>
-          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-1">Testers</div>
-            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-              <Users className="h-4 w-4 text-indigo-500" />
-              {r.current_testers} / {r.requested_testers}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-1">Platforms</div>
-            <div className="text-sm font-medium text-gray-900">{r.platforms.join(', ') || 'Any'}</div>
-          </div>
-        </div>
+            <p className="mt-2 text-body text-fg-secondary">
+              {projectHref && <><Link href={projectHref} className="font-medium text-link underline-offset-2 hover:underline">View project</Link> · </>}
+              by <Link href={`/dev/${req.profiles.username}`} className="font-medium text-link underline-offset-2 hover:underline">{authorName}</Link> · {relativeTime(req.created_at)}
+            </p>
+          </header>
 
-        <div className="mb-6">
-          <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">About this build</h2>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{r.description}</p>
-        </div>
-
-        {r.focus_areas.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">Focus areas</h2>
-            <div className="flex flex-wrap gap-2">
-              {r.focus_areas.map((f: string) => <Badge key={f}>{f}</Badge>)}
-            </div>
-          </div>
-        )}
-
-        {r.projects?.slug && (
-          <div className="mb-8">
-            <Link href={`/p/${r.profiles.username}/${r.projects.slug}`} className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:underline">
-              View project page <span className="text-xs">→</span>
-            </Link>
-          </div>
-        )}
-
-        {!isAuthor && r.status === 'open' && (
-          <RequestSessionButton
-            requestId={id}
-            currentStatus={sessionStatus}
-            isSignedIn={!!user}
+          <MetadataBar
+            className="mt-5 border-y border-line-subtle py-4"
+            items={[
+              { label: 'Build', value: BUILD_LABELS[req.build_type] ?? req.build_type },
+              { label: 'Platforms', value: req.platforms.length ? req.platforms.join(', ') : 'Any' },
+              { label: 'Places', value: `${req.current_testers} of ${req.requested_testers} taken${req.status === 'open' ? ` · ${left} left` : ''}` },
+              ...(isAuthor && waiting > 0 ? [{ label: 'Waiting', value: `${waiting} for your decision` }] : []),
+            ]}
           />
-        )}
 
-        {isAuthor && (
-          <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-700">
-            This is your playtest request. <Link href="/dashboard/playtests" className="underline">Manage it in your dashboard →</Link>
+          <section aria-labelledby="test-about" className="mt-6">
+            <h2 id="test-about" className="text-h3 font-semibold text-fg">What to test</h2>
+            <p className="mt-2 max-w-prose whitespace-pre-wrap text-body text-fg-secondary [overflow-wrap:anywhere]">{req.description}</p>
+            {req.focus_areas.length > 0 && <p className="mt-3 text-body text-fg-secondary"><span className="font-medium text-fg">Focus on:</span> {req.focus_areas.join(', ')}</p>}
+          </section>
+
+          <div className="mt-8">
+            {isAuthor ? (
+              <section aria-labelledby="owner-heading" className="border-t border-line pt-6">
+                <h2 id="owner-heading" className="text-h3 font-semibold text-fg">You run this playtest</h2>
+                <p className="mb-3 mt-1 max-w-prose text-body text-fg-secondary">
+                  {waiting > 0 ? `${waiting} ${waiting === 1 ? 'tester is' : 'testers are'} waiting for your decision. ` : 'Testers request a place on this page; you accept or skip them, and read their feedback, in '}
+                  <Link href="/dashboard/playtests" className="font-medium text-link underline-offset-2 hover:underline">your playtests</Link>.
+                </p>
+                {build && (
+                  <p className="mb-4 text-body text-fg-secondary">
+                    Testers you accept receive: <span className="break-all font-mono text-small text-fg">{build.build_url}</span>
+                  </p>
+                )}
+                <PlaytestStatusControl requestId={id} status={req.status} />
+              </section>
+            ) : (
+              <TesterPanel requestId={id} signedIn={!!user} requestStatus={req.status} authorName={authorName} session={session ?? null} build={build} />
+            )}
           </div>
-        )}
-      </PanelBody>
-    </PageShell>
+        </article>
+      )}
+    </DiscoveryFrame>
   )
 }

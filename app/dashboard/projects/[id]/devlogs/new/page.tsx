@@ -11,26 +11,26 @@ export default async function NewDevlogPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { user, displayName, email } = await getSidebarIdentity()
+  const { user, displayName, email, username, nav } = await getSidebarIdentity()
   const supabase = await createClient()
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, title')
+    .select('id, title, slug')
     .eq('id', id)
     .eq('owner_id', user.id)
-    .maybeSingle<Pick<Project, 'id' | 'title'>>()
+    .maybeSingle<Pick<Project, 'id' | 'title' | 'slug'>>()
 
   if (!project) notFound()
 
   return (
-    <AppShell displayName={displayName} email={email} headerLabel="New Devlog">
+    <AppShell displayName={displayName} email={email} nav={nav} headerLabel="New Devlog">
       <div className="max-w-3xl">
         <h1 className="text-2xl font-display font-medium tracking-tight text-gray-900 mb-1">Write a Devlog</h1>
         <p className="text-sm text-gray-500 mb-8">
           Share your progress on <span className="font-medium text-gray-700">{project.title}</span>.
         </p>
-        <DevlogForm projectId={project.id} authorId={user.id} />
+        <DevlogForm projectId={project.id} authorId={user.id} username={username} projectSlug={project.slug} />
       </div>
     </AppShell>
   )

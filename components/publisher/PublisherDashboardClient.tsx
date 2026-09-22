@@ -1,122 +1,150 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Trash2 } from 'lucide-react'
-import { createShortlist } from '@/app/actions/publisher'
-import { Badge } from '@/components/ui/Badge'
+import { createShortlist, removeFromShortlist } from '@/app/actions/publisher'
+import { PublisherRegisterForm } from '@/components/publisher/PublisherRegisterForm'
+import { StatusText } from '@/components/workflow/StatusLabel'
+import { Button } from '@/components/ui/Button'
+import { Dialog, DialogClose, DialogContent, DialogFooter } from '@/components/ui/Dialog'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Field } from '@/components/ui/Field'
+import { Input } from '@/components/ui/controls'
+import { Section } from '@/components/ui/Section'
+import { relativeTime } from '@/lib/utils'
 
-type Publisher = { id: string; company_name: string; verified: boolean; plan: string }
-type Shortlist = { id: string; name: string; items: string[]; created_at: string }
-type Contact = { id: string; message: string; status: string; created_at: string; profiles: { username: string; display_name: string | null } | null }
+type Publisher = { id: string; company_name: string; description: string | null; website: string | null; verified: boolean }
+export type ShortlistRow = { id: string; name: string; items: string[]; created_at: string }
+export type ProjectInfo = { title: string; slug: string; username: string; stage: string | null }
+export type ContactRow = { id: string; message: string; status: string; createdAt: string; projectTitle: string | null; projectHref: string | null; developerName: string; developerUsername: string | null }
 
-export function PublisherDashboardClient({
-  publisher,
-  shortlists,
-  contacts,
-}: {
-  publisher: Publisher
-  shortlists: Shortlist[]
-  contacts: Contact[]
+const CONTACT_STATUS: Record<string, { label: string; tone: 'neutral' | 'positive' | 'attention' | 'negative' }> = {
+  sent: { label: 'Sent', tone: 'neutral' },
+  read: { label: 'Read', tone: 'neutral' },
+  replied: { label: 'Replied', tone: 'positive' },
+  archived: { label: 'Archived by developer', tone: 'negative' },
+}
+
+/**
+ * The publisher's private workspace. Identity (who you are, verification) → finding projects → your shortlists →
+ * the messages you sent. Every project in here is the canonical project (linked to /p/…); nothing is copied.
+ */
+export function PublisherDashboardClient({ publisher, shortlists, projectLookup, contacts }: {
+  publisher: Publisher; shortlists: ShortlistRow[]; projectLookup: Record<string, ProjectInfo>; contacts: ContactRow[]
 }) {
-  const [isPending, startTransition] = useTransition()
-  const [newListName, setNewListName] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [localShortlists, setLocalShortlists] = useState(shortlists)
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState('')
+  const [name, setName] = useState('')
+  const [confirm, setConfirm] = useState<{ listId: string; projectId: string; title: string; listName: string } | null>(null)
+  const [editing, setEditing] = useState(false)
 
-  function handleCreateShortlist() {
-    if (!newListName.trim()) return
-    setError(null)
+  const run = (fn: () => Promise<{ error: string } | { success: true }>, after?: () => void) => {
+    setError('')
     startTransition(async () => {
-      const result = await createShortlist(newListName.trim())
-      if ('error' in result) {
-        setError(result.error)
-      } else if (result.success && result.id) {
-        setLocalShortlists((prev) => [...prev, { id: result.id!, name: newListName.trim(), items: [], created_at: new Date().toISOString() }])
-        setNewListName('')
-      }
+      const r = await fn()
+      if ('error' in r) { setError(r.error); setConfirm(null) }
+      else { after?.(); router.refresh() }
     })
   }
 
   return (
-    <div className="space-y-10">
-      {/* Account Overview */}
-      <section>
-        <h1 className="text-xl font-semibold tracking-tight text-gray-900 mb-4">{publisher.company_name}</h1>
-        <div className="flex items-center gap-2">
-          <Badge variant={publisher.verified ? 'success' : 'secondary'}>
-            {publisher.verified ? 'Verified' : 'Pending verification'}
-          </Badge>
-          <Badge variant="muted" className="capitalize">{publisher.plan}</Badge>
-        </div>
-      </section>
-
-      {/* Browse Games CTA */}
-      <section>
-        <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">Discover Games</h2>
-        <Link
-          href="/explore"
-          className="inline-flex rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:-translate-y-0.5"
-        >
-          Browse Projects →
-        </Link>
-      </section>
-
-      {/* Shortlists */}
-      <section>
-        <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-4">Shortlists ({localShortlists.length})</h2>
-        <div className="space-y-2 mb-4">
-          {localShortlists.map((sl) => (
-            <div key={sl.id} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{sl.name}</p>
-                <p className="text-[10px] font-mono text-gray-400">{sl.items.length} projects</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newListName}
-            onChange={(e) => setNewListName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateShortlist()}
-            maxLength={100}
-            placeholder="New shortlist name…"
-            className="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
-          />
-          <button
-            onClick={handleCreateShortlist}
-            disabled={!newListName.trim() || isPending}
-            className="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm text-white hover:bg-indigo-700 transition disabled:opacity-50 flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" /> Create
-          </button>
-        </div>
-        {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
-      </section>
-
-      {/* Contacts */}
-      {contacts.length > 0 && (
-        <section>
-          <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-4">Sent Messages ({contacts.length})</h2>
-          <div className="space-y-2">
-            {contacts.map((c) => (
-              <div key={c.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  {c.profiles ? (
-                    <Link href={`/dev/${c.profiles.username}`} className="text-sm font-medium text-indigo-600 hover:underline">
-                      {c.profiles.display_name ?? c.profiles.username}
-                    </Link>
-                  ) : <span className="text-sm text-gray-400">Unknown</span>}
-                  <span className={`text-[10px] font-mono uppercase tracking-wider ${c.status === 'replied' ? 'text-green-600' : 'text-gray-400'}`}>{c.status}</span>
-                </div>
-                <p className="text-sm text-gray-600 line-clamp-2">{c.message}</p>
-              </div>
-            ))}
+    <div className="max-w-3xl space-y-10">
+      <header>
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+          <div className="min-w-0">
+            <p className="text-small font-medium text-fg-muted">Publisher account</p>
+            <h1 className="text-h1 font-semibold text-fg [overflow-wrap:anywhere]">{publisher.company_name}</h1>
+            <p className="mt-1"><StatusText label={publisher.verified ? 'Verified publisher' : 'Pending verification'} tone={publisher.verified ? 'positive' : 'attention'} /></p>
           </div>
-        </section>
-      )}
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="secondary"><Link href={`/publishers/${publisher.id}`}>{publisher.verified ? 'View public page' : 'Preview page'}</Link></Button>
+            <Button variant="secondary" onClick={() => setEditing((e) => !e)} aria-expanded={editing}>{editing ? 'Close editor' : 'Edit profile'}</Button>
+          </div>
+        </div>
+        <p className="mt-3 max-w-prose text-body text-fg-secondary">
+          {publisher.verified
+            ? 'You are listed in the publisher directory. You can contact developers from any public project page.'
+            : 'Glyph reviews new accounts before they are listed. Until then you can shortlist projects; contacting developers unlocks once you are verified.'}
+        </p>
+        {editing && <div className="mt-4 max-w-xl"><PublisherRegisterForm existing={publisher} /></div>}
+      </header>
+
+      <Section id="disc-h" title="Find projects" description="Browse public projects by recent activity, then shortlist or contact from the project page.">
+        <Button asChild variant="primary"><Link href="/explore/projects">Browse projects</Link></Button>
+      </Section>
+
+      <Section id="short-h" title="Shortlists" count={shortlists.length} description="Private to you. Save projects you want to evaluate.">
+        {shortlists.length === 0 ? (
+          <EmptyState kind="first-use" className="border-y-0 py-2" title="No shortlists yet" description="Create one below, then add projects from their pages." />
+        ) : (
+          <ul className="divide-y divide-line-subtle border-y border-line-subtle">
+            {shortlists.map((sl) => (
+              <li key={sl.id} className="py-4">
+                <h3 className="text-body font-semibold text-fg [overflow-wrap:anywhere]">{sl.name} <span className="font-mono text-micro font-normal text-fg-muted">{sl.items.length}</span></h3>
+                {sl.items.length === 0 ? (
+                  <p className="mt-1 text-body text-fg-secondary">Empty. Use “Shortlist” on a project page.</p>
+                ) : (
+                  <ul className="mt-1">
+                    {sl.items.map((pid) => {
+                      const info = projectLookup[pid]
+                      const title = info?.title ?? 'A project that is no longer public'
+                      return (
+                        <li key={pid} className="flex flex-wrap items-center justify-between gap-2">
+                          {info ? (
+                            <Link href={`/p/${info.username}/${info.slug}`} className="inline-flex min-h-11 items-center text-body text-link underline-offset-2 hover:underline [overflow-wrap:anywhere]">{title}<span className="text-fg-muted"> · {info.username}{info.stage ? ` · ${info.stage}` : ''}</span></Link>
+                          ) : <span className="text-body text-fg-muted">{title}</span>}
+                          <Button size="sm" variant="ghost" onClick={() => setConfirm({ listId: sl.id, projectId: pid, title, listName: sl.name })} aria-label={`Remove ${title} from ${sl.name}`}>Remove</Button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        <form className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={(e) => { e.preventDefault(); if (name.trim()) run(() => createShortlist(name.trim()), () => setName('')) }}>
+          <Field label="New shortlist" className="flex-1">{(p) => <Input {...p} value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />}</Field>
+          <Button type="submit" variant="secondary" disabled={!name.trim()} loading={pending && !confirm}>Create</Button>
+        </form>
+        {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
+      </Section>
+
+      <Section id="sent-h" title="Messages you sent" count={contacts.length}>
+        {contacts.length === 0 ? (
+          <EmptyState kind="first-use" className="border-y-0 py-2" title="You have not contacted anyone yet" description={publisher.verified ? 'Open a public project and choose “Contact developer”.' : 'Messages you send will be listed here once your account is verified.'} />
+        ) : (
+          <ul className="divide-y divide-line-subtle border-y border-line-subtle">
+            {contacts.map((c) => {
+              const st = CONTACT_STATUS[c.status] ?? { label: c.status, tone: 'neutral' as const }
+              return (
+                <li key={c.id} className="py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="min-w-0 text-body text-fg-secondary [overflow-wrap:anywhere]">
+                      To {c.developerUsername ? <Link href={`/dev/${c.developerUsername}`} className="font-medium text-fg hover:text-link">{c.developerName}</Link> : c.developerName}
+                      {c.projectTitle && <> about {c.projectHref ? <Link href={c.projectHref} className="font-medium text-fg hover:text-link">{c.projectTitle}</Link> : <span className="font-medium text-fg">{c.projectTitle}</span>}</>}
+                      <span className="text-fg-muted"> · {relativeTime(c.createdAt)}</span>
+                    </p>
+                    <StatusText label={st.label} tone={st.tone} />
+                  </div>
+                  <p className="mt-1 line-clamp-3 max-w-prose whitespace-pre-wrap text-body text-fg-secondary [overflow-wrap:anywhere]">{c.message}</p>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Section>
+
+      <Dialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
+        <DialogContent title="Remove from shortlist?" description={confirm ? `Remove ${confirm.title} from ${confirm.listName}. The project itself is not affected.` : undefined}>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="ghost">Keep</Button></DialogClose>
+            <Button variant="danger" loading={pending} onClick={() => confirm && run(() => removeFromShortlist(confirm.listId, confirm.projectId), () => setConfirm(null))}>Remove</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

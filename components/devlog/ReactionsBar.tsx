@@ -69,7 +69,7 @@ export function ReactionsBar({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {REACTION_TYPES.map(({ type, emoji, label }) => {
         const count = counts.find((c) => c.type === type)
         const reacted = count?.reacted ?? false
@@ -77,27 +77,26 @@ export function ReactionsBar({
         return (
           <button
             key={type}
+            type="button"
             onClick={() => toggle(type)}
             disabled={!currentUserId || pending === type}
+            aria-pressed={reacted}
+            aria-label={total > 0 ? `${label}, ${total}` : label}
             title={label}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all duration-200 disabled:pointer-events-none ${
+            className={`inline-flex h-10 items-center gap-2 rounded-control border px-3 text-small transition-colors duration-150 disabled:pointer-events-none pointer-coarse:h-11 ${
               reacted
-                ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                ? 'border-accent-line bg-accent-subtle text-link'
                 : currentUserId
-                ? 'border-gray-200 bg-white text-gray-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600'
-                : 'border-gray-100 bg-white text-gray-500 cursor-default'
+                ? 'border-line-strong bg-surface text-fg-secondary hover:bg-surface-muted'
+                : 'border-line bg-surface text-fg-muted'
             }`}
           >
-            <span>{emoji}</span>
-            {total > 0 && <span className="text-xs font-mono font-medium">{total}</span>}
+            <span aria-hidden>{emoji}</span>
+            {total > 0 && <span className="font-mono text-micro font-medium">{total}</span>}
           </button>
         )
       })}
-      {!currentUserId && (
-        <span className="self-center text-xs text-gray-400 font-mono">
-          Sign in to react
-        </span>
-      )}
+      {!currentUserId && <span className="text-small text-fg-muted">Sign in to react</span>}
     </div>
   )
 }

@@ -1,6 +1,8 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody } from '@/components/layout/PageShell'
+import Link from 'next/link'
+import { DiscoveryFrame } from '@/components/discovery/DiscoveryFrame'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { JamVoteClient } from '@/components/jams/JamVoteClient'
 
 export default async function JamVotePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -41,27 +43,20 @@ export default async function JamVotePage({ params }: { params: Promise<{ slug: 
     votesMap[v.entry_id][v.category] = v.score
   }
 
-  // Get team lead IDs to prevent self-voting
-  const { data: myProfile } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle()
-  const myEntries = new Set(typedEntries.filter((e) => {
-    // We need to check by user id not username - get it from the profile
-    return false // will be handled client-side via userId prop
-  }).map((e) => e.id))
-
   return (
-    <PageShell wide>
-      <PanelHeader breadcrumb={[{ label: 'Jams', href: '/jams' }, { label: jam.title, href: `/jams/${slug}` }, { label: 'Vote' }]} />
-      <PanelBody>
-        <div className="mb-6">
-          <h1 className="text-lg font-semibold tracking-tight text-gray-900 mb-1">Vote on Entries</h1>
-          <p className="text-sm text-gray-500">Rate each entry 1–5 across up to 6 categories. You can update votes at any time before voting closes.</p>
+    <DiscoveryFrame label="Jams">
+      {() => (
+        <div className="max-w-3xl">
+          <Link href={`/jams/${slug}`} className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← {jam.title}</Link>
+          <h1 className="mt-1 text-h1 font-semibold text-fg">Vote on entries</h1>
+          <p className="mb-6 mt-1 text-small text-fg-secondary">Rate each entry 1–5 in each category. A score saves when you choose it, and you can change it until voting closes. You cannot vote for your own entry.</p>
+          {typedEntries.length === 0 ? (
+            <EmptyState kind="first-use" title="No entries to vote on" description="Nobody entered this jam." />
+          ) : (
+            <JamVoteClient entries={typedEntries} existingVotes={votesMap} />
+          )}
         </div>
-        <JamVoteClient
-          entries={typedEntries}
-          existingVotes={votesMap}
-          userId={user.id}
-        />
-      </PanelBody>
-    </PageShell>
+      )}
+    </DiscoveryFrame>
   )
 }

@@ -12,7 +12,7 @@ export default async function EditProjectPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { user, displayName, email } = await getSidebarIdentity()
+  const { user, displayName, email, username, nav } = await getSidebarIdentity()
   const supabase = await createClient()
 
   const { data: project } = await supabase
@@ -25,11 +25,11 @@ export default async function EditProjectPage({
   if (!project) notFound()
 
   return (
-    <AppShell displayName={displayName} email={email} headerLabel="Edit Project">
+    <AppShell displayName={displayName} email={email} nav={nav} headerLabel="Edit Project">
       <div className="max-w-2xl">
         <h1 className="text-2xl font-display font-medium tracking-tight text-gray-900 mb-1">Edit Project</h1>
         <p className="text-sm text-gray-500 mb-8 truncate">{project.title}</p>
-        <ProjectForm projectId={id} initial={project} ownerId={user.id} />
+        <ProjectForm projectId={id} initial={project} ownerId={user.id} username={username} />
         <DeleteProjectForm projectId={id} title={project.title} />
       </div>
     </AppShell>

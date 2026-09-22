@@ -1,147 +1,101 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getSidebarIdentity } from '@/lib/dashboard/identity'
 import { AppShell } from '@/components/dashboard/AppShell'
-import { MarkAllReadButton } from '@/components/notifications/MarkAllReadButton'
+import { NotificationsView } from '@/components/notifications/NotificationsView'
+import { presentNotifications, type ObjectInfo, type RawNotification } from '@/lib/notifications/present'
 
-type NotifType = 'follow' | 'comment' | 'reply' | 'reaction' | 'mention'
+export const metadata = { title: 'Notifications — Glyph' }
+const LIMIT = 100
 
-type Notification = {
-  id: string
-  type: NotifType
-  entity_type: string | null
-  entity_id: string | null
-  read_at: string | null
-  created_at: string
-  actor: { username: string; display_name: string | null; avatar_url: string | null } | null
+type Row = {
+  id: string; type: string; entity_type: string | null; entity_id: string | null; read_at: string | null; created_at: string
+  actor_id: string | null; profiles: { username: string; display_name: string | null } | null
 }
 
-function notifLabel(n: Notification): string {
-  const actor = n.actor?.display_name || n.actor?.username || 'Someone'
-  switch (n.type) {
-    case 'follow': return `${actor} followed you`
-    case 'comment': return `${actor} commented on your devlog`
-    case 'reply': return `${actor} replied to your comment`
-    case 'reaction': return `${actor} reacted to your devlog`
-    case 'mention': return `${actor} mentioned you`
-    default: return `${actor} did something`
-  }
-}
+const ids = (rows: Row[], entity: string) => [...new Set(rows.filter((n) => n.entity_type === entity && n.entity_id).map((n) => n.entity_id as string))]
 
-function formatDate(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function initials(name: string) {
-  return name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
-}
-
-export default async function NotificationsPage() {
-  const { user, displayName, email } = await getSidebarIdentity()
+/**
+ * Notification list: one dense row per event (or per merged group), newest first.
+ * Rows from anyone you have blocked or muted are never shown (the database also stops
+ * new ones from being created). Objects that no longer exist say so instead of linking to nothing.
+ */
+export default async function NotificationsPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
+  const { filter: rawFilter } = await searchParams
+  const { user } = await getSidebarIdentity()
   const supabase = await createClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle()
-
+  const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle()
   if (!profile) redirect('/onboarding')
 
-  const { data: notifs } = await supabase
-    .from('notifications')
-    .select('id, type, entity_type, entity_id, read_at, created_at, profiles!actor_id(username, display_name, avatar_url)')
-    .eq('recipient_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(50)
+  const [{ data: notifs, error }, { data: blocks }, { data: mutes }] = await Promise.all([
+    supabase
+      .from('notifications')
+      .select('id, type, entity_type, entity_id, read_at, created_at, actor_id, profiles!actor_id(username, display_name)')
+      .eq('recipient_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(LIMIT)
+      .returns<Row[]>(),
+    // blocks_read RLS returns rows where you are blocker or blocked, i.e. both directions.
+    supabase.from('user_blocks').select('blocker_id, blocked_id'),
+    supabase.from('user_mutes').select('muted_id').eq('muter_id', user.id),
+  ])
 
-  type RawNotif = {
-    id: string; type: string; entity_type: string | null; entity_id: string | null;
-    read_at: string | null; created_at: string;
-    profiles: { username: string; display_name: string | null; avatar_url: string | null } | null
+  const hidden = new Set<string>()
+  for (const b of (blocks ?? []) as { blocker_id: string; blocked_id: string }[]) { hidden.add(b.blocker_id); hidden.add(b.blocked_id) }
+  for (const m of (mutes ?? []) as { muted_id: string }[]) hidden.add(m.muted_id)
+  hidden.delete(user.id)
+  const rows = (notifs ?? []).filter((n) => !n.actor_id || !hidden.has(n.actor_id))
+
+  // Resolve the objects the rows point at (one query per kind, not per row).
+  const [devlogIds, postIds, requestIds, studioIds, inviteIds, contactIds] = [
+    ids(rows, 'devlog_post'), ids(rows, 'collaboration_post'), ids(rows, 'playtest_request'),
+    ids(rows, 'studio'), ids(rows, 'studio_invitation'), ids(rows, 'publisher_contact'),
+  ]
+  const none = Promise.resolve({ data: [] as unknown[] })
+  const [dv, po, rq, st, iv, ct] = await Promise.all([
+    devlogIds.length ? supabase.from('devlog_posts').select('id, title, slug, projects!project_id(slug, profiles!owner_id(username))').in('id', devlogIds) : none,
+    postIds.length ? supabase.from('collaboration_posts').select('id, role_needed, role_offered, projects!project_id(title)').in('id', postIds) : none,
+    requestIds.length ? supabase.from('playtest_requests').select('id, projects!project_id(title)').in('id', requestIds) : none,
+    studioIds.length ? supabase.from('studios').select('id, slug, name').in('id', studioIds) : none,
+    inviteIds.length ? supabase.from('studio_invitations').select('id, role, studios!studio_id(name, slug)').in('id', inviteIds) : none,
+    contactIds.length ? supabase.from('publisher_contacts').select('id, projects!project_id(title), publisher_accounts!publisher_id(company_name)').in('id', contactIds) : none,
+  ])
+
+  const objects = new Map<string, ObjectInfo>()
+  const found = new Set<string>()
+  for (const d of (dv.data ?? []) as { id: string; title: string; slug: string; projects: { slug: string | null; profiles: { username: string } | null } | null }[]) {
+    found.add(d.id)
+    objects.set(d.id, { title: d.title, href: d.projects?.slug && d.projects.profiles ? `/p/${d.projects.profiles.username}/${d.projects.slug}/${d.slug}` : null })
+  }
+  for (const p of (po.data ?? []) as { id: string; role_needed: string | null; role_offered: string | null; projects: { title: string } | null }[]) {
+    found.add(p.id); objects.set(p.id, { title: p.projects?.title ?? null, role: p.role_needed ?? p.role_offered })
+  }
+  for (const r of (rq.data ?? []) as { id: string; projects: { title: string } | null }[]) { found.add(r.id); objects.set(r.id, { title: r.projects?.title ?? null }) }
+  for (const s of (st.data ?? []) as { id: string; slug: string; name: string }[]) { found.add(s.id); objects.set(s.id, { title: s.name, slug: s.slug }) }
+  for (const i of (iv.data ?? []) as { id: string; role: string; studios: { name: string; slug: string } | null }[]) { found.add(i.id); objects.set(i.id, { title: i.studios?.name ?? null, slug: i.studios?.slug ?? null, extra: i.role }) }
+  for (const c of (ct.data ?? []) as { id: string; projects: { title: string } | null; publisher_accounts: { company_name: string } | null }[]) {
+    found.add(c.id); objects.set(c.id, { title: c.projects?.title ?? null, extra: c.publisher_accounts?.company_name ?? null })
+  }
+  // Any object that was deleted or is no longer visible to this viewer is stated as unavailable, and never linked.
+  // (Row-level security makes "deleted" and "hidden" indistinguishable here, so one wording covers both.)
+  const RESOLVED = new Set(['devlog_post', 'collaboration_post', 'playtest_request', 'studio', 'studio_invitation', 'publisher_contact'])
+  for (const n of rows) {
+    if (n.entity_id && n.entity_type && RESOLVED.has(n.entity_type) && !found.has(n.entity_id)) objects.set(n.entity_id, { title: null, gone: true })
   }
 
-  const notifications = ((notifs ?? []) as unknown as RawNotif[]).map((n) => ({
-    id: n.id,
-    type: n.type as NotifType,
-    entity_type: n.entity_type,
-    entity_id: n.entity_id,
-    read_at: n.read_at,
-    created_at: n.created_at,
-    actor: n.profiles,
-  })) as Notification[]
-
-  const unreadCount = notifications.filter((n) => !n.read_at).length
+  const actorNames = new Map<string, string>()
+  const actorUsernames = new Map<string, string>()
+  for (const n of rows) if (n.actor_id && n.profiles) { actorNames.set(n.actor_id, n.profiles.display_name || n.profiles.username); actorUsernames.set(n.actor_id, n.profiles.username) }
+  const raw: RawNotification[] = rows.map((n) => ({
+    id: n.id, type: n.type, entity_type: n.entity_type, entity_id: n.entity_id, read_at: n.read_at, created_at: n.created_at,
+    actor_id: n.actor_id, actorName: n.actor_id ? actorNames.get(n.actor_id) ?? null : null,
+  }))
+  const presented = presentNotifications(raw, objects, actorUsernames)
 
   return (
-    <AppShell
-      displayName={displayName}
-      email={email}
-      headerLabel="Notifications"
-      headerAction={unreadCount > 0 ? <MarkAllReadButton recipientId={user.id} /> : undefined}
-    >
-      <div className="max-w-2xl">
-            {notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center py-20">
-                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-50 text-gray-300 mb-4">
-                  <Bell className="h-8 w-8" />
-                </div>
-                <h2 className="text-sm font-medium text-gray-900 mb-1">All caught up</h2>
-                <p className="text-sm text-gray-400">Notifications will appear here when people follow you or interact with your content.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {notifications.map((notif) => {
-                  const isUnread = !notif.read_at
-                  const actorName = notif.actor?.display_name || notif.actor?.username || '?'
-                  return (
-                    <div
-                      key={notif.id}
-                      className={`flex items-center gap-4 rounded-2xl border p-4 transition-all duration-200 ${
-                        isUnread
-                          ? 'border-indigo-100 bg-indigo-50/60'
-                          : 'border-gray-100 bg-white'
-                      }`}
-                    >
-                      {notif.actor ? (
-                        <Link href={`/dev/${notif.actor.username}`} className="shrink-0">
-                          {notif.actor.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={notif.actor.avatar_url} alt="" className="h-10 w-10 rounded-xl object-cover" />
-                          ) : (
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 font-mono text-sm font-semibold text-indigo-600">
-                              {initials(actorName)}
-                            </div>
-                          )}
-                        </Link>
-                      ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100">
-                          <Bell className="h-4 w-4 text-gray-400" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${isUnread ? 'font-medium text-gray-900' : 'text-gray-700'}`}>
-                          {notifLabel(notif)}
-                        </p>
-                        <p className="text-[11px] font-mono text-gray-400 mt-0.5">{formatDate(notif.created_at)}</p>
-                      </div>
-                      {isUnread && (
-                        <div className="shrink-0 h-2 w-2 rounded-full bg-indigo-600" />
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-      </div>
+    <AppShell headerLabel="Notifications">
+      <NotificationsView rows={presented} failed={!!error} filter={rawFilter === 'unread' ? 'unread' : 'all'} recipientId={user.id} limit={LIMIT} truncated={(notifs ?? []).length === LIMIT} />
     </AppShell>
   )
 }

@@ -1,11 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, Trash2, Edit2, Check, X, CornerDownRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, CornerDownRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { stripDangerousUnicode } from '@/lib/utils'
+import { stripDangerousUnicode, relativeTime } from '@/lib/utils'
+import { Avatar } from '@/components/ui/Avatar'
+import { Button } from '@/components/ui/Button'
+import { Dialog, DialogClose, DialogContent, DialogFooter } from '@/components/ui/Dialog'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { Field } from '@/components/ui/Field'
+import { Textarea } from '@/components/ui/controls'
 
 const MAX_COMMENT = 5000
 
@@ -26,61 +33,56 @@ export type CommentData = {
   replies?: CommentData[]
 }
 
-function initials(name: string) {
-  return name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
-}
-
-function formatRelative(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days < 30) return `${days}d ago`
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
+/**
+ * One comment. Replies are one level deep (the existing data model); a thread with replies can be
+ * collapsed. Edit/delete belong to the author (RLS enforces it), reply to any signed-in viewer.
+ * Every failed write is shown inline instead of being dropped.
+ */
 function CommentItem({
   comment,
   currentUserId,
   devlogPostId,
-  devlogAuthorId,
   depth = 0,
 }: {
   comment: CommentData
   currentUserId: string | null
   devlogPostId: string
-  devlogAuthorId: string
   depth?: number
 }) {
   const router = useRouter()
   const supabase = createClient()
   const isOwn = currentUserId === comment.author_id
+  const repliesId = useId()
 
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(comment.content)
   const [replying, setReplying] = useState(false)
   const [replyValue, setReplyValue] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const authorName = comment.author.display_name || comment.author.username
+  const replies = comment.replies ?? []
 
   const handleDelete = async () => {
-    if (!confirm('Delete this comment?')) return
     setLoading(true)
-    await supabase.from('comments').delete().eq('id', comment.id)
+    setError('')
+    const { error: dbError } = await supabase.from('comments').delete().eq('id', comment.id)
     setLoading(false)
+    if (dbError) { setError('Could not delete the comment. Try again.'); setConfirmDelete(false); return }
+    setConfirmDelete(false)
     router.refresh()
   }
 
   const handleEdit = async () => {
     if (!editValue.trim()) return
     setLoading(true)
-    await supabase.from('comments').update({ content: stripDangerousUnicode(editValue.trim()) }).eq('id', comment.id)
+    setError('')
+    const { error: dbError } = await supabase.from('comments').update({ content: stripDangerousUnicode(editValue.trim()) }).eq('id', comment.id)
     setLoading(false)
+    if (dbError) { setError('Could not save your edit. Your text is still here.'); return }
     setEditing(false)
     router.refresh()
   }
@@ -116,124 +118,104 @@ function CommentItem({
   }
 
   return (
-    <div className={depth > 0 ? 'pl-6 border-l-2 border-gray-100' : ''}>
+    <div>
       <div className="flex gap-3">
-        <Link href={`/dev/${comment.author.username}`} className="shrink-0">
-          {comment.author.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={comment.author.avatar_url} alt="" className="h-8 w-8 rounded-xl object-cover" />
-          ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 font-mono text-xs font-semibold text-indigo-600">
-              {initials(authorName)}
-            </div>
-          )}
+        <Link href={`/dev/${comment.author.username}`} aria-label={`${authorName}'s profile`} className="mt-0.5 shrink-0">
+          <Avatar name={authorName} src={comment.author.avatar_url} size="md" />
         </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <Link href={`/dev/${comment.author.username}`} className="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors">
-              {authorName}
-            </Link>
-            <span className="text-[11px] font-mono text-gray-400">{formatRelative(comment.created_at)}</span>
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-baseline gap-x-2">
+            <Link href={`/dev/${comment.author.username}`} className="min-h-0 text-small font-semibold text-fg hover:text-link">{authorName}</Link>
+            <time dateTime={comment.created_at} className="text-micro text-fg-muted">{relativeTime(comment.created_at)}</time>
+          </p>
 
           {editing ? (
             <div className="mt-2 space-y-2">
-              <textarea
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none transition-all"
-                rows={3}
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                maxLength={MAX_COMMENT}
-              />
+              <Field label="Edit comment" error={error || null}>
+                {(p) => <Textarea {...p} value={editValue} onChange={(e) => setEditValue(e.target.value)} maxLength={MAX_COMMENT} rows={3} />}
+              </Field>
               <div className="flex gap-2">
-                <button onClick={handleEdit} disabled={loading} className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-60">
-                  {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
-                </button>
-                <button onClick={() => { setEditing(false); setEditValue(comment.content) }} className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-                  <X className="h-3 w-3" /> Cancel
-                </button>
+                <Button size="sm" variant="primary" onClick={handleEdit} loading={loading} disabled={!editValue.trim()}>Save</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setEditValue(comment.content); setError('') }}>Cancel</Button>
               </div>
             </div>
           ) : (
-            <p className="mt-1 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+            <p className="mt-0.5 whitespace-pre-wrap text-body text-fg-secondary [overflow-wrap:anywhere]">{comment.content}</p>
           )}
 
           {!editing && (
-            <div className="mt-2 flex items-center gap-3">
+            <div className="-ml-2 mt-1 flex flex-wrap items-center">
               {currentUserId && depth === 0 && (
-                <button
-                  onClick={() => setReplying((r) => !r)}
-                  className="text-[11px] font-mono text-gray-400 hover:text-indigo-600 transition-colors"
-                >
-                  <CornerDownRight className="h-3 w-3 inline mr-1" />Reply
-                </button>
+                <Button size="sm" variant="ghost" onClick={() => setReplying((r) => !r)} aria-expanded={replying}>
+                  <CornerDownRight aria-hidden strokeWidth={1.75} className="size-3.5" /> Reply
+                </Button>
               )}
               {isOwn && (
                 <>
-                  <button onClick={() => setEditing(true)} className="text-[11px] font-mono text-gray-400 hover:text-gray-700 transition-colors">
-                    <Edit2 className="h-3 w-3 inline mr-1" />Edit
-                  </button>
-                  <button onClick={handleDelete} disabled={loading} className="text-[11px] font-mono text-gray-400 hover:text-red-500 transition-colors">
-                    {loading ? <Loader2 className="h-3 w-3 inline animate-spin" /> : <Trash2 className="h-3 w-3 inline mr-1" />}Delete
-                  </button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Edit</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(true)} className="hover:text-danger">Delete</Button>
                 </>
+              )}
+              {replies.length > 0 && (
+                <Button size="sm" variant="ghost" onClick={() => setCollapsed((c) => !c)} aria-expanded={!collapsed} aria-controls={repliesId}>
+                  {collapsed ? <ChevronRight aria-hidden strokeWidth={1.75} className="size-3.5" /> : <ChevronDown aria-hidden strokeWidth={1.75} className="size-3.5" />}
+                  {collapsed ? `Show ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}` : 'Hide replies'}
+                </Button>
               )}
             </div>
           )}
+          {!editing && error && <p role="alert" className="mt-1 text-small text-danger">{error}</p>}
 
           {replying && (
             <div className="mt-3 space-y-2">
-              <textarea
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none transition-all"
-                rows={3}
-                value={replyValue}
-                onChange={(e) => setReplyValue(e.target.value)}
-                placeholder="Write a reply…"
-                maxLength={MAX_COMMENT}
-              />
-              {error && <p className="text-xs text-red-500 font-mono">{error}</p>}
+              <Field label={`Reply to ${authorName}`} error={error || null}>
+                {(p) => <Textarea {...p} value={replyValue} onChange={(e) => setReplyValue(e.target.value)} maxLength={MAX_COMMENT} rows={3} />}
+              </Field>
               <div className="flex gap-2">
-                <button onClick={handleReply} disabled={loading || !replyValue.trim()} className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-60">
-                  {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : null} Reply
-                </button>
-                <button onClick={() => { setReplying(false); setReplyValue('') }} className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-                  Cancel
-                </button>
+                <Button size="sm" variant="primary" onClick={handleReply} loading={loading} disabled={!replyValue.trim()}>Reply</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setReplying(false); setReplyValue(''); setError('') }}>Cancel</Button>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* One level of replies */}
-      {comment.replies && comment.replies.length > 0 && (
-        <div className="mt-4 ml-11 space-y-4">
-          {comment.replies.map((reply) => (
-            <CommentItem
-              key={reply.id}
-              comment={reply}
-              currentUserId={currentUserId}
-              devlogPostId={devlogPostId}
-              devlogAuthorId={devlogAuthorId}
-              depth={1}
-            />
+      {replies.length > 0 && (
+        <div id={repliesId} hidden={collapsed} className="ml-4 mt-4 space-y-4 border-l border-line pl-4 sm:ml-5">
+          {replies.map((reply) => (
+            <CommentItem key={reply.id} comment={reply} currentUserId={currentUserId} devlogPostId={devlogPostId} depth={1} />
           ))}
         </div>
       )}
+
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent title="Delete this comment?" description={replies.length > 0 ? 'Its replies will be deleted with it. This cannot be undone.' : 'This cannot be undone.'}>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="ghost">Keep comment</Button></DialogClose>
+            <Button variant="danger" onClick={handleDelete} loading={loading}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
+/**
+ * Feedback on a devlog: a composer and threaded replies. Useful feedback, not engagement — there are no
+ * votes, scores or rankings; comments stay in the order they were written.
+ */
 export function CommentThread({
   devlogPostId,
   devlogAuthorId,
   currentUserId,
   comments,
+  loadFailed = false,
 }: {
   devlogPostId: string
   devlogAuthorId: string
   currentUserId: string | null
   comments: CommentData[]
+  loadFailed?: boolean
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -272,57 +254,36 @@ export function CommentThread({
 
   return (
     <div className="space-y-6">
-      <h3 className="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-        Comments {comments.length > 0 ? `(${comments.length})` : ''}
-      </h3>
-
       {currentUserId ? (
         <form onSubmit={handleSubmit} className="space-y-3">
-          <textarea
-            className="w-full rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none transition-all"
-            rows={4}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="Share your thoughts…"
-            maxLength={MAX_COMMENT}
-          />
-          <div className="flex items-center justify-between">
-            {error ? (
-              <p className="text-xs font-mono text-red-500">{error}</p>
-            ) : (
-              <p className="text-[11px] font-mono text-gray-400">{value.length}/{MAX_COMMENT}</p>
-            )}
-            <button
-              type="submit"
-              disabled={loading || !value.trim()}
-              className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 disabled:opacity-60 disabled:pointer-events-none"
-            >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Post Comment
-            </button>
-          </div>
+          <Field label="Add feedback" hint={`${value.length}/${MAX_COMMENT}`} error={error || null}>
+            {(p) => <Textarea {...p} value={value} onChange={(e) => setValue(e.target.value)} maxLength={MAX_COMMENT} rows={4} placeholder="What worked, what did not, what you would try next…" />}
+          </Field>
+          <Button type="submit" variant="primary" loading={loading} disabled={!value.trim()}>Post comment</Button>
         </form>
       ) : (
-        <p className="text-sm text-gray-500">
-          <a href="/login" className="text-indigo-600 hover:underline">Sign in</a> to leave a comment.
+        <p className="text-small text-fg-secondary">
+          <Link href="/login" className="inline-flex min-h-11 items-center font-medium text-link underline-offset-2 hover:underline">Sign in</Link> to leave feedback.
         </p>
       )}
 
-      {comments.length > 0 ? (
-        <div className="space-y-6 divide-y divide-gray-100">
+      {loadFailed ? (
+        <ErrorState inline title="We couldn't load the comments" description="This may be temporary. Reload the page to try again." />
+      ) : comments.length > 0 ? (
+        <ul className="divide-y divide-line-subtle">
           {comments.map((comment) => (
-            <div key={comment.id} className="pt-6 first:pt-0 first:border-none">
-              <CommentItem
-                comment={comment}
-                currentUserId={currentUserId}
-                devlogPostId={devlogPostId}
-                devlogAuthorId={devlogAuthorId}
-              />
-            </div>
+            <li key={comment.id} className="py-5 first:pt-0">
+              <CommentItem comment={comment} currentUserId={currentUserId} devlogPostId={devlogPostId} />
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
-        <p className="text-sm text-gray-400">No comments yet. Be the first.</p>
+        <EmptyState
+          kind="first-use"
+          className="border-y-0 py-2"
+          title="No feedback yet"
+          description={currentUserId ? 'Be the first to respond to this devlog.' : 'Sign in to be the first to respond.'}
+        />
       )}
     </div>
   )

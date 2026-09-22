@@ -1,79 +1,57 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { deleteProject } from '@/app/actions/projects'
+import { Button } from '@/components/ui/Button'
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTrigger } from '@/components/ui/Dialog'
+import { Field } from '@/components/ui/Field'
+import { Input } from '@/components/ui/controls'
 
-const inputCls =
-  'w-full rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100 transition-all duration-300'
-
+/** Action → explanation → confirmation → resulting state, same pattern as account deletion. */
 export function DeleteProjectForm({ projectId, title }: { projectId: string; title: string }) {
   const router = useRouter()
+  const [open, setOpen] = useState(false)
   const [confirm, setConfirm] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
+  const [pending, startTransition] = useTransition()
   const isMatch = confirm === title
 
-  const handleDelete = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!isMatch) return
     setError('')
-    setLoading(true)
-
-    const result = await deleteProject(projectId, confirm)
-
-    if ('error' in result) {
-      setLoading(false)
-      setError(result.error)
-      return
-    }
-
-    router.push('/dashboard/projects')
-    router.refresh()
+    startTransition(async () => {
+      const result = await deleteProject(projectId, confirm)
+      if ('error' in result) { setError(result.error); return }
+      router.push('/dashboard/projects')
+      router.refresh()
+    })
   }
 
   return (
-    <div className="mt-12 space-y-6">
-      <div className="rounded-3xl border border-red-100 bg-red-50/50 p-6">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-medium text-red-700 mb-2">Delete Project</h3>
-            <p className="text-sm text-red-600 leading-relaxed">
-              This will permanently delete &quot;{title}&quot; along with its devlogs, playtest requests, and demo slots. This cannot be undone.
-            </p>
-          </div>
-        </div>
-      </div>
+    <section aria-labelledby="del-project" className="mt-12 border-t border-line pt-6">
+      <h2 id="del-project" className="flex items-center gap-2 text-h3 font-semibold text-fg">
+        <AlertTriangle aria-hidden strokeWidth={1.75} className="size-4 text-danger" /> Delete project
+      </h2>
+      <p className="mt-1 max-w-prose text-small text-fg-secondary">This permanently deletes &quot;{title}&quot; along with its devlogs, playtest requests, and demo slots. This cannot be undone.</p>
 
-      <form onSubmit={handleDelete} className="space-y-4">
-        <div>
-          <label className="block text-[11px] font-mono font-semibold uppercase tracking-widest text-gray-400 mb-2">
-            Type the project title to confirm: <span className="text-red-500 font-bold">{title}</span>
-          </label>
-          <input
-            className={inputCls}
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder={title}
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </div>
-
-        {error && <p className="text-xs font-mono text-red-500">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={!isMatch || loading}
-          className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-medium text-white hover:bg-red-700 transition-all duration-300 disabled:opacity-40 disabled:pointer-events-none"
-        >
-          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          Delete This Project
-        </button>
-      </form>
-    </div>
+      <Dialog open={open} onOpenChange={(o) => { if (pending) return; setOpen(o); if (!o) { setConfirm(''); setError('') } }}>
+        <DialogTrigger asChild><Button variant="danger" className="mt-4">Delete this project…</Button></DialogTrigger>
+        <DialogContent title="Delete this project?" description={`This permanently deletes "${title}" and everything on it. It cannot be undone.`}>
+          <form onSubmit={submit} className="space-y-4">
+            <Field label={`Type ${title} to confirm`} required>
+              {(p) => <Input {...p} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={title} autoComplete="off" spellCheck={false} />}
+            </Field>
+            {error && <p role="alert" className="text-small font-medium text-danger">{error}</p>}
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="ghost" disabled={pending}>Keep this project</Button></DialogClose>
+              <Button type="submit" variant="danger" loading={pending} disabled={!isMatch}>Permanently delete this project</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </section>
   )
 }

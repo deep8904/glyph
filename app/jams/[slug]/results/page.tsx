@@ -1,12 +1,14 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Trophy, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody } from '@/components/layout/PageShell'
+import { DiscoveryFrame } from '@/components/discovery/DiscoveryFrame'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { JAM_VOTE_CATEGORIES } from '@/lib/supabase/types'
 
-const MEDALS = ['🥇', '🥈', '🥉']
+type Vote = { entry_id: string; category: string; score: number }
+type Entry = { id: string; ranking: number | null; votes_count: number; projects: { title: string; slug: string | null } | null; profiles: { username: string; display_name: string | null } | null }
 
+/** Standings for a jam in voting or completed: entries ranked by votes, with per-category averages as plain text. Each entry links to its canonical project page. */
 export default async function JamResultsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const supabase = await createClient()
@@ -19,82 +21,55 @@ export default async function JamResultsPage({ params }: { params: Promise<{ slu
     .select('id, ranking, votes_count, projects!project_id(title, slug), profiles!team_lead_id(username, display_name)')
     .eq('jam_id', jam.id)
     .order('votes_count', { ascending: false })
-
-  const { data: allVotes } = await supabase
-    .from('jam_votes')
-    .select('entry_id, category, score')
-    .in('entry_id', (entries ?? []).map((e: { id: string }) => e.id))
-
-  type Vote = { entry_id: string; category: string; score: number }
-  type Entry = { id: string; ranking: number | null; votes_count: number; projects: { title: string; slug: string | null } | null; profiles: { username: string; display_name: string | null } | null }
-
   const typedEntries = (entries ?? []) as unknown as Entry[]
-  const typedVotes = (allVotes ?? []) as Vote[]
 
-  // Compute per-category averages
-  const categoryAvgs = (entryId: string) => {
-    return JAM_VOTE_CATEGORIES.map((cat) => {
-      const catVotes = typedVotes.filter((v) => v.entry_id === entryId && v.category === cat.value)
-      const avg = catVotes.length > 0 ? catVotes.reduce((s, v) => s + v.score, 0) / catVotes.length : null
-      return { ...cat, avg }
-    })
-  }
+  const { data: allVotes } = await supabase.from('jam_votes').select('entry_id, category, score').in('entry_id', typedEntries.map((e) => e.id))
+  const votes = (allVotes ?? []) as Vote[]
+  const averages = (entryId: string) =>
+    JAM_VOTE_CATEGORIES.map((cat) => {
+      const v = votes.filter((x) => x.entry_id === entryId && x.category === cat.value)
+      return { label: cat.label, avg: v.length ? v.reduce((s, x) => s + x.score, 0) / v.length : null }
+    }).filter((c) => c.avg !== null) as { label: string; avg: number }[]
 
   return (
-    <PageShell wide>
-      <PanelHeader breadcrumb={[{ label: 'Jams', href: '/jams' }, { label: jam.title, href: `/jams/${slug}` }, { label: 'Results' }]} />
-      <PanelBody>
-        <Link href={`/jams/${slug}`} className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-gray-400 hover:text-indigo-600 transition-colors mb-6">
-          <ArrowLeft className="h-3 w-3" /> Back to jam
-        </Link>
+    <DiscoveryFrame label="Jams">
+      {() => (
+        <div className="max-w-3xl">
+          <Link href={`/jams/${slug}`} className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← {jam.title}</Link>
+          <h1 className="mt-1 text-h1 font-semibold text-fg [overflow-wrap:anywhere]">{jam.status === 'completed' ? 'Results' : 'Standings so far'}</h1>
+          <p className="mt-1 text-small text-fg-secondary">Ranked by total votes. Averages are per voting category, out of 5.</p>
 
-        <div className="flex items-center gap-3 mb-8">
-          <Trophy className="h-6 w-6 text-indigo-500" />
-          <h1 className="text-xl font-semibold tracking-tight text-gray-900">{jam.title} — Results</h1>
+          {typedEntries.length === 0 ? (
+            <EmptyState kind="first-use" className="mt-6" title="No entries were submitted" description="There is nothing to rank for this jam." />
+          ) : (
+            <ol className="mt-6 divide-y divide-line-subtle border-y border-line-subtle">
+              {typedEntries.map((entry, i) => {
+                const lead = entry.profiles?.username
+                const href = lead && entry.projects?.slug ? `/p/${lead}/${entry.projects.slug}` : null
+                const avgs = averages(entry.id)
+                return (
+                  <li key={entry.id} className="flex gap-4 py-4">
+                    <span className="w-8 shrink-0 font-mono text-h3 font-semibold text-fg-muted">{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-h3 font-semibold text-fg [overflow-wrap:anywhere]">
+                        {href ? <Link href={href} className="inline-flex min-h-11 items-center hover:text-link sm:min-h-0">{entry.projects?.title ?? 'Untitled'}</Link> : entry.projects?.title ?? 'Untitled'}
+                      </h2>
+                      <p className="text-small text-fg-muted">by {entry.profiles?.display_name ?? lead} · <span className="font-mono">{entry.votes_count}</span> {entry.votes_count === 1 ? 'vote' : 'votes'}</p>
+                      {avgs.length > 0 && (
+                        <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+                          {avgs.map((c) => (
+                            <div key={c.label} className="flex items-baseline gap-1.5"><dt className="text-small text-fg-muted">{c.label}</dt><dd className="font-mono text-small font-medium text-fg">{c.avg.toFixed(1)}</dd></div>
+                          ))}
+                        </dl>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          )}
         </div>
-
-        {typedEntries.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-12">No entries were submitted for this jam.</p>
-        ) : (
-          <div className="space-y-6">
-            {typedEntries.map((entry, i) => {
-              const avgs = categoryAvgs(entry.id)
-              const totalVoters = allVotes ? new Set(typedVotes.filter((v) => v.entry_id === entry.id).map((v) => v.entry_id)).size : 0
-              return (
-                <div key={entry.id} className={`rounded-3xl border p-5 sm:p-6 shadow-sm ${i === 0 ? 'border-yellow-200 bg-yellow-50/30' : i === 1 ? 'border-gray-200 bg-gray-50/30' : i === 2 ? 'border-orange-100 bg-orange-50/20' : 'border-gray-100 bg-white'}`}>
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        {i < 3 && <span className="text-xl">{MEDALS[i]}</span>}
-                        {i >= 3 && <span className="text-lg font-mono font-bold text-gray-300">#{i + 1}</span>}
-                        <h3 className="text-base font-semibold tracking-tight text-gray-900">{entry.projects?.title ?? 'Untitled'}</h3>
-                      </div>
-                      <p className="text-[11px] font-mono text-gray-400">by {entry.profiles?.display_name ?? entry.profiles?.username}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-semibold text-indigo-600">{entry.votes_count}</div>
-                      <div className="text-[10px] font-mono text-gray-400">total votes</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {avgs.map((cat) => cat.avg !== null && (
-                      <div key={cat.value} className="rounded-xl bg-white border border-gray-100 px-3 py-2">
-                        <div className="text-[10px] font-mono text-gray-400 mb-0.5">{cat.label}</div>
-                        <div className="text-sm font-semibold text-gray-900">{cat.avg.toFixed(1)}<span className="text-xs font-normal text-gray-400">/5</span></div>
-                      </div>
-                    ))}
-                  </div>
-                  {entry.projects?.slug && (
-                    <Link href={`/p/${entry.profiles?.username}/${entry.projects.slug}`} className="mt-3 inline-flex items-center text-xs font-mono text-indigo-600 hover:underline">
-                      View project →
-                    </Link>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </PanelBody>
-    </PageShell>
+      )}
+    </DiscoveryFrame>
   )
 }

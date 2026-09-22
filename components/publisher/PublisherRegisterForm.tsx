@@ -2,56 +2,40 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { createPublisherAccount } from '@/app/actions/publisher'
+import { createPublisherAccount, updatePublisherProfile } from '@/app/actions/publisher'
+import { Button } from '@/components/ui/Button'
+import { Field } from '@/components/ui/Field'
+import { Input, Textarea } from '@/components/ui/controls'
 
-export function PublisherRegisterForm() {
+/** Register (no `existing`) or edit a publisher profile. Verification is never set here. */
+export function PublisherRegisterForm({ existing }: { existing?: { company_name: string; description: string | null; website: string | null } }) {
   const router = useRouter()
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    const formData = new FormData(e.currentTarget)
-    startTransition(async () => {
-      const result = await createPublisherAccount(formData)
-      if ('error' in result) setError(result.error)
-      else router.push('/dashboard/publisher')
-    })
-  }
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <label className="block text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-1.5">
-          Company Name <span className="text-red-400">*</span>
-        </label>
-        <input
-          name="company_name"
-          required
-          maxLength={200}
-          className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
-          placeholder="Acme Publishing Inc."
-        />
-      </div>
-
-      <div className="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3">
-        <p className="text-xs text-amber-700">
-          Publisher accounts require manual verification by the Glyph team. Your account will be reviewed within 2–3 business days.
-        </p>
-      </div>
-
-      {error && (
-        <p className="rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">{error}</p>
-      )}
-
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none"
-      >
-        {isPending ? 'Registering…' : 'Register as Publisher'}
-      </button>
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault()
+        setError(''); setSaved(false)
+        const fd = new FormData(e.currentTarget)
+        startTransition(async () => {
+          const result = existing ? await updatePublisherProfile(fd) : await createPublisherAccount(fd)
+          if ('error' in result) setError(result.error)
+          else if (existing) { setSaved(true); router.refresh() }
+          else router.push('/dashboard/publisher')
+        })
+      }}
+    >
+      <Field label="Company name" required>{(p) => <Input {...p} name="company_name" maxLength={200} defaultValue={existing?.company_name ?? ''} />}</Field>
+      <Field label="About your company" hint="What you publish and what you look for in a game. Shown on your public page once verified.">{(p) => <Textarea {...p} name="description" rows={4} maxLength={2000} defaultValue={existing?.description ?? ''} />}</Field>
+      <Field label="Website">{(p) => <Input {...p} name="website" type="url" maxLength={500} defaultValue={existing?.website ?? ''} placeholder="https://" />}</Field>
+      {!existing && <p className="text-small text-fg-secondary">New accounts are reviewed by Glyph. You can save projects to a shortlist straight away; contacting developers unlocks once your account is verified.</p>}
+      {error && <p role="alert" className="text-small text-danger">{error}</p>}
+      {saved && <p role="status" className="text-small text-success">Publisher profile saved.</p>}
+      <Button type="submit" variant="primary" loading={pending}>{existing ? 'Save profile' : 'Register as a publisher'}</Button>
     </form>
   )
 }

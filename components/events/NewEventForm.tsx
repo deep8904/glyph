@@ -2,13 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
 import { createEvent } from '@/app/actions/events'
 import { EVENT_TYPES } from '@/lib/supabase/types'
-
-const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all duration-300'
-const selectCls = `${inputCls} appearance-none cursor-pointer`
-const labelCls = 'block text-[11px] font-mono font-semibold uppercase tracking-widest text-gray-400 mb-2'
+import { Button } from '@/components/ui/Button'
+import { Field } from '@/components/ui/Field'
+import { Input, Select, Textarea } from '@/components/ui/controls'
 
 export function NewEventForm() {
   const router = useRouter()
@@ -35,71 +33,34 @@ export function NewEventForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className={labelCls}>Event Title *</label>
-        <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Indie Dev Meetup — Berlin" maxLength={200} required />
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <section aria-labelledby="ev-what" className="space-y-4">
+        <h2 id="ev-what" className="text-h3 font-semibold text-fg">What it is</h2>
+        <Field label="Title" required>{(p) => <Input {...p} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Indie Dev Meetup — Berlin" maxLength={200} />}</Field>
+        <Field label="Kind" required>{(p) => <Select {...p} value={type} onChange={(e) => setType(e.target.value as typeof type)}>{EVENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</Select>}</Field>
+        <Field label="Description" required hint={`${description.length}/5000`}>{(p) => <Textarea {...p} rows={5} maxLength={5000} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What will happen? What should people bring or expect?" />}</Field>
+      </section>
 
-      <div>
-        <label className={labelCls}>Event Type *</label>
-        <select className={selectCls} value={type} onChange={(e) => setType(e.target.value as typeof type)}>
-          {EVENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-      </div>
-
-      <div>
-        <label className={labelCls}>Description *</label>
-        <textarea className={`${inputCls} resize-none`} rows={5} maxLength={5000} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What will happen at this event? What should people bring or expect?" required />
-        <p className="mt-1 text-right text-[11px] font-mono text-gray-400">{description.length}/5000</p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className={labelCls}>Start Date & Time *</label>
-          <input type="datetime-local" className={inputCls} value={startAt} onChange={(e) => setStartAt(e.target.value)} required />
+      <section aria-labelledby="ev-when" className="space-y-4 border-t border-line pt-6">
+        <h2 id="ev-when" className="text-h3 font-semibold text-fg">When and where</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Starts" required>{(p) => <Input {...p} type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />}</Field>
+          <Field label="Ends" required>{(p) => <Input {...p} type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />}</Field>
         </div>
-        <div>
-          <label className={labelCls}>End Date & Time *</label>
-          <input type="datetime-local" className={inputCls} value={endAt} onChange={(e) => setEndAt(e.target.value)} required />
+        <Field label="Venue" hint="Optional.">{(p) => <Input {...p} value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. Impact Hub, Floor 3" maxLength={200} />}</Field>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="City" required>{(p) => <Input {...p} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Berlin" maxLength={100} />}</Field>
+          <Field label="State or region" hint="Optional.">{(p) => <Input {...p} value={state} onChange={(e) => setState(e.target.value)} maxLength={100} />}</Field>
+          <Field label="Country" required>{(p) => <Input {...p} value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Germany" maxLength={100} />}</Field>
         </div>
-      </div>
+        <Field label="Capacity" hint="Optional. Leave blank for unlimited." className="max-w-48">{(p) => <Input {...p} type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} />}</Field>
+      </section>
 
-      <div>
-        <label className={labelCls}>Venue (optional)</label>
-        <input className={inputCls} value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. Impact Hub, Floor 3" maxLength={200} />
-      </div>
+      {error && <p role="alert" className="rounded-media border border-danger-line bg-danger-subtle px-4 py-3 text-small text-danger">{error}</p>}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label className={labelCls}>City *</label>
-          <input className={inputCls} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Berlin" maxLength={100} required />
-        </div>
-        <div>
-          <label className={labelCls}>State / Region</label>
-          <input className={inputCls} value={state} onChange={(e) => setState(e.target.value)} placeholder="Optional" maxLength={100} />
-        </div>
-        <div>
-          <label className={labelCls}>Country *</label>
-          <input className={inputCls} value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Germany" maxLength={100} required />
-        </div>
-      </div>
-
-      <div>
-        <label className={labelCls}>Capacity (optional)</label>
-        <input type="number" min={1} className={inputCls} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="Leave blank for unlimited" />
-      </div>
-
-      {error && <p className="text-xs font-mono text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>}
-
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2">
-        <button type="button" onClick={() => router.push('/events')} className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-300">
-          Cancel
-        </button>
-        <button type="submit" disabled={pending} className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 disabled:opacity-60 disabled:pointer-events-none">
-          {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-          Publish Event
-        </button>
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <Button type="button" variant="ghost" onClick={() => router.push('/events')}>Cancel</Button>
+        <Button type="submit" variant="primary" loading={pending}>Publish event</Button>
       </div>
     </form>
   )

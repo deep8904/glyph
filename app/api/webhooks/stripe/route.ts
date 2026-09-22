@@ -63,8 +63,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { createClient } = await import('@/lib/supabase/server')
-  const supabase = await createClient()
+  // Webhook has no user session: writes need the service-role client (bypasses RLS).
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  let supabase: ReturnType<typeof createAdminClient>
+  try {
+    supabase = createAdminClient()
+  } catch {
+    return NextResponse.json({ error: 'Supabase service role not configured' }, { status: 503 })
+  }
 
   try {
     switch (event.type) {
@@ -96,7 +102,7 @@ export async function POST(req: NextRequest) {
           const days = parseInt(String(pi.metadata.days ?? '30'), 10)
           const endsAt = new Date()
           endsAt.setDate(endsAt.getDate() + days)
-          await supabase.from('featured_listings').insert({
+          const { error } = await supabase.from('featured_listings').insert({
             entity_type: String(pi.metadata.entity_type),
             entity_id: String(pi.metadata.entity_id),
             payer_id: String(pi.metadata.payer_id),
@@ -104,6 +110,9 @@ export async function POST(req: NextRequest) {
             amount_cents: Number(pi.amount),
             stripe_payment_intent_id: String(pi.id),
           })
+          // 23505 = duplicate stripe_payment_intent_id (Stripe retry): already recorded.
+          // Any other error must 500 so Stripe retries instead of silently losing a paid listing.
+          if (error && error.code !== '23505') throw error
         }
         break
       }

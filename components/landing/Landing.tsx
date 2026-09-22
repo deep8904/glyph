@@ -483,21 +483,14 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                 </ul>
               </div>
               <div className="space-y-3">
-                <h4 className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Company</h4>
+                <h4 className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Browse</h4>
                 <ul className="space-y-2 text-gray-500">
-                  <li><a href="#" className="hover:text-indigo-600 transition-colors">About</a></li>
-                  <li><a href="#" className="hover:text-indigo-600 transition-colors">Press</a></li>
-                  <li><a href="#" className="hover:text-indigo-600 transition-colors">Privacy Policy</a></li>
-                  <li><a href="#" className="hover:text-indigo-600 transition-colors">Terms of Service</a></li>
+                  <li><Link href="/explore" className="hover:text-indigo-600 transition-colors">Explore</Link></li>
+                  <li><Link href="/search" className="hover:text-indigo-600 transition-colors">Search</Link></li>
+                  <li><Link href="/collaborate" className="hover:text-indigo-600 transition-colors">Collaborate</Link></li>
+                  <li><Link href="/playtests/browse" className="hover:text-indigo-600 transition-colors">Playtests</Link></li>
+                  <li><Link href="/publishers" className="hover:text-indigo-600 transition-colors">Publishers</Link></li>
                 </ul>
-              </div>
-              <div className="space-y-3 sm:col-span-2 lg:col-span-1">
-                <h4 className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Connect</h4>
-                <div className="flex gap-4 text-gray-400">
-                  <a href="#" aria-label="X" className="flex h-9 w-9 items-center justify-center hover:text-gray-900 transition-colors"><X className="h-5 w-5" /></a>
-                  <a href="#" aria-label="Discord" className="flex h-9 w-9 items-center justify-center hover:text-gray-900 transition-colors"><MessageCircle className="h-5 w-5" /></a>
-                  <a href="#" aria-label="GitHub" className="flex h-9 w-9 items-center justify-center hover:text-gray-900 transition-colors"><GitBranch className="h-5 w-5" /></a>
-                </div>
               </div>
             </div>
             <div className="pt-8 border-t border-gray-200/60 text-xs text-gray-400 text-center md:text-left">

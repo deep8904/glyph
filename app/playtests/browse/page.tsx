@@ -1,124 +1,112 @@
 import Link from 'next/link'
-import { Monitor, Download, Key, Clock, Users, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody, EmptyState } from '@/components/layout/PageShell'
-import { Badge } from '@/components/ui/Badge'
+import { DiscoveryFrame } from '@/components/discovery/DiscoveryFrame'
+import { PlaytestListing, type ListingPlaytest } from '@/components/playtests/PlaytestListing'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { SectionHeader } from '@/components/ui/SectionHeader'
+import { SESSION_STATUS } from '@/components/workflow/StatusLabel'
 
-const BUILD_ICONS = { browser: Monitor, download: Download, steam_key: Key }
-const BUILD_LABELS = { browser: 'Browser', download: 'Download', steam_key: 'Steam Key' }
+export const metadata = { title: 'Playtests — Glyph' }
 
-type RequestRow = {
-  id: string
-  build_type: string
-  platforms: string[]
-  description: string
-  focus_areas: string[]
-  requested_testers: number
-  current_testers: number
-  created_at: string
-  projects: { title: string; slug: string | null } | null
-  profiles: { username: string; display_name: string | null } | null
+const PAGE_LIMIT = 50
+
+type MySession = { id: string; status: string; playtest_requests: { id: string; projects: { title: string } | null; profiles: { username: string; display_name: string | null } | null } | null }
+
+// What the tester should do next, by state — the one line under each of their sign-ups.
+const NEXT: Record<string, string> = {
+  requested: 'Waiting for the developer',
+  accepted: 'Get the build and send feedback',
 }
 
+/**
+ * Playtests, from the tester's side: games that need testers. Request a place, wait for the developer, get the
+ * build, play, send feedback. (Collaborate — people and projects that need contributors — is a different page.)
+ * Viewer-relative: private projects, closed/full playtests and anyone the viewer has a block/mute with are
+ * excluded by the view, not here.
+ */
 export default async function PlaytestsBrowsePage() {
   const supabase = await createClient()
-  const { data } = await supabase
-    .from('playtest_requests')
-    .select('id, build_type, platforms, description, focus_areas, requested_testers, current_testers, created_at, projects!project_id(title, slug), profiles!author_id(username, display_name)')
-    .eq('status', 'open')
+  const { data, error } = await supabase
+    .from('discoverable_playtests')
+    .select('id, build_type, platforms, description, focus_areas, requested_testers, current_testers, created_at, project_title, username, display_name')
     .order('created_at', { ascending: false })
-    .limit(50)
-
-  const requests = (data ?? []) as unknown as RequestRow[]
-
-  const { data: { user } } = await supabase.auth.getUser()
+    .order('id', { ascending: false })
+    .limit(PAGE_LIMIT)
+    .returns<ListingPlaytest[]>()
+  const rows = data ?? []
 
   return (
-    <PageShell wide>
-      <PanelHeader
-        breadcrumb={[{ label: 'Playtests' }]}
-        action={
-          user ? (
-            <Link href="/dashboard/playtests/new" className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5">
-              Request testers
-            </Link>
-          ) : null
-        }
-      />
-      <PanelBody>
-        <div className="mb-6">
-          <p className="text-sm text-gray-500">Browse open playtest requests from indie developers. Try their games and leave structured feedback.</p>
-        </div>
-        {requests.length === 0 ? (
-          <EmptyState
-            icon={<Users className="h-8 w-8 text-gray-300" />}
-            title="No open playtests"
-            description="Be the first to request testers for your game."
-            action={
-              user ? (
-                <Link href="/dashboard/playtests/new" className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20">
-                  Request testers
-                </Link>
+    <DiscoveryFrame label="Playtests">
+      {async (viewer) => {
+        const { data: mine } = viewer
+          ? await supabase
+              .from('playtest_sessions')
+              .select('id, status, playtest_requests!request_id(id, projects!project_id(title), profiles!author_id(username, display_name))')
+              .eq('tester_id', viewer.id)
+              .in('status', ['requested', 'accepted'])
+              .order('created_at', { ascending: false })
+              .limit(5)
+              .returns<MySession[]>()
+          : { data: null }
+        const active = (mine ?? []).filter((s) => s.playtest_requests)
+
+        return (
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-x-10">
+            <header className="lg:col-span-2">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-h1 font-semibold text-fg">Playtests</h1>
+                  <p className="mt-1 max-w-prose text-small text-fg-secondary">
+                    Games that need testers. Request a place, play the build once the developer accepts you, and send them feedback. Looking for people to build with? See <Link href="/collaborate" className="font-medium text-link underline-offset-2 hover:underline">Collaborate</Link>.
+                  </p>
+                </div>
+                {viewer && <Button asChild variant="secondary" className="shrink-0"><Link href="/dashboard/playtests">Manage your playtests</Link></Button>}
+              </div>
+            </header>
+
+            {active.length > 0 && (
+              <aside aria-label="Your sign-ups" className="mt-6 lg:order-2 lg:mt-8">
+                <SectionHeader id="mine" title="You are testing" count={active.length} className="mb-1" />
+                <ul className="divide-y divide-line-subtle border-y border-line-subtle">
+                  {active.map((s) => (
+                    <PlaytestListing
+                      key={s.id}
+                      variant="mine"
+                      playtest={{ id: s.playtest_requests!.id, project_title: s.playtest_requests!.projects?.title ?? 'Playtest', username: s.playtest_requests!.profiles?.username, display_name: s.playtest_requests!.profiles?.display_name }}
+                      status={SESSION_STATUS[s.status]}
+                      hint={NEXT[s.status]}
+                    />
+                  ))}
+                </ul>
+              </aside>
+            )}
+
+            <section aria-labelledby="open-playtests" className={active.length > 0 ? 'mt-8 lg:order-1' : 'mt-6 lg:col-span-2'}>
+              <SectionHeader id="open-playtests" title="Open playtests" description="Newest first. Only games with places left are listed." className="mb-1" />
+              {error ? (
+                <ErrorState className="mt-3" title="Playtests could not be loaded" description="This may be temporary." retryHref="/playtests/browse" />
+              ) : rows.length === 0 ? (
+                <EmptyState
+                  kind="cleared"
+                  className="mt-3"
+                  title="No playtests are open right now"
+                  description={viewer ? 'Games appear here while they have places left. Have a build of your own to test?' : 'Games appear here while they have places left. Sign in to request testers for your own game.'}
+                  action={viewer ? <Button asChild variant="primary" size="sm"><Link href="/dashboard/playtests/new">Request testers</Link></Button> : <Button asChild variant="primary" size="sm"><Link href="/login">Sign in</Link></Button>}
+                />
               ) : (
-                <Link href="/signup" className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20">
-                  Sign up to participate
-                </Link>
-              )
-            }
-          />
-        ) : (
-          <div className="space-y-4">
-            {requests.map((req) => {
-              const BuildIcon = BUILD_ICONS[req.build_type as keyof typeof BUILD_ICONS] ?? Monitor
-              const testers = req.current_testers
-              const pct = Math.min(100, Math.round((testers / req.requested_testers) * 100))
-              return (
-                <Link
-                  key={req.id}
-                  href={`/playtests/${req.id}`}
-                  className="block group rounded-3xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="text-base font-medium tracking-tight text-gray-900">{req.projects?.title ?? 'Unnamed project'}</span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-gray-600">
-                          <BuildIcon className="h-3 w-3" />
-                          {BUILD_LABELS[req.build_type as keyof typeof BUILD_LABELS] ?? req.build_type}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-500 line-clamp-2 mb-3">{req.description}</p>
-                      {req.focus_areas.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-3">
-                          {req.focus_areas.slice(0, 4).map((f) => (
-                            <Badge key={f} variant="secondary" size="sm">{f}</Badge>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <span className="text-[11px] font-mono text-gray-400">
-                          by {req.profiles?.display_name ?? req.profiles?.username ?? 'unknown'}
-                        </span>
-                        <span className="text-[11px] font-mono text-gray-400 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-sm font-medium text-gray-900">{testers}/{req.requested_testers}</div>
-                      <div className="text-[10px] font-mono text-gray-400 mb-2">testers</div>
-                      <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                        <div className="h-full rounded-full bg-indigo-500" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
+                <>
+                  <ul className="divide-y divide-line-subtle border-y border-line-subtle">
+                    {rows.map((r) => <PlaytestListing key={r.id} playtest={r} />)}
+                  </ul>
+                  {rows.length === PAGE_LIMIT && <p className="mt-3 text-small text-fg-muted">Showing the {PAGE_LIMIT} most recent playtests.</p>}
+                </>
+              )}
+            </section>
           </div>
-        )}
-      </PanelBody>
-    </PageShell>
+        )
+      }}
+    </DiscoveryFrame>
   )
 }

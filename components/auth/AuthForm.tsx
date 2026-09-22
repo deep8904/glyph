@@ -3,8 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Gamepad2, MailCheck, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Gamepad2, MailCheck, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { FocusedShell } from '@/components/shell/FocusedShell'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { IconButton } from '@/components/ui/IconButton'
+import { Input } from '@/components/ui/controls'
+import { cn } from '@/lib/utils'
 
 type Mode = 'login' | 'signup'
 
@@ -189,169 +195,117 @@ export default function AuthForm({ mode }: { mode: Mode }) {
     setNotice('A new code is on its way — check your inbox.')
   }
 
-  // ── styles (design system unchanged) ──
-  const inputCls =
-    'w-full rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 font-mono placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all duration-300'
-  const primaryBtn =
-    'w-full inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 px-6 py-3.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 disabled:opacity-60 disabled:pointer-events-none'
   const anyLoading = loading || oauthLoading !== null
 
   return (
-    <div className="min-h-screen relative overflow-hidden font-sans">
-      {/* Plasma background */}
-      <div className="fixed inset-0 z-0 bg-plasma pointer-events-none" />
-
-      {/* Glass slices overlay */}
-      <div className="fixed inset-y-0 right-0 w-[120vw] md:w-[70vw] translate-x-[10%] md:translate-x-0 z-0 flex pointer-events-none opacity-40 mix-blend-overlay">
-        <div className="h-full flex-1 relative border-l border-white/60 shadow-[-15px_0_30px_-10px_rgba(255,255,255,1)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.8), rgba(255,255,255,0.4))', backdropFilter: 'blur(20px)' }} />
-        <div className="h-full flex-1 relative border-l border-white/40 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.8)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.4), rgba(255,255,255,0.1))', backdropFilter: 'blur(10px)' }} />
-        <div className="h-full flex-1 relative border-l border-white/20 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.4)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.1), rgba(255,255,255,0))', backdropFilter: 'blur(4px)' }} />
-      </div>
-
-      <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
-        <Link href="/" className="flex items-center gap-1 text-2xl font-semibold tracking-tighter text-white mb-8">
-          Glyph<span className="text-indigo-400 leading-none">°</span>
-        </Link>
-
-        <div className="w-full max-w-[480px] bg-white/95 backdrop-blur-2xl rounded-[2.5rem] panel-shadow border border-white overflow-hidden">
-          <div className="px-6 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12">
-            {view === 'form' ? (
-              <div className="reveal active flex flex-col text-center">
-                <div className="flex justify-center">
-                  <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50/50 px-3 py-1 text-[11px] uppercase tracking-wider font-semibold text-indigo-600 shadow-sm backdrop-blur-md font-mono">
-                    <Gamepad2 className="h-3.5 w-3.5" /> {isSignup ? 'New Account' : 'Returning'}
-                  </div>
-                </div>
-
-                <h1 className="text-3xl md:text-4xl font-light tracking-tighter text-gray-900 mb-2">
-                  {isSignup ? 'Create your profile.' : 'Welcome back.'}
-                </h1>
-                <p className="text-sm text-gray-500 mb-8">
-                  {isSignup ? 'Free forever. No credit card.' : 'Sign in to your home base.'}
-                </p>
-
-                <div className="flex flex-col gap-3">
-                  <button onClick={() => handleOAuth('github')} disabled={anyLoading} className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-gray-900 px-6 py-3.5 text-sm font-medium text-white hover:bg-gray-800 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none">
-                    {oauthLoading === 'github' ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitHubIcon className="h-4 w-4" />} Continue with GitHub
-                  </button>
-                  <button onClick={() => handleOAuth('google')} disabled={anyLoading} className="w-full inline-flex items-center justify-center gap-3 rounded-full border border-gray-200 bg-white px-6 py-3.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none">
-                    {oauthLoading === 'google' ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon className="h-4 w-4" />} Continue with Google
-                  </button>
-
-                  <div className="flex items-center gap-4 my-2">
-                    <div className="h-px flex-1 bg-gray-200" />
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400">or</span>
-                    <div className="h-px flex-1 bg-gray-200" />
-                  </div>
-
-                  <form onSubmit={isSignup ? handleSignup : handleLogin} className="flex flex-col gap-3 text-left">
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      autoComplete="email"
-                      className={inputCls}
-                    />
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder={isSignup ? 'Create a password' : 'Password'}
-                        autoComplete={isSignup ? 'new-password' : 'current-password'}
-                        className={`${inputCls} pr-11`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((s) => !s)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    {isSignup && (
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={confirm}
-                        onChange={(e) => setConfirm(e.target.value)}
-                        placeholder="Confirm password"
-                        autoComplete="new-password"
-                        className={inputCls}
-                      />
-                    )}
-                    <button type="submit" disabled={anyLoading} className={primaryBtn}>
-                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                      {loading
-                        ? isSignup ? 'Creating…' : 'Signing in…'
-                        : isSignup ? 'Create Account' : 'Sign In'}
-                    </button>
-                  </form>
-
-                  {error && <p className="text-xs font-mono text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3 leading-relaxed text-left">{error}</p>}
-                  {formNotice && <p className="text-xs font-mono text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 leading-relaxed text-left">{formNotice}</p>}
-                </div>
-
-                <p className="text-sm text-gray-500 mt-8">
-                  {isSignup ? (
-                    <>Already have an account? <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-700 transition-colors">Log in →</Link></>
-                  ) : (
-                    <>No account? <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-700 transition-colors">Sign up →</Link></>
-                  )}
-                </p>
+    <FocusedShell>
+      <div className="overflow-hidden rounded-panel border border-line bg-surface">
+        <div className="px-6 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12">
+          {view === 'form' ? (
+            <div className="flex flex-col text-center">
+              <div className="flex justify-center">
+                <Badge tone="accent" className="mb-6"><Gamepad2 aria-hidden strokeWidth={1.75} className="size-3.5" /> {isSignup ? 'New account' : 'Returning'}</Badge>
               </div>
-            ) : (
-              <div className="reveal active flex flex-col text-center">
-                <div className="flex justify-center">
-                  <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50/50 px-3 py-1 text-[11px] uppercase tracking-wider font-semibold text-indigo-600 shadow-sm backdrop-blur-md font-mono">
-                    <MailCheck className="h-3.5 w-3.5" /> Check your inbox
-                  </div>
+
+              <h1 className="mb-2 text-display font-semibold tracking-tight text-fg">{isSignup ? 'Create your profile.' : 'Welcome back.'}</h1>
+              <p className="mb-8 text-small text-fg-secondary">{isSignup ? 'Free forever. No credit card.' : 'Sign in to your home base.'}</p>
+
+              <div className="flex flex-col gap-3">
+                <Button variant="primary" onClick={() => handleOAuth('github')} disabled={anyLoading} loading={oauthLoading === 'github'} className="w-full justify-center bg-fg text-fg-on-accent hover:bg-fg/90">
+                  <GitHubIcon className="size-4" /> Continue with GitHub
+                </Button>
+                <Button variant="secondary" onClick={() => handleOAuth('google')} disabled={anyLoading} loading={oauthLoading === 'google'} className="w-full justify-center">
+                  <GoogleIcon className="size-4" /> Continue with Google
+                </Button>
+
+                <div className="my-2 flex items-center gap-4">
+                  <div className="h-px flex-1 bg-line" />
+                  <span className="text-micro font-medium uppercase tracking-wide text-fg-muted">or</span>
+                  <div className="h-px flex-1 bg-line" />
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-light tracking-tighter text-gray-900 mb-2">Verify your email.</h1>
-                <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                  We sent a 6-digit code to <span className="font-mono text-gray-700">{email}</span>. Enter it below to finish creating your account.
-                </p>
-
-                <form onSubmit={handleVerify} className="flex flex-col gap-3">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={token}
-                    onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
-                    placeholder="000000"
-                    className={`${inputCls} text-center tracking-[0.5em] text-lg`}
-                  />
-                  <button type="submit" disabled={loading} className={primaryBtn}>
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    {loading ? 'Verifying…' : 'Verify & Create Account'}
-                  </button>
-                  {error && <p className="text-xs font-mono text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3 leading-relaxed">{error}</p>}
-                  {notice && <p className="text-xs font-mono text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 leading-relaxed">{notice}</p>}
+                <form onSubmit={isSignup ? handleSignup : handleLogin} className="flex flex-col gap-3 text-left">
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" autoComplete="email" />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={isSignup ? 'Create a password' : 'Password'}
+                      autoComplete={isSignup ? 'new-password' : 'current-password'}
+                      className="pr-11"
+                    />
+                    <IconButton
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowPassword((s) => !s)}
+                      label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                    >
+                      {showPassword ? <EyeOff aria-hidden strokeWidth={1.75} className="size-4" /> : <Eye aria-hidden strokeWidth={1.75} className="size-4" />}
+                    </IconButton>
+                  </div>
+                  {isSignup && (
+                    <Input type={showPassword ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Confirm password" autoComplete="new-password" />
+                  )}
+                  <Button type="submit" variant="primary" disabled={anyLoading} loading={loading} className="w-full justify-center">
+                    {loading ? (isSignup ? 'Creating…' : 'Signing in…') : isSignup ? 'Create account' : 'Sign in'}
+                  </Button>
                 </form>
 
-                <div className="flex flex-col items-center gap-3 mt-8">
-                  <button
-                    onClick={handleResend}
-                    disabled={loading || cooldown > 0}
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
-                  </button>
-                  <button
-                    onClick={() => { setView('form'); setToken(''); reset() }}
-                    className="text-xs font-mono text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    ← Use a different email
-                  </button>
-                </div>
+                {error && <p role="alert" className="text-left text-small font-medium text-danger">{error}</p>}
+                {formNotice && <p role="status" className="text-left text-small text-link">{formNotice}</p>}
               </div>
-            )}
-          </div>
+
+              <p className="mt-8 text-small text-fg-secondary">
+                {isSignup ? (
+                  <>Already have an account? <Link href="/login" className="font-medium text-link underline-offset-2 hover:underline">Log in</Link></>
+                ) : (
+                  <>No account? <Link href="/signup" className="font-medium text-link underline-offset-2 hover:underline">Sign up</Link></>
+                )}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col text-center">
+              <div className="flex justify-center">
+                <Badge tone="accent" className="mb-6"><MailCheck aria-hidden strokeWidth={1.75} className="size-3.5" /> Check your inbox</Badge>
+              </div>
+
+              <h1 className="mb-2 text-display font-semibold tracking-tight text-fg">Verify your email.</h1>
+              <p className="mb-8 text-small leading-relaxed text-fg-secondary">
+                We sent a 6-digit code to <span className="font-mono text-fg-secondary">{email}</span>. Enter it below to finish creating your account.
+              </p>
+
+              <form onSubmit={handleVerify} className="flex flex-col gap-3">
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={token}
+                  onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  className={cn('text-center font-mono text-h2 tracking-[0.5em]')}
+                />
+                <Button type="submit" variant="primary" disabled={loading} loading={loading} className="w-full justify-center">
+                  {loading ? 'Verifying…' : 'Verify & create account'}
+                </Button>
+                {error && <p role="alert" className="text-left text-small font-medium text-danger">{error}</p>}
+                {notice && <p role="status" className="text-left text-small text-link">{notice}</p>}
+              </form>
+
+              <div className="mt-8 flex flex-col items-center gap-3">
+                <Button variant="link" onClick={handleResend} disabled={loading || cooldown > 0}>
+                  {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
+                </Button>
+                <Button variant="link" onClick={() => { setView('form'); setToken(''); reset() }} className="text-fg-muted">
+                  ← Use a different email
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
-    </div>
+      </div>
+    </FocusedShell>
   )
 }

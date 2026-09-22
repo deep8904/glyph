@@ -1,13 +1,126 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* ─────────────────────────────────────────────
-   Glyph design system — Tailwind v4 theme tokens
-   (Tailwind v4 is configured here, not in a JS config file)
+   Glyph design system — tokens (docs/design/glyph-design-system.md)
+
+   Two tiers. Primitives are Tailwind's own palette/scale. Semantic tokens
+   (below, on :root) are what components use; @theme inline exposes them as
+   Tailwind utilities (bg-surface, text-fg-muted, border-line, rounded-control …).
+   New names only — Tailwind's default color/radius/text names are NOT
+   overridden, so existing pages keep rendering as before.
    ───────────────────────────────────────────── */
+:root {
+  /* surfaces */
+  --canvas: #f9fafb;
+  --surface: #ffffff;
+  --surface-muted: #f3f4f6;
+  --surface-elevated: #ffffff;
+  --overlay: rgb(17 24 39 / 0.45);
+  /* lines */
+  --line: #e5e7eb;
+  --line-subtle: #f3f4f6;
+  --line-strong: #d1d5db;
+  /* text (all ≥4.5:1 on --surface and --canvas) */
+  --fg: #111827;
+  --fg-secondary: #4b5563;
+  --fg-muted: #6b7280;
+  --fg-on-accent: #ffffff;
+  /* the one accent */
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-subtle: #eef2ff;
+  --accent-line: #c7d2fe;
+  --link: #4338ca;
+  --focus-ring: #4f46e5;
+  /* status: solid/text, subtle background, line */
+  --success: #15803d;
+  --success-subtle: #f0fdf4;
+  --success-line: #bbf7d0;
+  --warning: #b45309;
+  --warning-subtle: #fffbeb;
+  --warning-line: #fde68a;
+  --danger: #b91c1c;
+  --danger-hover: #991b1b;
+  --danger-subtle: #fef2f2;
+  --danger-line: #fecaca;
+  --info: #1d4ed8;
+  --info-subtle: #eff6ff;
+  --info-line: #bfdbfe;
+  /* radius */
+  --r-badge: 4px;
+  --r-control: 6px;
+  --r-media: 8px;
+  --r-panel: 12px;
+  /* elevation: borders carry structure; only floating layers get a shadow */
+  --elev-popover: 0 4px 16px -2px rgb(17 24 39 / 0.12), 0 0 0 1px rgb(17 24 39 / 0.06);
+  --elev-dialog: 0 16px 48px -8px rgb(17 24 39 / 0.25), 0 0 0 1px rgb(17 24 39 / 0.06);
+}
+
 @theme inline {
-  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
-  --font-display: var(--font-display), var(--font-geist), ui-sans-serif, sans-serif;
+  /* Legacy alias: Space Grotesk was removed (Phase A). font-display now renders Inter. */
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-overlay: var(--overlay);
+  --color-line: var(--line);
+  --color-line-subtle: var(--line-subtle);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-secondary: var(--fg-secondary);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-line: var(--accent-line);
+  --color-link: var(--link);
+  --color-focus: var(--focus-ring);
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-line: var(--success-line);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-line: var(--warning-line);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-line: var(--danger-line);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-line: var(--info-line);
+
+  --radius-badge: var(--r-badge);
+  --radius-control: var(--r-control);
+  --radius-media: var(--r-media);
+  --radius-panel: var(--r-panel);
+
+  --shadow-popover: var(--elev-popover);
+  --shadow-dialog: var(--elev-dialog);
+
+  /* type scale — size / line-height. Weight is applied separately (400/500/600). Nothing below 12px. */
+  --text-display: 2rem;
+  --text-display--line-height: 2.5rem;
+  --text-display--letter-spacing: -0.02em;
+  --text-h1: 1.5rem;
+  --text-h1--line-height: 2rem;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h2: 1.25rem;
+  --text-h2--line-height: 1.75rem;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h3: 1rem;
+  --text-h3--line-height: 1.5rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5rem;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.25rem;
+  --text-micro: 0.75rem;
+  --text-micro--line-height: 1rem;
 }
 
 @layer base {
@@ -91,16 +204,7 @@
 /* ── Focus states: WCAG AA ── */
 @layer base {
   :focus-visible {
-    outline: 2px solid #4f46e5;
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
-  button:focus-visible,
-  a:focus-visible,
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible {
-    outline: 2px solid #4f46e5;
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
 }
@@ -138,4 +242,38 @@
   overflow: visible;
   clip: auto;
   white-space: normal;
+}
+
+/* ── Overlay/menu motion (Radix data-state). State change only; reduced-motion rule above shortens these. ── */
+@keyframes ui-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ui-pop-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes ui-slide-in-right { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes ui-slide-in-left { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes ui-slide-in-bottom { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes ui-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+[data-ui-overlay][data-state='open'] { animation: ui-fade-in 150ms ease-out; }
+[data-ui-pop][data-state='open'] { animation: ui-pop-in 150ms ease-out; }
+[data-ui-drawer='right'][data-state='open'] { animation: ui-slide-in-right 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+[data-ui-drawer='left'][data-state='open'] { animation: ui-slide-in-left 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+[data-ui-drawer='bottom'][data-state='open'] { animation: ui-slide-in-bottom 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+[data-ui-toast][data-state='open'] { animation: ui-toast-in 150ms ease-out; }
+
+/* ── Long-form content (devlogs, project About): typography plugin mapped to tokens ── */
+.prose-glyph {
+  --tw-prose-body: var(--fg-secondary);
+  --tw-prose-headings: var(--fg);
+  --tw-prose-lead: var(--fg-secondary);
+  --tw-prose-links: var(--link);
+  --tw-prose-bold: var(--fg);
+  --tw-prose-counters: var(--fg-muted);
+  --tw-prose-bullets: var(--line-strong);
+  --tw-prose-hr: var(--line);
+  --tw-prose-quotes: var(--fg);
+  --tw-prose-quote-borders: var(--accent-line);
+  --tw-prose-captions: var(--fg-muted);
+  --tw-prose-code: var(--fg);
+  --tw-prose-pre-code: #e5e7eb;
+  --tw-prose-pre-bg: #111827;
+  --tw-prose-th-borders: var(--line-strong);
+  --tw-prose-td-borders: var(--line);
 }

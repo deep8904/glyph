@@ -8,6 +8,7 @@ const ADMIN_SECTIONS = [
   { label: 'Users', href: '/admin/users', icon: Users, description: 'View accounts, suspend users' },
   { label: 'Moderation', href: '/admin/moderation', icon: Flag, description: 'Review flagged content' },
   { label: 'Studios', href: '/admin/studios', icon: Building2, description: 'Verify studio pages' },
+  { label: 'Publishers', href: '/admin/publishers', icon: Building2, description: 'Verify publisher accounts' },
   { label: 'Game Jams', href: '/admin/jams', icon: Gamepad2, description: 'Approve pending jams' },
   { label: 'Featured', href: '/admin/featured', icon: Star, description: 'Manage featured listings' },
   { label: 'Audit Log', href: '/admin/audit', icon: BookOpen, description: 'View admin action history' },

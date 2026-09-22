@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
+import { Shell } from '@/components/shell/Shell'
 
-// A calm public-page shell (marketing-adjacent pages: pricing, events, jams,
-// public collaborate/studio listings). No decorative backdrop, no glassmorphism —
-// same flat, editorial language as the landing page and authenticated app.
+// Public/utility pages (jams, events, pricing, admin) render inside the one global shell.
+// The old floating rounded panel and its own brand header are gone; PanelHeader is now
+// just the in-page breadcrumb + action, PanelBody just spacing.
 export function PageShell({
   children,
   wide = false,
@@ -11,13 +13,9 @@ export function PageShell({
   wide?: boolean
 }) {
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      <main className={`w-full ${wide ? 'max-w-5xl' : 'max-w-3xl'} mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12 min-h-screen flex flex-col`}>
-        <div className="flex-1 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-          {children}
-        </div>
-      </main>
-    </div>
+    <Shell>
+      <div className={`w-full ${wide ? 'max-w-5xl' : 'max-w-3xl'}`}>{children}</div>
+    </Shell>
   )
 }
 
@@ -29,35 +27,31 @@ export function PanelHeader({
   action?: React.ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 md:px-10 border-b border-gray-100 shrink-0">
-      <div className="flex items-center gap-2 min-w-0">
-        <Link href="/dashboard" className="flex items-center gap-0.5 text-lg font-display font-semibold tracking-tighter text-gray-900 shrink-0">
-          Glyph<span className="text-indigo-600 leading-none">°</span>
-        </Link>
-        {breadcrumb.map((crumb, i) => (
-          <span key={i} className="flex items-center gap-2 min-w-0">
-            <span className="text-gray-300">/</span>
-            {crumb.href ? (
-              <Link href={crumb.href} className="text-[13px] font-medium text-indigo-600 hover:text-indigo-700 transition-colors truncate">
-                {crumb.label}
-              </Link>
-            ) : (
-              <span className="text-[13px] font-medium text-gray-500 truncate">{crumb.label}</span>
-            )}
-          </span>
-        ))}
-      </div>
-      {action && <div className="shrink-0 ml-4">{action}</div>}
+    <div className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-4">
+      <nav aria-label="Breadcrumb" className="min-w-0">
+        <ol className="flex flex-wrap items-center gap-1 text-small">
+          {breadcrumb.map((crumb, i) => {
+            const last = i === breadcrumb.length - 1
+            return (
+              <li key={i} className="flex min-w-0 items-center gap-1">
+                {i > 0 && <ChevronRight aria-hidden strokeWidth={1.75} className="size-3.5 shrink-0 text-fg-muted" />}
+                {crumb.href && !last ? (
+                  <Link href={crumb.href} className="inline-flex min-h-11 items-center truncate text-fg-secondary underline-offset-2 hover:text-fg hover:underline">{crumb.label}</Link>
+                ) : (
+                  <span aria-current={last ? 'page' : undefined} className={last ? 'truncate font-medium text-fg' : 'truncate text-fg-secondary'}>{crumb.label}</span>
+                )}
+              </li>
+            )
+          })}
+        </ol>
+      </nav>
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   )
 }
 
 export function PanelBody({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`flex-1 px-5 sm:px-8 md:px-10 py-8 overflow-y-auto ${className}`}>
-      {children}
-    </div>
-  )
+  return <div className={className}>{children}</div>
 }
 
 export function EmptyState({

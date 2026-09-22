@@ -7,5 +7,9 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  return <Landing isAuthed={!!user} />
+  return (
+    <div id="main-content">
+      <Landing isAuthed={!!user} />
+    </div>
+  )
 }

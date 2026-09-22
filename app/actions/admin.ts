@@ -78,14 +78,25 @@ export async function verifyStudio(studioId: string): Promise<ActionResult> {
   try {
     const { supabase, adminUser } = await requireAdmin()
 
-    const { error } = await supabase
-      .from('studios')
-      .update({ verified: true, verified_at: new Date().toISOString() })
-      .eq('id', studioId)
-
+    // Verification is not client-writable; the admin-checked RPC is the only path.
+    const { error } = await supabase.rpc('admin_set_verified', { p_kind: 'studio', p_id: studioId, p_verified: true })
     if (error) return { error: 'Failed to verify studio.' }
 
     await writeAuditLog(supabase, adminUser.id, 'studio_verified', 'studios', studioId)
+    return { success: true }
+  } catch {
+    return { error: 'An unexpected error occurred.' }
+  }
+}
+
+export async function verifyPublisher(publisherId: string): Promise<ActionResult> {
+  try {
+    const { supabase, adminUser } = await requireAdmin()
+
+    const { error } = await supabase.rpc('admin_set_verified', { p_kind: 'publisher', p_id: publisherId, p_verified: true })
+    if (error) return { error: 'Failed to verify publisher.' }
+
+    await writeAuditLog(supabase, adminUser.id, 'publisher_verified', 'publisher_accounts', publisherId)
     return { success: true }
   } catch {
     return { error: 'An unexpected error occurred.' }

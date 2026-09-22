@@ -7,7 +7,7 @@ import { EventManageClient } from '@/components/events/EventManageClient'
 
 export default async function ManageEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { user, displayName, email } = await getSidebarIdentity()
+  const { user, displayName, email, nav } = await getSidebarIdentity()
   const supabase = await createClient()
 
   const { data: evt } = await supabase.from('events').select('*').eq('id', id).eq('host_id', user.id).maybeSingle()
@@ -28,19 +28,13 @@ export default async function ManageEventPage({ params }: { params: Promise<{ id
   type DemoSlot = { id: string; accepted: boolean; slot_time: string | null; projects: { title: string } | null; profiles: { username: string; display_name: string | null } | null }
 
   return (
-    <AppShell displayName={displayName} email={email} headerLabel="Manage Event">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-display font-medium tracking-tight text-gray-900">{evt.title}</h1>
-          <p className="text-[13px] text-gray-400 mt-0.5">{new Date(evt.start_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
-        </div>
-        <Link href={`/events/${id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-700">View public page →</Link>
+    <AppShell displayName={displayName} email={email} nav={nav} headerLabel="Events">
+      <div className="max-w-3xl">
+        <Link href={`/events/${id}`} className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← View the event page</Link>
+        <h1 className="mt-1 text-h1 font-semibold text-fg [overflow-wrap:anywhere]">{evt.title}</h1>
+        <p className="mb-6 mt-1 text-small text-fg-secondary">Manage this event: publish or cancel it, see who is coming, and accept demo requests.</p>
+        <EventManageClient event={evt} rsvps={(rsvps ?? []) as unknown as Rsvp[]} demoSlots={(demoSlots ?? []) as unknown as DemoSlot[]} />
       </div>
-      <EventManageClient
-        event={evt}
-        rsvps={(rsvps ?? []) as unknown as Rsvp[]}
-        demoSlots={(demoSlots ?? []) as unknown as DemoSlot[]}
-      />
     </AppShell>
   )
 }

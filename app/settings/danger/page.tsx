@@ -1,25 +1,31 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { DeleteAccountForm } from '@/components/settings/DeleteAccountForm'
+import { DeleteAccountFlow } from '@/components/settings/DeleteAccountFlow'
+import { SettingsHeading } from '@/components/settings/SettingsSection'
+import { ErrorState } from '@/components/ui/ErrorState'
+import type { DeletionSummary } from '@/app/actions/account'
+
+export const metadata = { title: 'Delete account — Glyph' }
 
 export default async function SettingsDangerPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('username')
-    .eq('id', user.id)
-    .maybeSingle()
+  const [{ data: profile }, { data: summary, error }] = await Promise.all([
+    supabase.from('profiles').select('username').eq('id', user.id).maybeSingle(),
+    supabase.rpc('account_deletion_summary'),
+  ])
+  const hasPassword = (user.identities ?? []).some((i) => i.provider === 'email')
 
   return (
-    <div>
-      <h1 className="text-xl font-medium tracking-tight text-red-600 mb-1">Danger Zone</h1>
-      <p className="text-sm text-gray-500 mb-8">These actions are permanent and cannot be undone.</p>
-      <DeleteAccountForm username={profile?.username ?? ''} />
+    <div className="max-w-2xl">
+      <SettingsHeading title="Delete account">Permanently remove your Glyph account and everything you created.</SettingsHeading>
+      {error || !summary || !profile ? (
+        <ErrorState title="Deletion is unavailable" description="Your account details could not be loaded. Nothing was changed. Reload to try again." retryHref="/settings/danger" />
+      ) : (
+        <DeleteAccountFlow username={profile.username} hasPassword={hasPassword} summary={summary as DeletionSummary} />
+      )}
     </div>
   )
 }

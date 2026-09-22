@@ -2,34 +2,45 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { UserCircle, Key, Bell, AlertTriangle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-const SETTINGS_NAV = [
-  { href: '/settings/profile', label: 'Profile', Icon: UserCircle },
-  { href: '/settings/account', label: 'Account', Icon: Key },
-  { href: '/settings/notifications', label: 'Notifications', Icon: Bell },
-  { href: '/settings/danger', label: 'Danger Zone', Icon: AlertTriangle },
+// Six pages, each backed by real behaviour (docs/design/glyph-phase-g-account-architecture.md).
+// Profile = what others see; the rest are private account controls. Deleting the account is
+// last and set apart. Studio, billing and publisher settings live with their objects.
+const ITEMS = [
+  { href: '/settings/profile', label: 'Profile' },
+  { href: '/settings/account', label: 'Account' },
+  { href: '/settings/security', label: 'Security' },
+  { href: '/settings/privacy', label: 'Privacy' },
+  { href: '/settings/notifications', label: 'Notifications' },
+  { href: '/settings/danger', label: 'Delete account' },
 ]
 
 export function SettingsNav() {
   const pathname = usePathname()
   return (
-    <nav className="sm:w-48 shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 pb-4 sm:pb-0 sm:pr-6 mb-6 sm:mb-0 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-x-visible">
-      {SETTINGS_NAV.map(({ href, label, Icon }) => {
-        const active = pathname.startsWith(href)
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={
-              'flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 whitespace-nowrap ' +
-              (active ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900')
-            }
-          >
-            <Icon className="h-4 w-4 shrink-0" /> {label}
-          </Link>
-        )
-      })}
+    <nav aria-label="Settings" className="mb-6 shrink-0 border-b border-line sm:mb-0 sm:mr-8 sm:w-44 sm:border-b-0">
+      <ul className="-mb-px flex overflow-x-auto sm:mb-0 sm:flex-col sm:overflow-visible">
+        {ITEMS.map(({ href, label }) => {
+          const active = pathname === href || pathname.startsWith(href + '/')
+          const last = href === '/settings/danger'
+          return (
+            <li key={href} className={cn('shrink-0', last && 'sm:mt-4 sm:border-t sm:border-line sm:pt-2')}>
+              <Link
+                href={href}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex h-11 items-center whitespace-nowrap border-b-2 px-3 text-small transition-colors duration-150 sm:h-9 sm:rounded-control sm:border-b-0 sm:pointer-coarse:h-11',
+                  active ? 'border-accent font-medium text-fg sm:bg-surface-muted' : 'border-transparent text-fg-secondary hover:text-fg sm:hover:bg-surface-muted',
+                  last && !active && 'text-fg-muted'
+                )}
+              >
+                {label}
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
     </nav>
   )
 }

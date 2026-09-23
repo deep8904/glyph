@@ -9,6 +9,7 @@ import { MetadataBar } from '@/components/ui/MetadataBar'
 import { Section } from '@/components/ui/Section'
 import { ProfileHeader } from '@/components/profile/ProfileHeader'
 import { FeaturedToggleButton } from '@/components/profile/FeaturedToggleButton'
+import { CurrentWork } from '@/components/profile/CurrentWork'
 import { ProjectRow } from '@/components/project/ProjectRow'
 import { DevlogRow } from '@/components/devlog/DevlogRow'
 import { CollaborationCard } from '@/components/profile/CollaborationCard'
@@ -143,15 +144,18 @@ export default async function ProfilePage({
     slug: d.slug,
     published_at: d.published_at,
     is_featured: d.is_featured,
+    projectId: d.project_id,
     projectTitle: d.projects.title,
     href: d.projects.slug ? `/p/${username}/${d.projects.slug}/${d.slug}` : '#',
   })
 
   const featuredDevlogs = ((featuredRows ?? []) as unknown as RawDevlogRow[]).map(toDevlog)
   const recentDevlogs = ((recentRows ?? []) as unknown as RawDevlogRow[]).map(toDevlog)
-  const mostRecentDevlog = [...featuredDevlogs, ...recentDevlogs].sort(
+  const allDevlogs = [...featuredDevlogs, ...recentDevlogs].sort(
     (a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
-  )[0]
+  )
+  const mostRecentDevlog = allDevlogs[0]
+  const currentWorkDevlog = currentProject ? allDevlogs.find((d) => d.projectId === currentProject.id) ?? null : null
 
   const name = profile.display_name || profile.username
   const role = labelFor(ROLES, profile.primary_role)
@@ -171,7 +175,7 @@ export default async function ProfilePage({
 
   return (
     <Shell headerLabel="Developer profile">
-      <div className="mx-auto w-full max-w-3xl space-y-8">
+      <div className="mx-auto w-full max-w-4xl space-y-8">
         {/* Identity */}
         <ProfileHeader
           name={name}
@@ -193,10 +197,10 @@ export default async function ProfilePage({
 
         {projectsFailed && <ErrorState inline title="We couldn't load this developer's projects" description="This may be temporary. Reload the page to try again." />}
 
-        {/* Current work */}
+        {/* Current work — the one visually dominant object on the page */}
         <Section id="current-work" title="Current work">
           {currentProject ? (
-            <ProjectRow project={currentProject} username={profile.username} variant="feature" />
+            <CurrentWork project={currentProject} username={profile.username} latestDevlog={currentWorkDevlog} />
           ) : (
             <EmptyState
               kind="first-use"

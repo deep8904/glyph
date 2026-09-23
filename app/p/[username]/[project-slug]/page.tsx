@@ -11,6 +11,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { MetadataBar } from '@/components/ui/MetadataBar'
 import { Section } from '@/components/ui/Section'
 import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
+import { OpportunitySummary } from '@/components/project/OpportunitySummary'
 import { AddToShortlistButton } from '@/components/publisher/AddToShortlistButton'
 import { labelFor, ENGINES, PROJECT_STAGES, CONTRACT_TYPES } from '@/lib/supabase/types'
 import { isHttpsUrl, relativeTime } from '@/lib/utils'
@@ -308,35 +309,39 @@ export default async function PublicProjectPage({
               )}
             </Section>
 
-            {openPlaytest && (
-              <Section id="playtest" title="Open playtest">
-                <p className="text-small text-fg-secondary">
-                  <span className="font-mono text-fg">{openPlaytest.current_testers}/{openPlaytest.requested_testers}</span> testers
-                  {openPlaytest.platforms.length > 0 && <> · {openPlaytest.platforms.join(', ')}</>}
-                  {openPlaytest.focus_areas.length > 0 && <> · Focus: {openPlaytest.focus_areas.map((f) => f.replace(/_/g, ' ')).join(', ')}</>}
-                </p>
-                <p className="mt-2 line-clamp-3 max-w-prose text-body text-fg-secondary">{openPlaytest.description}</p>
-                <Button asChild variant={isOwner ? 'secondary' : 'primary'} className="mt-3">
-                  <Link href={isOwner ? '/dashboard/playtests' : `/playtests/${openPlaytest.id}`}>{isOwner ? 'Manage playtest' : 'View and sign up'}</Link>
-                </Button>
-              </Section>
-            )}
+            {(openPlaytest || collabs.length > 0) && (
+              <div className="space-y-4">
+                {openPlaytest && (
+                  <OpportunitySummary title="Open playtest">
+                    <p className="text-small text-fg-secondary">
+                      <span className="font-mono text-fg">{openPlaytest.current_testers}/{openPlaytest.requested_testers}</span> testers
+                      {openPlaytest.platforms.length > 0 && <> · {openPlaytest.platforms.join(', ')}</>}
+                      {openPlaytest.focus_areas.length > 0 && <> · Focus: {openPlaytest.focus_areas.map((f) => f.replace(/_/g, ' ')).join(', ')}</>}
+                    </p>
+                    <p className="mt-2 line-clamp-3 max-w-prose text-body text-fg-secondary">{openPlaytest.description}</p>
+                    <Button asChild variant={isOwner ? 'secondary' : 'primary'} className="mt-3">
+                      <Link href={isOwner ? '/dashboard/playtests' : `/playtests/${openPlaytest.id}`}>{isOwner ? 'Manage playtest' : 'View and sign up'}</Link>
+                    </Button>
+                  </OpportunitySummary>
+                )}
 
-            {collabs.length > 0 && (
-              <Section id="collab" title="Looking for collaborators">
-                <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                  {collabs.map((post) => (
-                    <li key={post.id}>
-                      <Link href={`/collaborate/${post.id}`} className="group flex min-h-11 items-center justify-between gap-3 py-2">
-                        <span className="truncate text-body text-fg group-hover:text-link">
-                          {post.post_type === 'seeking_collaborator' ? `Seeking: ${post.role_needed ?? 'a role'}` : `Offering: ${post.role_offered ?? 'any role'}`}
-                        </span>
-                        <span className="shrink-0 text-small text-fg-muted">{CONTRACT_LABELS[post.contract_type] ?? post.contract_type}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </Section>
+                {collabs.length > 0 && (
+                  <OpportunitySummary title="Looking for collaborators">
+                    <ul className="divide-y divide-line-subtle">
+                      {collabs.map((post) => (
+                        <li key={post.id}>
+                          <Link href={`/collaborate/${post.id}`} className="group flex min-h-11 items-center justify-between gap-3 py-2">
+                            <span className="truncate text-body text-fg group-hover:text-link">
+                              {post.post_type === 'seeking_collaborator' ? `Seeking: ${post.role_needed ?? 'a role'}` : `Offering: ${post.role_offered ?? 'any role'}`}
+                            </span>
+                            <span className="shrink-0 text-small text-fg-muted">{CONTRACT_LABELS[post.contract_type] ?? post.contract_type}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </OpportunitySummary>
+                )}
+              </div>
             )}
 
             {isPublisherViewer && (

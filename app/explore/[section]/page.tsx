@@ -2,9 +2,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DiscoveryFrame } from '@/components/discovery/DiscoveryFrame'
-import { ProjectRow } from '@/components/project/ProjectRow'
+import { ProjectTile } from '@/components/project/ProjectTile'
 import { DeveloperRow } from '@/components/developer/DeveloperRow'
 import { DevlogRow, fromDiscoveryRow } from '@/components/devlog/DevlogRow'
+import type { ProjectRowData } from '@/lib/discovery/queries'
 import { FilterLinks } from '@/components/discovery/FilterLinks'
 import { Pager } from '@/components/discovery/Pager'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -58,7 +59,7 @@ export default async function ExploreSectionPage({
   const supabase = await createClient()
 
   return (
-    <DiscoveryFrame label="Explore">
+    <DiscoveryFrame label="Explore" width={section === 'projects' ? 'wide' : 'reading'}>
       {async (viewer) => {
         const result =
           section === 'projects' ? await exploreProjects(supabase, { page, stage, openPlaytest: playtest })
@@ -108,13 +109,19 @@ export default async function ExploreSectionPage({
                 }
                 action={(page > 1 || filtered) ? <Link href={page > 1 ? href({ page: 1 }) : `/explore/${section}`} className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">{page > 1 ? 'Back to the first page' : 'Clear filters'}</Link> : undefined}
               />
-            ) : (
-              <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                {section === 'projects' && (result.rows as unknown as Parameters<typeof ProjectRow>[0]['project'][]).map((p) => <ProjectRow key={p.id} variant="listing" project={p} />)}
-                {section === 'developers' && (result.rows as unknown as DeveloperRowData[]).map((d) => (
+            ) : section === 'projects' ? (
+              <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                {(result.rows as unknown as ProjectRowData[]).map((p) => <ProjectTile key={p.id} project={p} />)}
+              </div>
+            ) : section === 'developers' ? (
+              <ul className="grid gap-x-10 border-t border-line-subtle sm:grid-cols-2">
+                {(result.rows as unknown as DeveloperRowData[]).map((d) => (
                   <DeveloperRow key={d.id} developer={d} viewerId={viewer?.id ?? null} following={following.has(d.id)} />
                 ))}
-                {section === 'devlogs' && (result.rows as unknown as DevlogRowData[]).map((d) => <DevlogRow key={d.id} variant="listing" devlog={fromDiscoveryRow(d)} />)}
+              </ul>
+            ) : (
+              <ul className="grid gap-x-10 border-t border-line-subtle sm:grid-cols-2">
+                {(result.rows as unknown as DevlogRowData[]).map((d) => <DevlogRow key={d.id} variant="listing" devlog={fromDiscoveryRow(d)} />)}
               </ul>
             )}
 

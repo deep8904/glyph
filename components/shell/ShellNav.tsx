@@ -124,7 +124,10 @@ export function Rail({ user }: { user: ShellUser | null }) {
       <div className="flex h-14 items-center justify-center px-3 lg:justify-start lg:px-5">
         <Link href={user ? '/feed' : '/'} className="text-h3 font-semibold tracking-tight text-fg">{BRAND}</Link>
       </div>
-      <nav aria-label="Primary" className="flex-1 space-y-1 overflow-y-auto p-2 lg:p-3">
+      {/* Nav and account sit together under the brand; empty space pools once at the foot of the
+          rail instead of splitting into a mid-column void. For a signed-out visitor the rail is
+          only two links, so a bottom-pinned auth block left a large dead gap. */}
+      <nav aria-label="Primary" className="space-y-1 overflow-y-auto p-2 lg:p-3">
         {user ? (
           <>
             <RailLink href="/feed" label="Home" Icon={Home} active={g === 'home'} />
@@ -146,16 +149,18 @@ export function Rail({ user }: { user: ShellUser | null }) {
           </>
         )}
       </nav>
-      <div className="border-t border-line p-2 lg:p-3">
-        {user ? (
+      {user ? (
+        <div className="mt-auto border-t border-line p-2 lg:p-3">
           <MeMenu user={user} active={g === 'me'} />
-        ) : (
-          <div className="flex flex-col gap-2">
-            <Button asChild variant="secondary" size="sm" className="w-full px-2"><Link href="/login">Log in</Link></Button>
-            <Button asChild variant="primary" size="sm" className="w-full px-2"><Link href="/signup">Sign up</Link></Button>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="mx-2 mt-2 flex flex-col gap-2 rounded-panel border border-line bg-surface-muted p-3 lg:mx-3">
+          <p className="px-1 text-small font-medium text-fg">Join Glyph</p>
+          <p className="px-1 text-micro leading-relaxed text-fg-secondary">Show your game as you build it — devlogs, playtests, collaborators.</p>
+          <Button asChild variant="primary" size="sm" className="mt-1 w-full px-2"><Link href="/signup">Sign up</Link></Button>
+          <Button asChild variant="secondary" size="sm" className="w-full px-2"><Link href="/login">Log in</Link></Button>
+        </div>
+      )}
     </aside>
   )
 }

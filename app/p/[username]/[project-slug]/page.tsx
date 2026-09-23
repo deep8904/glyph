@@ -317,6 +317,9 @@ export default async function PublicProjectPage({
               {isOwner && project.visibility !== 'public' && <Badge tone="warning">{project.visibility === 'private' ? 'Private — only you can see this' : 'Unlisted — reachable by link only'}</Badge>}
             </div>
             <h1 className="relative text-display font-semibold tracking-[-0.02em] [overflow-wrap:anywhere]" style={{ color: heroTint.ink }}>{project.title}</h1>
+            {[engine, project.genre].some(Boolean) && (
+              <p className="relative mt-2 font-mono text-small" style={{ color: heroTint.ink, opacity: 0.72 }}>{[engine, project.genre].filter(Boolean).join(' · ')}</p>
+            )}
             {project.short_description && <p className="relative mt-2 max-w-prose text-h3 font-normal [overflow-wrap:anywhere]" style={{ color: heroTint.ink, opacity: 0.82 }}>{project.short_description}</p>}
             <div className="relative mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
               <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center gap-2 text-small font-medium hover:underline" style={{ color: heroTint.ink }}><Avatar name={ownerName} src={profile.avatar_url} size="sm" /> {ownerName}</Link>

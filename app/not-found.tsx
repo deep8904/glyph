@@ -3,21 +3,19 @@ import { ArrowRight } from 'lucide-react'
 
 export default function NotFound() {
   return (
-    <div id="main-content" className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
-      <div className="text-center max-w-sm">
-        <div className="flex items-center justify-center gap-1 text-2xl font-display font-semibold tracking-tighter text-gray-900 mb-6">
-          Glyph<span className="text-indigo-600 leading-none">°</span>
-        </div>
-        <p className="text-sm font-mono text-gray-400 mb-2">404</p>
-        <h1 className="text-xl font-medium tracking-tight text-gray-900 mb-2">Page not found</h1>
-        <p className="text-sm text-gray-500 leading-relaxed mb-8">
+    <div id="main-content" className="flex min-h-dvh items-center justify-center bg-canvas px-6 font-sans">
+      <div className="max-w-sm text-center">
+        <div className="mb-6 text-h3 font-semibold tracking-[-0.02em] text-fg">Glyph<span className="text-accent">°</span></div>
+        <p className="mb-2 font-mono text-micro text-fg-muted">404</p>
+        <h1 className="mb-2 text-h2 font-semibold tracking-[-0.015em] text-fg">Page not found</h1>
+        <p className="mb-8 text-small leading-relaxed text-fg-secondary">
           The page you&apos;re looking for doesn&apos;t exist or may have moved.
         </p>
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 transition-all duration-300"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-control bg-fg px-5 text-small font-medium text-white transition-colors hover:bg-fg/90"
         >
-          Back to Glyph <ArrowRight className="h-3.5 w-3.5" />
+          Back to Glyph <ArrowRight aria-hidden strokeWidth={1.75} className="size-3.5" />
         </Link>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { daysSince } from '@/lib/utils'
 import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 import { Shell } from '@/components/shell/Shell'
-import { DashboardView } from '@/components/dashboard/DashboardView'
+import { DashboardMain, DashboardRail } from '@/components/dashboard/DashboardView'
 import { fetchSuggestedDevelopers } from '@/lib/feed/queries'
 import { labelFor, ROLES, ENGINES, EXPERIENCE_LEVELS } from '@/lib/supabase/types'
 import type { Profile } from '@/lib/supabase/types'
@@ -264,6 +264,30 @@ export default async function DashboardPage() {
     return [{ id: c.id, href: `/p/${profile.username}/${devlog.projects.slug}/${devlog.slug}#comments`, time: c.created_at, actor: actorOf(c.profiles), devlogTitle: devlog.title }]
   })
 
+  const dashboardData = {
+    userId: user.id,
+    username: profile.username,
+    displayName: profile.display_name || profile.username,
+    avatarUrl: profile.avatar_url,
+    facts,
+    missingProfileFields: missing,
+    currentProject,
+    otherProjects,
+    projectsFailed: !!projectsError,
+    latestDevlog: latestDevlog as { title: string; slug: string; published_at: string } | null,
+    nextStep,
+    attention,
+    attentionFailed: !!(applicationsError || sessionsError),
+    unreadNotifications: nav.unreadNotifications,
+    latestNotification: notifPreview[0] ? { at: notifPreview[0].created_at, actor: actorOf(notifPreview[0].profiles) } : null,
+    feedback,
+    feedbackFailed: !!commentsError,
+    followsCount: followsCount ?? 0,
+    network: feedPreview.map((f) => ({ id: f.id, href: `/p/${f.username}/${f.project_slug}/${f.devlog_slug}`, title: f.devlog_title, context: `${f.display_name ?? f.username} on ${f.project_title}`, published_at: f.published_at })),
+    suggested: suggestedDevs,
+    opportunities,
+  }
+
   return (
     <Shell
       headerLabel="Dashboard"
@@ -272,30 +296,9 @@ export default async function DashboardPage() {
           <span className="hidden sm:inline">View public profile</span> <ExternalLink aria-hidden strokeWidth={1.75} className="size-3.5" />
         </Link>
       }
+      rail={<DashboardRail {...dashboardData} />}
     >
-      <DashboardView
-        userId={user.id}
-        username={profile.username}
-        displayName={profile.display_name || profile.username}
-        avatarUrl={profile.avatar_url}
-        facts={facts}
-        missingProfileFields={missing}
-        currentProject={currentProject}
-        otherProjects={otherProjects}
-        projectsFailed={!!projectsError}
-        latestDevlog={latestDevlog as { title: string; slug: string; published_at: string } | null}
-        nextStep={nextStep}
-        attention={attention}
-        attentionFailed={!!(applicationsError || sessionsError)}
-        unreadNotifications={nav.unreadNotifications}
-        latestNotification={notifPreview[0] ? { at: notifPreview[0].created_at, actor: actorOf(notifPreview[0].profiles) } : null}
-        feedback={feedback}
-        feedbackFailed={!!commentsError}
-        followsCount={followsCount ?? 0}
-        network={feedPreview.map((f) => ({ id: f.id, href: `/p/${f.username}/${f.project_slug}/${f.devlog_slug}`, title: f.devlog_title, context: `${f.display_name ?? f.username} on ${f.project_title}`, published_at: f.published_at }))}
-        suggested={suggestedDevs}
-        opportunities={opportunities}
-      />
+      <DashboardMain {...dashboardData} />
     </Shell>
   )
 }

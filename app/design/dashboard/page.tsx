@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { ShellFrame } from '@/components/shell/Shell'
-import { DashboardView, type DashboardData } from '@/components/dashboard/DashboardView'
+import { DashboardMain, DashboardRail, type DashboardData } from '@/components/dashboard/DashboardView'
 import { DevlogRow, type DevlogSummary } from '@/components/devlog/DevlogRow'
 
 export const metadata = { title: 'Dashboard and feed (fixtures) — Glyph', robots: { index: false, follow: false } }
@@ -38,9 +38,15 @@ export default function DashboardFixtures() {
   return (
     <ShellFrame user={user} headerLabel="Fixtures">
       <div className="space-y-16">
-        <section aria-label="Populated dashboard"><p className="mb-4 font-mono text-micro text-fg-muted">POPULATED</p><DashboardView {...BASE} /></section>
-        <section aria-label="Brand-new user"><p className="mb-4 font-mono text-micro text-fg-muted">BRAND-NEW USER</p><DashboardView {...NEW_USER} /></section>
-        <section aria-label="Failed loads"><p className="mb-4 font-mono text-micro text-fg-muted">FAILED LOADS</p><DashboardView {...FAILED} /></section>
+        <section aria-label="Populated dashboard">
+          <p className="mb-4 font-mono text-micro text-fg-muted">POPULATED (main + context rail, as the real /dashboard renders it ≥1280px)</p>
+          <div className="flex gap-8">
+            <div className="min-w-0 flex-1"><DashboardMain {...BASE} /></div>
+            <aside className="hidden w-[320px] shrink-0 border-l border-line pl-6 xl:block"><DashboardRail {...BASE} /></aside>
+          </div>
+        </section>
+        <section aria-label="Brand-new user"><p className="mb-4 font-mono text-micro text-fg-muted">BRAND-NEW USER</p><DashboardMain {...NEW_USER} /></section>
+        <section aria-label="Failed loads"><p className="mb-4 font-mono text-micro text-fg-muted">FAILED LOADS</p><DashboardMain {...FAILED} /></section>
         <section aria-label="Feed rows" className="max-w-2xl"><p className="mb-4 font-mono text-micro text-fg-muted">FEED ROW</p>
           <ol className="divide-y divide-line-subtle border-y border-line-subtle">
             <DevlogRow variant="feed" devlog={FEED} engagement={{ comments: 2, reactions: [{ type: 'like', count: 3 }, { type: 'helpful', count: 1 }] }} />

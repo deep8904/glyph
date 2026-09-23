@@ -16,27 +16,25 @@ export default function DashboardError({
   }, [error])
 
   return (
-    <div id="main-content" className="min-h-screen bg-white flex items-center justify-center px-6">
-      <div className="text-center max-w-sm">
-        <div className="flex items-center justify-center gap-1 text-xl font-display font-semibold tracking-tighter text-gray-900 mb-6">
-          Glyph<span className="text-indigo-600 leading-none">°</span>
-        </div>
-        <h1 className="text-lg font-medium tracking-tight text-gray-900 mb-2">This page hit a snag</h1>
-        <p className="text-sm text-gray-500 leading-relaxed mb-8">
+    <div id="main-content" className="flex min-h-dvh items-center justify-center bg-canvas px-6 font-sans">
+      <div className="max-w-sm text-center">
+        <div className="mb-6 text-h3 font-semibold tracking-[-0.02em] text-fg">Glyph<span className="text-accent">°</span></div>
+        <h1 className="mb-2 text-h2 font-semibold tracking-[-0.015em] text-fg">This page hit a snag</h1>
+        <p className="mb-8 text-small leading-relaxed text-fg-secondary">
           Something went wrong loading this part of your dashboard. Your data is safe — try again or head home.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button
             onClick={reset}
-            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-300"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-line-strong bg-surface px-5 text-small font-medium text-fg transition-colors hover:bg-surface-muted"
           >
-            Try again <RotateCcw className="h-3.5 w-3.5" />
+            Try again <RotateCcw aria-hidden strokeWidth={1.75} className="size-3.5" />
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 transition-all duration-300"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-control bg-fg px-5 text-small font-medium text-white transition-colors hover:bg-fg/90"
           >
-            Back to Dashboard <ArrowRight className="h-3.5 w-3.5" />
+            Back to Dashboard <ArrowRight aria-hidden strokeWidth={1.75} className="size-3.5" />
           </Link>
         </div>
       </div>

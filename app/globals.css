@@ -11,52 +11,68 @@
    overridden, so existing pages keep rendering as before.
    ───────────────────────────────────────────── */
 :root {
-  /* surfaces — Visitors: Paper White canvas, Linen/Mist bands */
+  /* surfaces — Neuform: white canvas dominant; slate reserved for inverse/Operate moments */
   --canvas: #ffffff;
   --surface: #ffffff;
   --surface-muted: #fafafa;
   --surface-elevated: #ffffff;
+  --surface-inverse: #33394a;
+  --surface-inverse-raised: #3d4459;
   --overlay: rgb(24 25 37 / 0.45);
-  /* lines */
-  --line: #e8e8e8;
-  --line-subtle: #f5f5f5;
-  --line-strong: #d4d4d4;
-  /* text — Carbon / Graphite / Ash */
+  /* lines — literal Neuform border, one step up for stronger dividers */
+  --line: #d8dadf;
+  --line-subtle: #eceef1;
+  --line-strong: #b7bcc7;
+  --line-on-inverse: rgb(255 255 255 / 0.12);
+  /* text — Carbon kept (negligible delta from Neuform's #111827); slate repurposed as the
+     deliberate structural-contrast secondary text color the brief asks for, not decoration */
   --fg: #181925;
-  --fg-secondary: #666666;
-  --fg-muted: #999999;
-  --fg-on-accent: #ffffff;
-  /* the one accent — Lavender, with Iris for secondary CTA emphasis */
-  --accent: #918df6;
-  --accent-hover: #7a75f0;
-  --accent-subtle: #f1f0fe;
-  --accent-line: #d8d6fc;
-  --link: #918df6;
-  --focus-ring: #918df6;
-  /* status: solid/text, subtle background, line — Mint / Amber / mapped danger+info */
-  --success: #33c758;
-  --success-subtle: #def6e4;
-  --success-line: #b8f0c4;
-  --warning: #ffa600;
-  --warning-subtle: #fff3d9;
-  --warning-line: #ffdf99;
-  --danger: #e5484d;
-  --danger-hover: #cd3838;
-  --danger-subtle: #feeceb;
-  --danger-line: #f9c6c6;
-  --info: #2c78fc;
-  --info-subtle: #e6f0fe;
-  --info-line: #b8d6fd;
-  /* radius — tags/buttons pill, cards 16px, inputs/images 8px, tables 24px */
+  --fg-secondary: #53617a;
+  --fg-muted: #8a93a6;
+  --fg-on-accent: #181925;
+  --fg-on-inverse: #ffffff;
+  --fg-on-inverse-secondary: #c4c9d4;
+  /* the one accent — Neuform primary/secondary orange. --link and --focus-ring are darkened,
+     separate shades: the raw accent (#E48B59) is ~2.6:1 on white, below AA for text/UI use. */
+  --accent: #e48b59;
+  --accent-hover: #d97a46;
+  --accent-secondary: #ed7b46;
+  --accent-subtle: #fdf2ea;
+  --accent-line: #f3d9c4;
+  --link: #a8551f;
+  --focus-ring: #d97a46;
+  /* status: solid/text, subtle background, line — recast so warning doesn't compete with accent's hue */
+  --success: #2fa35c;
+  --success-subtle: #e6f7ec;
+  --success-line: #bce8cc;
+  --warning: #c97a2e;
+  --warning-subtle: #fbf0e4;
+  --warning-line: #edd2ac;
+  --danger: #d64545;
+  --danger-hover: #b83737;
+  --danger-subtle: #fbebeb;
+  --danger-line: #f0bcbc;
+  --info: #3b6fb0;
+  --info-subtle: #e9f0f9;
+  --info-line: #bcd3ea;
+  /* radius — badges/pills are the one genuinely pill shape; buttons/controls stay 8px so pills
+     don't become the default action/container shape. Cards 16px. Tables match cards, not 24px. */
   --r-badge: 9999px;
   --r-control: 8px;
   --r-pill: 9999px;
   --r-media: 8px;
   --r-panel: 16px;
-  --r-table: 24px;
-  /* elevation: three-layer subtle stack, no dramatic drop shadows */
-  --elev-popover: 0 1px 1px 1px rgb(0 0 0 / 0.08), 0 0 0 0.5px rgb(0 0 0 / 0.06);
-  --elev-dialog: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 8px 16px 0 rgb(0 0 0 / 0.06), 0 0 0 1px rgb(0 0 0 / 0.02);
+  --r-table: 16px;
+  /* elevation: subtle three-step stack — raised (card) < popover < dialog. No dramatic shadows. */
+  --elev-raised: 0 1px 2px rgb(24 25 37 / 0.04), 0 1px 1px rgb(24 25 37 / 0.03);
+  --elev-popover: 0 4px 16px -2px rgb(24 25 37 / 0.10), 0 0 0 1px rgb(24 25 37 / 0.05);
+  --elev-dialog: 0 16px 40px -8px rgb(24 25 37 / 0.20), 0 0 0 1px rgb(24 25 37 / 0.05);
+  /* motion — timing bands. Duration only; components already carry easing per §6 of the plan. */
+  --motion-micro: 140ms;
+  --motion-control: 160ms;
+  --motion-drawer: 200ms;
+  --motion-page: 350ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @theme inline {
@@ -69,16 +85,22 @@
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-surface-elevated: var(--surface-elevated);
+  --color-surface-inverse: var(--surface-inverse);
+  --color-surface-inverse-raised: var(--surface-inverse-raised);
   --color-overlay: var(--overlay);
   --color-line: var(--line);
   --color-line-subtle: var(--line-subtle);
   --color-line-strong: var(--line-strong);
+  --color-line-on-inverse: var(--line-on-inverse);
   --color-fg: var(--fg);
   --color-fg-secondary: var(--fg-secondary);
   --color-fg-muted: var(--fg-muted);
   --color-fg-on-accent: var(--fg-on-accent);
+  --color-fg-on-inverse: var(--fg-on-inverse);
+  --color-fg-on-inverse-secondary: var(--fg-on-inverse-secondary);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-secondary: var(--accent-secondary);
   --color-accent-subtle: var(--accent-subtle);
   --color-accent-line: var(--accent-line);
   --color-link: var(--link);
@@ -104,32 +126,32 @@
   --radius-panel: var(--r-panel);
   --radius-table: var(--r-table);
 
+  --shadow-raised: var(--elev-raised);
   --shadow-popover: var(--elev-popover);
   --shadow-dialog: var(--elev-dialog);
 
-  /* type scale — Visitors scale (OpenRunde/Inter), size / line-height / tracking, strictly descending
-     60 (display) > 48 (heading-lg) > 36 (heading) > 24 (heading-sm) > 16 (body) > 14 > 12 (caption). */
-  --text-display: 3.75rem;
-  --text-display--line-height: 1.13;
-  --text-display--letter-spacing: -0.05em;
-  --text-h1: 3rem;
-  --text-h1--line-height: 1;
-  --text-h1--letter-spacing: -0.007em;
-  --text-h2: 2.25rem;
-  --text-h2--line-height: 1.22;
-  --text-h2--letter-spacing: -0.017em;
-  --text-h3: 1.5rem;
-  --text-h3--line-height: 1.17;
-  --text-h3--letter-spacing: -0.013em;
+  /* type scale — Neuform, application-adapted (not the source's literal 64px everywhere: see
+     glyph-neuform-redesign-plan.md §3). Display is reserved for Landing hero + the largest
+     Identity/Work anchors, not a blanket size bump. Strictly descending 44>30>24>18>16>14>12. */
+  --text-display: 2.75rem;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+  --text-h1: 1.875rem;
+  --text-h1--line-height: 1.2;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 1.25;
+  --text-h2--letter-spacing: -0.012em;
+  --text-h3: 1.125rem;
+  --text-h3--line-height: 1.3;
+  --text-h3--letter-spacing: -0.01em;
   --text-body: 1rem;
-  --text-body--line-height: 1.5;
-  --text-body--letter-spacing: -0.02em;
+  --text-body--line-height: 1.6;
   --text-small: 0.875rem;
-  --text-small--line-height: 1.33;
-  --text-small--letter-spacing: -0.023em;
+  --text-small--line-height: 1.45;
   --text-micro: 0.75rem;
-  --text-micro--line-height: 1.33;
-  --text-micro--letter-spacing: -0.027em;
+  --text-micro--line-height: 1.35;
+  --text-micro--letter-spacing: 0.01em;
 }
 
 @layer base {

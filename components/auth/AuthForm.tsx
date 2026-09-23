@@ -229,7 +229,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               <p className="mb-8 text-small text-fg-secondary">{isSignup ? 'Free forever. No credit card.' : 'Sign in to your home base.'}</p>
 
               <div className="flex flex-col gap-3">
-                <Button variant="primary" onClick={() => handleOAuth('github')} disabled={anyLoading} loading={oauthLoading === 'github'} className="w-full justify-center bg-fg text-fg-on-accent hover:bg-fg/90">
+                <Button variant="primary" onClick={() => handleOAuth('github')} disabled={anyLoading} loading={oauthLoading === 'github'} className="w-full justify-center bg-fg text-white hover:bg-fg/90">
                   <GitHubIcon className="size-4" /> Continue with GitHub
                 </Button>
                 <Button variant="secondary" onClick={() => handleOAuth('google')} disabled={anyLoading} loading={oauthLoading === 'google'} className="w-full justify-center">

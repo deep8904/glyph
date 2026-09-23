@@ -8,14 +8,16 @@ import { cn } from '@/lib/utils'
  * Height: 36/40px pointer, 44px on coarse pointers (touch).
  */
 export const buttonVariants = cva(
-  'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-pill text-small font-medium transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
+  'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-control text-small font-medium transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
   {
     variants: {
       variant: {
+        // fg-on-accent is dark: Neuform's accent orange (#E48B59) is ~2.6:1 on white, below
+        // AA for white text at this size — dark text on the light-mid orange passes comfortably.
         primary: 'bg-accent text-fg-on-accent hover:bg-accent-hover',
         secondary: 'border border-line-strong bg-surface text-fg hover:bg-surface-muted',
         ghost: 'text-fg-secondary hover:bg-surface-muted hover:text-fg',
-        danger: 'bg-danger text-fg-on-accent hover:bg-danger-hover',
+        danger: 'bg-danger text-white hover:bg-danger-hover',
         link: 'h-auto min-h-0 rounded-none px-0 text-link underline-offset-2 hover:underline',
       },
       size: {

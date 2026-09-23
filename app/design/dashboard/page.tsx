@@ -31,29 +31,36 @@ const NEW_USER: DashboardData = {
 const FAILED: DashboardData = { ...BASE, projectsFailed: true, attentionFailed: true, feedbackFailed: true }
 const FEED: DevlogSummary = { title: 'A devlog title in the feed', slug: 's', projectTitle: 'Fixture Project', projectSlug: 'fixture-project', username: 'fixture-dev', authorName: 'Fixture Dev', avatarUrl: null, publishedAt: ago(0.3), preview: '## Heading\n\nThe excerpt is plain text produced from the markdown body, clamped to two lines so the feed stays scannable.' }
 
-/** Development-only fixtures for Dashboard (populated, brand-new user, failed loads) and a Feed row. 404 in production. */
-export default function DashboardFixtures() {
+/**
+ * Development-only fixtures for Dashboard. 404 in production.
+ * Default: the populated dashboard exactly as the real /dashboard renders it (main + context rail
+ * inside the shell) — a clean, production-faithful capture for design review. Append `?full=1` for
+ * the QA gallery (brand-new user, failed loads, feed rows) stacked below.
+ */
+export default async function DashboardFixtures({ searchParams }: { searchParams: Promise<{ full?: string }> }) {
   if (process.env.NODE_ENV === 'production') notFound()
+  const { full } = await searchParams
+  const showAll = full === '1' || full === 'true'
   const user = { displayName: 'Fixture User', username: 'fixture-user', email: 'fixture@example.invalid', nav: { isAdmin: false, hasPublisherAccount: false, hasStudio: false, hasPublisherContacts: false, unreadNotifications: 3 } }
   return (
-    <ShellFrame user={user} headerLabel="Fixtures">
-      <div className="space-y-16">
-        <section aria-label="Populated dashboard">
-          <p className="mb-4 font-mono text-micro text-fg-muted">POPULATED (main + context rail, as the real /dashboard renders it ≥1280px)</p>
-          <div className="flex gap-8">
-            <div className="min-w-0 flex-1"><DashboardMain {...BASE} /></div>
-            <aside className="hidden w-[320px] shrink-0 border-l border-line pl-6 xl:block"><DashboardRail {...BASE} /></aside>
-          </div>
-        </section>
-        <section aria-label="Brand-new user"><p className="mb-4 font-mono text-micro text-fg-muted">BRAND-NEW USER</p><DashboardMain {...NEW_USER} /></section>
-        <section aria-label="Failed loads"><p className="mb-4 font-mono text-micro text-fg-muted">FAILED LOADS</p><DashboardMain {...FAILED} /></section>
-        <section aria-label="Feed rows" className="max-w-2xl"><p className="mb-4 font-mono text-micro text-fg-muted">FEED ROW</p>
-          <ol className="divide-y divide-line-subtle border-y border-line-subtle">
-            <DevlogRow variant="feed" devlog={FEED} engagement={{ comments: 2, reactions: [{ type: 'like', count: 3 }, { type: 'helpful', count: 1 }] }} />
-            <DevlogRow variant="feed" devlog={{ ...FEED, title: 'No engagement yet' }} />
-          </ol>
-        </section>
+    <ShellFrame user={user} headerLabel="Dashboard">
+      <div className="flex gap-8">
+        <div className="min-w-0 flex-1"><DashboardMain {...BASE} /></div>
+        <aside className="hidden w-[320px] shrink-0 border-l border-line pl-6 xl:block"><DashboardRail {...BASE} /></aside>
       </div>
+      {showAll && (
+        <div className="mt-20 space-y-16 border-t-2 border-dashed border-line pt-10">
+          <p className="font-mono text-micro text-fg-muted">— QA STATES (append ?full=1) —</p>
+          <section aria-label="Brand-new user"><p className="mb-4 font-mono text-micro text-fg-muted">BRAND-NEW USER</p><DashboardMain {...NEW_USER} /></section>
+          <section aria-label="Failed loads"><p className="mb-4 font-mono text-micro text-fg-muted">FAILED LOADS</p><DashboardMain {...FAILED} /></section>
+          <section aria-label="Feed rows" className="max-w-2xl"><p className="mb-4 font-mono text-micro text-fg-muted">FEED ROW</p>
+            <ol className="divide-y divide-line-subtle border-y border-line-subtle">
+              <DevlogRow variant="feed" devlog={FEED} engagement={{ comments: 2, reactions: [{ type: 'like', count: 3 }, { type: 'helpful', count: 1 }] }} />
+              <DevlogRow variant="feed" devlog={{ ...FEED, title: 'No engagement yet' }} />
+            </ol>
+          </section>
+        </div>
+      )}
     </ShellFrame>
   )
 }

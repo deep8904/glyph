@@ -126,8 +126,8 @@ export default async function ExplorePage() {
               {projectsRaw.error ? failed : gridProjects.length === 0 ? (
                 <EmptyState kind="first-use" className="border-y-0 py-2" title="No public projects yet" description="Projects appear here when a developer makes one public." />
               ) : (
-                <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3">
-                  {gridProjects.map((p) => <ProjectTile key={p.id} project={p} />)}
+                <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 [&>*:first-child]:col-span-2 sm:[&>*:first-child]:col-span-2 sm:[&>*:first-child]:row-span-1">
+                  {gridProjects.map((p, i) => <ProjectTile key={p.id} project={p} featured={i === 0} />)}
                 </div>
               )}
             </section>

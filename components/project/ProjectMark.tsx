@@ -1,6 +1,7 @@
 import { labelFor, ENGINES, PROJECT_STAGES } from '@/lib/supabase/types'
 import { isHttpsUrl } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { tintFor } from '@/lib/tint'
 
 /**
  * A project's visual anchor — the answer to media poverty (only ~1 in 6 real projects has a
@@ -11,22 +12,8 @@ import { cn } from '@/lib/utils'
  *
  * Each tint carries one dark `ink` used for every text element on the plate, so contrast is high
  * on both the pale tint and on the near-white stage chip (all inks ≥ ~4.5:1 on their own bg).
+ * The palette lives in lib/tint so the coverless hero band and avatars share it.
  */
-
-const TINTS = [
-  { bg: '#edf0f5', ink: '#3b4557' }, // slate
-  { bg: '#f4ece5', ink: '#6b4a2e' }, // clay
-  { bg: '#e7f0ea', ink: '#285c3f' }, // moss
-  { bg: '#efecf7', ink: '#45397a' }, // iris
-  { bg: '#f1ece2', ink: '#5f4f30' }, // sand
-  { bg: '#e8eef3', ink: '#2f4a63' }, // steel
-]
-
-function tintFor(seed: string) {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
-  return TINTS[h % TINTS.length]
-}
 
 export function ProjectMark({
   title,

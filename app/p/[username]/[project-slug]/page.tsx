@@ -14,6 +14,7 @@ import { OpportunitySummary } from '@/components/project/OpportunitySummary'
 import { AddToShortlistButton } from '@/components/publisher/AddToShortlistButton'
 import { labelFor, ENGINES, PROJECT_STAGES, CONTRACT_TYPES } from '@/lib/supabase/types'
 import { isHttpsUrl, relativeTime } from '@/lib/utils'
+import { tintFor } from '@/lib/tint'
 import type { Profile, Project } from '@/lib/supabase/types'
 import { Shell } from '@/components/shell/Shell'
 
@@ -151,6 +152,7 @@ export default async function PublicProjectPage({
   const stage = labelFor(PROJECT_STAGES, project.stage)
   const ownerName = profile.display_name || profile.username
   const projectHref = `/p/${username}/${projectSlug}`
+  const heroTint = tintFor(project.id || project.title)
 
   const facts = [
     // Stage is already the title badge above — stating it a second time here was pure repetition.
@@ -302,17 +304,24 @@ export default async function PublicProjectPage({
             </div>
           </section>
         ) : (
-          <header>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              {stage && <Badge tone="accent">{stage}</Badge>}
-              {project.is_primary && <Badge>Current project</Badge>}
-              {openPlaytest && <Badge tone="success">Open for playtesting</Badge>}
+          // Media poverty must never read as an unfinished page. With no cover the title itself
+          // becomes the cover: a deterministic tinted band (same palette as the grid title-plates)
+          // carries the identity with real visual weight instead of black type on empty white.
+          <header
+            className="relative -mx-4 overflow-hidden px-5 py-7 sm:-mx-6 sm:rounded-panel sm:px-8 sm:py-9 lg:-mx-8 lg:px-9"
+            style={{ backgroundColor: heroTint.bg, color: heroTint.ink, boxShadow: '0 1px 2px rgb(24 25 37 / 0.05)' }}
+          >
+            <span aria-hidden className="pointer-events-none absolute -right-10 -top-16 hidden size-56 rounded-full opacity-[0.35] sm:block" style={{ background: `radial-gradient(circle, ${heroTint.ink} 0%, transparent 68%)`, filter: 'blur(2px)' }} />
+            <div className="relative mb-3 flex flex-wrap items-center gap-2">
+              {stage && <span className="rounded-badge bg-canvas/70 px-2 py-0.5 font-mono text-micro font-semibold" style={{ color: heroTint.ink }}>{stage}</span>}
+              {project.is_primary && <span className="rounded-badge bg-canvas/70 px-2 py-0.5 font-mono text-micro font-medium" style={{ color: heroTint.ink }}>Current project</span>}
+              {openPlaytest && <span className="rounded-badge bg-accent px-2 py-0.5 font-mono text-micro font-semibold text-white">Open for playtesting</span>}
               {isOwner && project.visibility !== 'public' && <Badge tone="warning">{project.visibility === 'private' ? 'Private — only you can see this' : 'Unlisted — reachable by link only'}</Badge>}
             </div>
-            <h1 className="text-display font-semibold tracking-[-0.02em] text-fg [overflow-wrap:anywhere]">{project.title}</h1>
-            {project.short_description && <p className="mt-2 max-w-prose text-h3 font-normal text-fg-secondary [overflow-wrap:anywhere]">{project.short_description}</p>}
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-              <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center gap-2 text-small font-medium text-fg hover:text-link"><Avatar name={ownerName} src={profile.avatar_url} size="sm" /> {ownerName}</Link>
+            <h1 className="relative text-display font-semibold tracking-[-0.02em] [overflow-wrap:anywhere]" style={{ color: heroTint.ink }}>{project.title}</h1>
+            {project.short_description && <p className="relative mt-2 max-w-prose text-h3 font-normal [overflow-wrap:anywhere]" style={{ color: heroTint.ink, opacity: 0.82 }}>{project.short_description}</p>}
+            <div className="relative mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
+              <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center gap-2 text-small font-medium hover:underline" style={{ color: heroTint.ink }}><Avatar name={ownerName} src={profile.avatar_url} size="sm" /> {ownerName}</Link>
               {!isOwner && openPlaytest && <Button asChild variant="primary" size="sm"><Link href={`/playtests/${openPlaytest.id}`}>Join playtest</Link></Button>}
               {isOwner && ownerActions}
             </div>

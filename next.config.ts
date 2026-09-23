@@ -31,6 +31,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The dev-only overlay indicator adds nothing for users and pollutes design-review captures.
+  devIndicators: false,
   async headers() {
     return [
       {

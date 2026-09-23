@@ -43,12 +43,15 @@ function UnreadBadge({ count, className }: { count: number; className?: string }
 const railItem =
   'relative flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-small font-medium transition-colors duration-150 md:flex-col md:justify-center md:gap-0.5 md:px-1 md:py-1.5 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:py-0'
 const railLabel = 'md:text-micro lg:text-small'
+// One active language, shared with the mobile bar: a restrained accent icon plus a slightly
+// stronger surface. Not a filled block, not a pill, not both text and icon in accent.
 const stateClass = (active: boolean) => (active ? 'bg-surface-muted text-fg' : 'text-fg-secondary hover:bg-surface-muted hover:text-fg')
+const iconStateClass = (active: boolean) => (active ? 'text-accent' : '')
 
 function RailLink({ href, label, Icon, active, badge, ariaLabel }: { href: string; label: string; Icon: LucideIcon; active: boolean; badge?: number; ariaLabel?: string }) {
   return (
     <Link href={href} aria-current={active ? 'page' : undefined} aria-label={ariaLabel} className={cn(railItem, stateClass(active))}>
-      <Icon aria-hidden strokeWidth={1.75} className="size-5 shrink-0" />
+      <Icon aria-hidden strokeWidth={1.75} className={cn('size-5 shrink-0', iconStateClass(active))} />
       <span className={railLabel}>{label}</span>
       {!!badge && <UnreadBadge count={badge} className="ml-auto md:absolute md:right-1.5 md:top-0.5 md:ml-0 lg:static lg:ml-auto" />}
     </Link>

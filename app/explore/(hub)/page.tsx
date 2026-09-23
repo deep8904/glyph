@@ -1,95 +1,157 @@
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { DiscoveryFrame } from '@/components/discovery/DiscoveryFrame'
-import { ProjectRow } from '@/components/project/ProjectRow'
+import { ProjectTile } from '@/components/project/ProjectTile'
+import { ProjectMark } from '@/components/project/ProjectMark'
 import { DeveloperRow } from '@/components/developer/DeveloperRow'
 import { DevlogRow, fromDiscoveryRow } from '@/components/devlog/DevlogRow'
+import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
-import { Section } from '@/components/ui/Section'
+import { labelFor, ENGINES, PROJECT_STAGES } from '@/lib/supabase/types'
+import { isHttpsUrl } from '@/lib/utils'
 import { exploreDevelopers, exploreDevlogs, exploreProjects, followedAmong } from '@/lib/discovery/queries'
 
 export const metadata = { title: 'Explore — Glyph' }
 
-const PREVIEW = 5
+const GRID = 8
+const STRIP = 6
 
-const seeAll = (href: string, hasMore: boolean, label = 'See all') =>
-  hasMore ? <Link href={href} className="inline-flex min-h-11 shrink-0 items-center text-small font-medium text-link underline-offset-2 hover:underline">{label} →</Link> : undefined
+/** A block heading that shares the page's rhythm but is not a bordered Section. `id` names the section. */
+function BlockHead({ id, title, sub, href, cta }: { id: string; title: string; sub?: string; href?: string; cta?: string }) {
+  return (
+    <div className="mb-4 flex items-end justify-between gap-4">
+      <div className="min-w-0">
+        <h2 id={id} className="text-h2 font-semibold text-fg">{title}</h2>
+        {sub && <p className="mt-0.5 text-small text-fg-secondary">{sub}</p>}
+      </div>
+      {href && (
+        <Link href={href} className="inline-flex min-h-11 shrink-0 items-center gap-1 text-small font-medium text-link underline-offset-2 hover:underline">
+          {cta ?? 'See all'} <ArrowRight aria-hidden strokeWidth={1.75} className="size-3.5" />
+        </Link>
+      )}
+    </div>
+  )
+}
+
+/** Stage facets — a small, structured set of choices (Hick's law), linking to the existing filtered list. */
+const STAGE_FILTERS = [
+  { label: 'All', href: '/explore/projects' },
+  ...PROJECT_STAGES.map((s) => ({ label: s.label, href: `/explore/projects?stage=${s.value}` })),
+]
+
+function StageChips() {
+  return (
+    <div className="mb-5 flex flex-wrap gap-2">
+      {STAGE_FILTERS.map((f) => (
+        <Link
+          key={f.href}
+          href={f.href}
+          className="inline-flex min-h-8 items-center rounded-pill border border-line px-3 text-small font-medium text-fg-secondary transition-colors hover:border-line-strong hover:text-fg"
+        >
+          {f.label}
+        </Link>
+      ))}
+    </div>
+  )
+}
 
 /**
- * Explore = what is worth discovering on Glyph right now, grouped by what you can DO with it:
- * join a playtest, follow a project, meet a collaborator, read a devlog. Each group is ordered by
- * most recent activity — there is no popularity, trending or personalisation — and every row links
- * to its canonical page. Groups are conditions on data Glyph already has (open playtest, open to
- * collaborate), not scores.
+ * Explore = browse what people are building, right now. Full-width discovery, not a stack of
+ * hairline rows: a currently-in-playtest lead (Von Restorff), a project tile grid (the browse
+ * core), then developers as identity rows and recent devlogs as editorial rows — each object
+ * type gets its own composition. Activity-ordered, no popularity, no fabricated signal.
  */
 export default async function ExplorePage() {
   const supabase = await createClient()
 
   return (
-    <DiscoveryFrame label="Explore">
+    <DiscoveryFrame label="Explore" width="wide">
       {async (viewer) => {
         const [playtests, projectsRaw, collaborators, devlogs] = await Promise.all([
-          exploreProjects(supabase, { size: PREVIEW, openPlaytest: true }),
-          exploreProjects(supabase, { size: PREVIEW * 2 }),
-          exploreDevelopers(supabase, { size: PREVIEW, excludeUserId: viewer?.id ?? null, openToCollab: true }),
-          exploreDevlogs(supabase, { size: PREVIEW }),
+          exploreProjects(supabase, { size: STRIP, openPlaytest: true }),
+          exploreProjects(supabase, { size: GRID + 1 }),
+          exploreDevelopers(supabase, { size: STRIP, excludeUserId: viewer?.id ?? null, openToCollab: true }),
+          exploreDevlogs(supabase, { size: STRIP }),
         ])
-        // A project with an open playtest already leads the page above; don't show it again
-        // one section down under "Projects" — a curated page doesn't repeat its own lead story.
-        const shownAbove = new Set(playtests.rows.map((p) => p.id))
-        const projects = { ...projectsRaw, rows: projectsRaw.rows.filter((p) => !shownAbove.has(p.id)).slice(0, PREVIEW) }
+
+        // Prefer a lead with a cover — it makes a stronger hero and is an honest signal the
+        // developer has invested in presentation — falling back to the most recently active.
+        const lead = playtests.rows.find((p) => isHttpsUrl(p.cover_url)) ?? playtests.rows[0] ?? null
+        const shown = new Set([lead?.id].filter(Boolean) as string[])
+        const gridProjects = projectsRaw.rows.filter((p) => !shown.has(p.id)).slice(0, GRID)
         const following = await followedAmong(supabase, viewer?.id ?? null, collaborators.rows.map((d) => d.id))
         const failed = <ErrorState inline title="This section could not be loaded" description="This may be temporary. Reload the page to try again." />
 
+        const leadEngine = lead?.engine ? labelFor(ENGINES, lead.engine) ?? lead.engine : null
+        const leadStage = lead?.stage ? labelFor(PROJECT_STAGES, lead.stage) : null
+
         return (
-          <div>
-            <header className="mb-8">
-              <h1 className="text-h1 font-semibold text-fg">Explore</h1>
-              <p className="mt-1 max-w-prose text-small text-fg-secondary">Recent activity, not popularity.</p>
+          <div className="space-y-14">
+            <header>
+              <h1 className="text-display font-semibold tracking-tight text-fg">Explore</h1>
+              <p className="mt-1 text-body text-fg-secondary">What indie developers are building on Glyph — most recently active first.</p>
             </header>
 
-            <div className="space-y-10">
-              <Section id="explore-playtests" title="Playtests you can join" description="Projects with an open playtest, most recently active first." action={seeAll('/explore/projects?playtest=open', playtests.hasMore)}>
-                {playtests.error ? failed : playtests.rows.length === 0 ? (
-                  <EmptyState kind="cleared" className="border-y-0 py-2" title="No open playtests right now" description="Projects appear here while their developer is looking for testers." />
-                ) : (
-                  <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                    {playtests.rows.map((p) => <ProjectRow key={p.id} variant="listing" project={p} />)}
-                  </ul>
-                )}
-              </Section>
+            {/* Lead: one project currently looking for testers, given real room. Not a stretched
+                card — its title and CTA are explicit links, so the pitch stays selectable. */}
+            {lead && (
+              <section aria-labelledby="lead" className="group grid gap-6 sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:items-center">
+                <Link href={`/p/${lead.username}/${lead.slug}`} aria-label={lead.title} className="block">
+                  <ProjectMark title={lead.title} id={lead.id} coverUrl={lead.cover_url} engine={lead.engine} genre={lead.genre} stage={lead.stage} eager className="w-full" />
+                </Link>
+                <div className="min-w-0">
+                  <p className="mb-2 font-mono text-micro font-medium uppercase tracking-wide text-link">In playtest now</p>
+                  <h2 id="lead" className="text-h1 font-semibold text-fg [overflow-wrap:anywhere]">
+                    <Link href={`/p/${lead.username}/${lead.slug}`} className="hover:text-link">{lead.title}</Link>
+                  </h2>
+                  <Link href={`/dev/${lead.username}`} className="mt-1 inline-block w-fit text-small text-fg-secondary hover:text-link">
+                    {lead.display_name || lead.username}
+                  </Link>
+                  {lead.short_description && <p className="mt-3 max-w-prose text-body text-fg-secondary [overflow-wrap:anywhere]">{lead.short_description}</p>}
+                  <p className="mt-3 font-mono text-micro text-fg-secondary">{[leadStage, leadEngine, lead.genre].filter(Boolean).join(' · ')}</p>
+                  <Button asChild variant="primary" size="sm" className="mt-5"><Link href={`/p/${lead.username}/${lead.slug}`}>View project</Link></Button>
+                </div>
+              </section>
+            )}
 
-              <Section id="explore-projects" title="Projects" description="Public projects, most recently active first." action={seeAll('/explore/projects', projects.hasMore, 'See all, filter by stage')}>
-                {projects.error ? failed : projects.rows.length === 0 ? (
-                  <EmptyState kind="first-use" className="border-y-0 py-2" title="No public projects yet" description="Projects appear here when a developer makes one public." />
-                ) : (
-                  <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                    {projects.rows.map((p) => <ProjectRow key={p.id} variant="listing" project={p} />)}
-                  </ul>
-                )}
-              </Section>
+            {/* Browse core: project tile grid, with stage facets. */}
+            <section aria-labelledby="projects">
+              <BlockHead id="projects" title="Building now" sub="Public projects, most recently active first." href="/explore/projects" cta="All projects" />
+              <StageChips />
+              {projectsRaw.error ? failed : gridProjects.length === 0 ? (
+                <EmptyState kind="first-use" className="border-y-0 py-2" title="No public projects yet" description="Projects appear here when a developer makes one public." />
+              ) : (
+                <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3">
+                  {gridProjects.map((p) => <ProjectTile key={p.id} project={p} />)}
+                </div>
+              )}
+            </section>
 
-              <Section id="explore-developers" title="Developers open to collaborate" description="Developers with public work who are open to new collaborations, most recently active first." action={seeAll('/explore/developers?collab=open', collaborators.hasMore)}>
-                {collaborators.error ? failed : collaborators.rows.length === 0 ? (
-                  <EmptyState kind="cleared" className="border-y-0 py-2" title="No one is marked open to collaborate" description="You can still browse everyone with public work." action={<Link href="/explore/developers" className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">All developers →</Link>} />
-                ) : (
-                  <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                    {collaborators.rows.map((d) => <DeveloperRow key={d.id} developer={d} viewerId={viewer?.id ?? null} following={following.has(d.id)} />)}
-                  </ul>
-                )}
-              </Section>
+            {/* Developers as identity rows — a different job, a different shape. */}
+            <section aria-labelledby="developers">
+              <BlockHead id="developers" title="Open to collaborate" sub="Developers with public work looking for people to build with." href="/explore/developers?collab=open" cta="All developers" />
+              {collaborators.error ? failed : collaborators.rows.length === 0 ? (
+                <EmptyState kind="cleared" className="border-y-0 py-2" title="No one is marked open to collaborate" description="You can still browse everyone with public work." action={<Link href="/explore/developers" className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">All developers →</Link>} />
+              ) : (
+                <ul className="grid gap-x-10 border-t border-line-subtle sm:grid-cols-2">
+                  {collaborators.rows.map((d) => <DeveloperRow key={d.id} developer={d} viewerId={viewer?.id ?? null} following={following.has(d.id)} />)}
+                </ul>
+              )}
+            </section>
 
-              <Section id="explore-devlogs" title="Recent devlogs" description="Newest published devlogs from public projects." action={seeAll('/explore/devlogs', devlogs.hasMore)}>
-                {devlogs.error ? failed : devlogs.rows.length === 0 ? (
-                  <EmptyState kind="first-use" className="border-y-0 py-2" title="No devlogs yet" description="Devlogs appear here when they are published on a public project." />
-                ) : (
-                  <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                    {devlogs.rows.map((d) => <DevlogRow key={d.id} variant="listing" devlog={fromDiscoveryRow(d)} />)}
-                  </ul>
-                )}
-              </Section>
-            </div>
+            {/* Recent devlogs — editorial rows, two columns of reading. */}
+            <section aria-labelledby="devlogs">
+              <BlockHead id="devlogs" title="Recent devlogs" sub="Newest published devlogs from public projects." href="/explore/devlogs" cta="All devlogs" />
+              {devlogs.error ? failed : devlogs.rows.length === 0 ? (
+                <EmptyState kind="first-use" className="border-y-0 py-2" title="No devlogs yet" description="Devlogs appear here when they are published on a public project." />
+              ) : (
+                <ul className="grid gap-x-10 border-t border-line-subtle sm:grid-cols-2">
+                  {devlogs.rows.map((d) => <DevlogRow key={d.id} variant="listing" devlog={fromDiscoveryRow(d)} />)}
+                </ul>
+              )}
+            </section>
           </div>
         )
       }}

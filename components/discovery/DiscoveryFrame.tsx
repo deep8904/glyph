@@ -10,16 +10,21 @@ import { Shell } from '@/components/shell/Shell'
 export async function DiscoveryFrame({
   label,
   hideSearch = false,
+  width = 'reading',
   children,
 }: {
   label: string
   hideSearch?: boolean
+  /** 'reading' (max-w-3xl) for list/detail browse; 'wide' (max-w-6xl) for grid discovery that should use the canvas. */
+  width?: 'reading' | 'wide'
   children: (viewer: { id: string } | null) => ReactNode
 }) {
   const identity = await getOptionalIdentity()
   return (
     <Shell headerLabel={label} hideSearch={hideSearch}>
-      <div className="mx-auto w-full max-w-3xl">{children(identity ? { id: identity.user.id } : null)}</div>
+      <div className={width === 'wide' ? 'mx-auto w-full max-w-6xl' : 'mx-auto w-full max-w-3xl'}>
+        {children(identity ? { id: identity.user.id } : null)}
+      </div>
     </Shell>
   )
 }

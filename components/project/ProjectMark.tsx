@@ -62,22 +62,28 @@ export function ProjectMark({
   }
 
   const tint = tintFor(id || title)
+  // The title is the cover, so its size must track the plate's size: a container-relative clamp
+  // scales it up in the wide Explore feature and down in a 160px dashboard thumbnail, instead of a
+  // fixed size that looked lost in the big tile and clipped in the small one. Optically centred so
+  // it never strands at the bottom of an empty band.
   return (
     <div
-      className={cn('relative flex flex-col justify-between overflow-hidden rounded-media border border-line p-4 transition-shadow duration-200 group-hover:shadow-raised', ratioClass, className)}
-      style={{ backgroundColor: tint.bg }}
+      className={cn('relative flex flex-col overflow-hidden rounded-media border border-line transition-shadow duration-200 group-hover:shadow-raised', ratioClass, className)}
+      style={{ backgroundColor: tint.bg, containerType: 'size' }}
     >
-      {stageLabel ? (
-        <span className="self-start rounded-badge bg-canvas/80 px-1.5 py-0.5 font-mono text-micro font-medium" style={{ color: tint.ink }}>{stageLabel}</span>
-      ) : <span />}
-      <span
-        aria-hidden
-        className="font-display font-semibold leading-[1.05] tracking-tight [overflow-wrap:anywhere] line-clamp-3"
-        style={{ color: tint.ink, fontSize: ratio === 'square' ? '1.125rem' : '1.5rem' }}
-      >
-        {title}
-      </span>
-      {meta && <span className="mt-2 truncate font-mono text-micro" style={{ color: tint.ink }}>{meta}</span>}
+      {stageLabel && (
+        <span className="absolute left-3 top-3 z-10 rounded-badge bg-canvas/80 px-1.5 py-0.5 font-mono text-micro font-medium" style={{ color: tint.ink }}>{stageLabel}</span>
+      )}
+      <div className="flex flex-1 items-center justify-center px-4 py-8">
+        <span
+          aria-hidden
+          className="text-center font-display font-semibold leading-[1.03] tracking-tight [overflow-wrap:anywhere] line-clamp-3"
+          style={{ color: tint.ink, fontSize: 'clamp(0.95rem, 15cqmin, 2.75rem)' }}
+        >
+          {title}
+        </span>
+      </div>
+      {meta && <span className="absolute inset-x-4 bottom-3 truncate text-center font-mono text-micro" style={{ color: tint.ink, opacity: 0.85 }}>{meta}</span>}
     </div>
   )
 }

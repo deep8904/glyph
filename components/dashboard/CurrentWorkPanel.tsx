@@ -27,7 +27,7 @@ export function CurrentWorkPanel({
   const stage = project.stage ? labelFor(PROJECT_STAGES, project.stage) : null
 
   return (
-    <div className="group flex flex-col gap-4 rounded-panel bg-surface-muted p-4 ring-1 ring-inset ring-line-subtle sm:flex-row sm:items-start sm:gap-5 sm:p-5">
+    <div className="group flex flex-col gap-4 rounded-panel border border-line bg-surface-muted p-4 sm:flex-row sm:items-start sm:gap-5 sm:p-5">
       <div className="w-full shrink-0 sm:w-40">
         {href ? (
           <Link href={href} aria-label={project.title} className="block">

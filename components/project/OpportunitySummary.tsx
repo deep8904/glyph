@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
  */
 export function OpportunitySummary({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('border-l-2 border-accent bg-accent-subtle/40 py-3 pl-4 pr-4', className)}>
+    <div className={cn('rounded-r-panel border-l-2 border-accent bg-accent-subtle/40 py-3 pl-4 pr-4', className)}>
       <h3 className="text-h3 font-semibold text-fg">{title}</h3>
       <div className="mt-2">{children}</div>
     </div>

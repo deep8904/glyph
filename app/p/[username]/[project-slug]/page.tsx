@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/Badge'
 import { DevlogRow } from '@/components/devlog/DevlogRow'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
-import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { MetadataBar } from '@/components/ui/MetadataBar'
 import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
@@ -311,7 +310,6 @@ export default async function PublicProjectPage({
             className="relative -mx-4 overflow-hidden px-5 py-7 sm:-mx-6 sm:rounded-panel sm:px-8 sm:py-9 lg:-mx-8 lg:px-9"
             style={{ backgroundColor: heroTint.bg, color: heroTint.ink, boxShadow: '0 1px 2px rgb(24 25 37 / 0.05)' }}
           >
-            <span aria-hidden className="pointer-events-none absolute -right-10 -top-16 hidden size-56 rounded-full opacity-[0.35] sm:block" style={{ background: `radial-gradient(circle, ${heroTint.ink} 0%, transparent 68%)`, filter: 'blur(2px)' }} />
             <div className="relative mb-3 flex flex-wrap items-center gap-2">
               {stage && <span className="rounded-badge bg-canvas/70 px-2 py-0.5 font-mono text-micro font-semibold" style={{ color: heroTint.ink }}>{stage}</span>}
               {project.is_primary && <span className="rounded-badge bg-canvas/70 px-2 py-0.5 font-mono text-micro font-medium" style={{ color: heroTint.ink }}>Current project</span>}
@@ -366,13 +364,16 @@ export default async function PublicProjectPage({
                 ))}
               </ol>
             ) : (
-              <EmptyState
-                kind="first-use"
-                className="border-y-0 py-2"
-                title="No devlogs yet"
-                description={isOwner ? "The first one starts this project's public record." : `${ownerName} hasn't published a devlog for this project yet.`}
-                action={isOwner ? <Button asChild variant="primary" size="sm"><Link href={`/dashboard/projects/${project.id}/devlogs/new`}>Write the first devlog</Link></Button> : undefined}
-              />
+              <div className="flex flex-col items-start gap-1 rounded-panel border border-line bg-surface-muted p-6 sm:p-8">
+                <span aria-hidden className="mb-2 flex size-9 items-center justify-center rounded-full bg-accent-subtle text-accent-hover">
+                  <PenLine strokeWidth={1.75} className="size-4" />
+                </span>
+                <h3 className="text-h3 font-semibold text-fg">No devlogs yet</h3>
+                <p className="max-w-md text-small text-fg-secondary">
+                  {isOwner ? "The first one starts this project's public record — the history testers and collaborators read to catch up." : `${ownerName} hasn't published a devlog for this project yet. Follow to see the first one.`}
+                </p>
+                {isOwner && <Button asChild variant="primary" size="sm" className="mt-3"><Link href={`/dashboard/projects/${project.id}/devlogs/new`}>Write the first devlog</Link></Button>}
+              </div>
             )}
           </section>
         </div>

@@ -183,9 +183,11 @@ export default async function ProfilePage({
           <p className="whitespace-pre-line text-small leading-relaxed text-fg-secondary [overflow-wrap:anywhere]">{profile.bio}</p>
         </div>
       )}
-      <div className="border-t border-line-subtle pt-5">
-        <CollaborationCard isOpenToCollab={isOpen} posts={collabPosts ?? []} name={name} />
-      </div>
+      {(collabPosts ?? []).length > 0 && (
+        <div className="border-t border-line-subtle pt-5">
+          <CollaborationCard isOpenToCollab={isOpen} posts={collabPosts ?? []} name={name} />
+        </div>
+      )}
       <div className="border-t border-line-subtle pt-5">
         <h2 className="mb-2 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Activity</h2>
         <MetadataBar layout="stacked" items={[

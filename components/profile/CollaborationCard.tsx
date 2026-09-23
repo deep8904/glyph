@@ -6,9 +6,13 @@ type CollabPost = { id: string; post_type: string; role_needed: string | null; r
 
 const CONTRACT_LABELS = Object.fromEntries(CONTRACT_TYPES.map((c) => [c.value, c.label])) as Record<string, string>
 
-/** Can I work with this person? Availability sentence plus their open collaboration posts, as plain rows. */
+/**
+ * Can I work with this person? Only rendered when there are open collaboration posts to act on —
+ * the header already carries the plain "open to collaborate" status, so an availability-only card
+ * would just restate it. Posts are the reason this section earns its space.
+ */
 export function CollaborationCard({ isOpenToCollab, posts, name }: { isOpenToCollab: boolean; posts: CollabPost[]; name: string }) {
-  if (!isOpenToCollab && posts.length === 0) return null
+  if (posts.length === 0) return null
 
   return (
     <Section id="collaboration" title="Collaboration">

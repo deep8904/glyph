@@ -6,30 +6,30 @@ import { DevlogRow, type DevlogSummary } from '@/components/devlog/DevlogRow'
 export const metadata = { title: 'Dashboard and feed (fixtures) — Glyph', robots: { index: false, follow: false } }
 
 const ago = (days: number) => new Date(Date.now() - days * 86400000).toISOString()
-const PROJECT = { id: 'p1', title: 'Fixture Project', slug: 'fixture-project', stage: 'alpha', short_description: 'A fixture project used to inspect the dashboard without real data.', updated_at: ago(2) }
+const PROJECT = { id: 'p1', title: 'Tidewatch', slug: 'tidewatch', stage: 'alpha', short_description: 'A tide-driven survival roguelike where the map floods on a fixed clock.', updated_at: ago(2) }
 const BASE: DashboardData = {
-  userId: 'u', username: 'fixture-user', displayName: 'Fixture User', avatarUrl: null, facts: ['Programmer', 'Godot'], missingProfileFields: [],
-  currentProject: PROJECT, otherProjects: [{ ...PROJECT, id: 'p2', title: 'Older fixture project', stage: 'prototype', updated_at: ago(40) }], projectsFailed: false,
-  latestDevlog: { title: 'Fixture devlog title', slug: 'fixture-devlog', published_at: ago(3) },
+  userId: 'u', username: 'maraquill', displayName: 'Mara Quill', avatarUrl: null, facts: ['Programmer', 'Godot'], missingProfileFields: [],
+  currentProject: PROJECT, otherProjects: [{ ...PROJECT, id: 'p2', title: 'Pocket Armada', slug: 'pocket-armada', stage: 'prototype', updated_at: ago(40) }], projectsFailed: false,
+  latestDevlog: { title: 'The save system finally survives a mid-run crash', slug: 'save-system', published_at: ago(3) },
   nextStep: { label: 'Review applications', href: '/collaborate', reason: '2 pending' },
   attention: [
-    { id: 'a1', href: '#', time: ago(0.1), actor: 'Fixture Applicant', text: 'applied for Audio designer', actionLabel: 'Review application' },
-    { id: 'a2', href: '#', time: ago(1), actor: 'Fixture Tester', text: 'requested to test Fixture Project', actionLabel: 'Review request' },
+    { id: 'a1', href: '#', time: ago(0.1), actor: 'Priya Desai', text: 'applied for Audio designer on Tidewatch', actionLabel: 'Review application' },
+    { id: 'a2', href: '#', time: ago(1), actor: 'Sam Okafor', text: 'requested to test Tidewatch', actionLabel: 'Review request' },
   ],
-  attentionFailed: false, unreadNotifications: 3, latestNotification: { at: ago(0.2), actor: 'Fixture Follower' },
-  feedback: [{ id: 'f1', href: '#', time: ago(1), actor: 'Fixture Commenter', devlogTitle: 'Fixture devlog title' }], feedbackFailed: false,
+  attentionFailed: false, unreadNotifications: 3, latestNotification: { at: ago(0.2), actor: 'Nova Calder' },
+  feedback: [{ id: 'f1', href: '#', time: ago(1), actor: 'Theo Park', devlogTitle: 'The save system finally survives a mid-run crash' }], feedbackFailed: false,
   followsCount: 2,
-  network: [{ id: 'n1', href: '#', title: 'A devlog from someone I follow', context: 'Fixture Dev on Their Game', published_at: ago(1) }, { id: 'n2', href: '#', title: 'Another one', context: 'Other Dev on Other Game', published_at: ago(4) }],
+  network: [{ id: 'n1', href: '#', title: 'The fog volume finally reads as depth', context: 'Lena Voss on Emberreach', published_at: ago(1) }, { id: 'n2', href: '#', title: 'Rewrote the pathfinder in a weekend', context: 'Sam Iqbal on Rift Squad', published_at: ago(4) }],
   suggested: [],
-  opportunities: [{ id: 'o1', href: '#', text: 'Seeking Sound designer — Someone Else\'s Game' }, { id: 'o2', href: '#', text: 'A Different Project needs testers (1/8)' }],
+  opportunities: [{ id: 'o1', href: '#', text: 'Seeking Sound designer — Static Bloom' }, { id: 'o2', href: '#', text: 'Harbor Tides needs testers (3/8)' }],
 }
 const NEW_USER: DashboardData = {
-  ...BASE, missingProfileFields: ['Bio', 'Avatar'], currentProject: null, otherProjects: [], latestDevlog: null, nextStep: { label: 'Create your first project', href: '/dashboard/projects/new' },
+  ...BASE, username: 'newcomer', displayName: 'Alex Rivera', missingProfileFields: ['Bio', 'Avatar'], currentProject: null, otherProjects: [], latestDevlog: null, nextStep: { label: 'Create your first project', href: '/dashboard/projects/new' },
   attention: [], unreadNotifications: 0, latestNotification: null, feedback: [], followsCount: 0, network: [],
-  suggested: [{ id: 's1', username: 'suggested-a', display_name: 'Suggested Dev', avatar_url: null, primary_role: 'game_designer' }],
+  suggested: [{ id: 's1', username: 'lena-voss', display_name: 'Lena Voss', avatar_url: null, primary_role: 'game_designer' }],
 }
 const FAILED: DashboardData = { ...BASE, projectsFailed: true, attentionFailed: true, feedbackFailed: true }
-const FEED: DevlogSummary = { title: 'A devlog title in the feed', slug: 's', projectTitle: 'Fixture Project', projectSlug: 'fixture-project', username: 'fixture-dev', authorName: 'Fixture Dev', avatarUrl: null, publishedAt: ago(0.3), preview: '## Heading\n\nThe excerpt is plain text produced from the markdown body, clamped to two lines so the feed stays scannable.' }
+const FEED: DevlogSummary = { title: 'Floor 3 rework: the coastline finally feels alive', slug: 'floor-3', projectTitle: 'Emberreach', projectSlug: 'emberreach', username: 'lena-voss', authorName: 'Lena Voss', avatarUrl: null, publishedAt: ago(0.3), preview: 'Replaced the placeholder torch lighting with a proper dynamic light pass tied to tide height, and the whole level finally reads as one place instead of a set of rooms.' }
 
 /**
  * Development-only fixtures for Dashboard. 404 in production.
@@ -41,7 +41,7 @@ export default async function DashboardFixtures({ searchParams }: { searchParams
   if (process.env.NODE_ENV === 'production') notFound()
   const { full } = await searchParams
   const showAll = full === '1' || full === 'true'
-  const user = { displayName: 'Fixture User', username: 'fixture-user', email: 'fixture@example.invalid', nav: { isAdmin: false, hasPublisherAccount: false, hasStudio: false, hasPublisherContacts: false, unreadNotifications: 3 } }
+  const user = { displayName: 'Mara Quill', username: 'maraquill', email: 'mara@example.invalid', nav: { isAdmin: false, hasPublisherAccount: false, hasStudio: false, hasPublisherContacts: false, unreadNotifications: 3 } }
   return (
     <ShellFrame user={user} headerLabel="Dashboard">
       <div className="flex gap-8">

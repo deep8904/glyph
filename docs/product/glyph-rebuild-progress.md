@@ -17,6 +17,24 @@
 
 Screenshots: `docs/design/screenshots/rebuild/directions/direction-{a,b,c}-1440.png`.
 
-**Review:** 3 independent agents (visual director, product/UX, indie-dev target user) scoring all three cold. Synthesis + winning-elements decision to follow; the final direction may combine A's feature-card+shelves, B's large media celebration, and C's context rail / density where each surface's job calls for it.
+### Review outcome (3 independent agents, scored cold)
+
+| Direction | Visual director | Product/UX | Indie-dev target user |
+|---|---|---|---|
+| A Studio | 7 | **best for Explore job** (clear hero + object bands) | 6–7 |
+| B Showcase | **8, strongest** (media-as-product) | 8 clarity but weak focal/responsive, media-dependent | **9, clear winner** |
+| C Console | 7 | **chassis generalizes best** to operate/manage | 3–4 ("spreadsheet/admin, wouldn't return") |
+
+**Convergent findings:** B is the emotional winner — makes games feel alive and flatters the work (target user 9; "for devs"). But B's weaknesses are product-critical: it **collapses when media is missing** (and Glyph is media-poor — ~1 in 6 real projects has a cover), weak focal hierarchy, **Builders-as-object disappears**, worst responsive risk, tiny search. A supplies the missing structure (one hero focal object + labeled bands games→builders→devlogs + Builders with Follow + refined left nav). C supplies the chassis that scales to dense operate/manage surfaces (nav + content + right **context rail** + "Needs you" queue + filters + ⌘K + a **list-view toggle**), which B's mosaic can't. C's own list amputates media to favicons — rejected as the discovery model.
+
+### FINAL DIRECTION — "Showcase-led, structured by Studio, chassis from Console"
+
+1. **Chassis (from C/A):** refined left global nav (project pinning, New project, Opportunities badge) + main content + a right **context rail** that appears on return-user/operate surfaces. Generalizes discovery → management.
+2. **Explore celebration (from B):** a cinematic **feature hero** (scrim + overlaid identity + CTA) then a **large editorial media grid** — cover'd projects get big media with overlaid titles; **cover-less projects get a strong characterful title-plate** (media-poverty must not break it — B's grey tiles were its weakest point).
+3. **Structure (from A):** labeled object bands so **games / builders / devlogs stay visually distinct**; Builders is a first-class object with inline Follow.
+4. **Retrieval (from C):** ⌘K search, surfaced filter chips, and a dense **list-view toggle** for scanning.
+5. **Craft bar:** off-white/near-black/cool-neutral + one restrained warm accent used for a *single signature moment*, subtle depth + hover motion, tighter display tracking.
+
+**Next:** apply this to the real production Explore + global shell (start there per the directive), then Project/Profile/Dashboard, then the rest — each surface designed for its job, reusing the chassis.
 
 **Backend:** frozen during the visual proof (no B3/B4, no migrations, no storage buckets) per the directive.

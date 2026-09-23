@@ -87,31 +87,34 @@ export default async function ExplorePage() {
         const leadEngine = lead?.engine ? labelFor(ENGINES, lead.engine) ?? lead.engine : null
         const leadStage = lead?.stage ? labelFor(PROJECT_STAGES, lead.stage) : null
 
+        const leadHasCover = isHttpsUrl(lead?.cover_url)
         return (
           <div className="space-y-14">
             <header>
-              <h1 className="text-display font-semibold tracking-tight text-fg">Explore</h1>
-              <p className="mt-1 text-body text-fg-secondary">What indie developers are building on Glyph — most recently active first.</p>
+              <h1 className="text-display font-semibold tracking-[-0.02em] text-fg">Explore</h1>
+              <p className="mt-1.5 text-body text-fg-secondary">What indie developers are building on Glyph — most recently active first.</p>
             </header>
 
-            {/* Lead: one project currently looking for testers, given real room. Not a stretched
-                card — its title and CTA are explicit links, so the pitch stays selectable. */}
+            {/* Lead: a cinematic feature hero for one project currently looking for testers. When it
+                has a cover the identity is laid over the media on a scrim (games as visual objects);
+                without one, the title-plate carries it. The CTA is an explicit link. */}
             {lead && (
-              <section aria-labelledby="lead" className="group grid gap-6 sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:items-center">
-                <Link href={`/p/${lead.username}/${lead.slug}`} aria-label={lead.title} className="block">
-                  <ProjectMark title={lead.title} id={lead.id} coverUrl={lead.cover_url} engine={lead.engine} genre={lead.genre} stage={lead.stage} eager className="w-full" />
-                </Link>
-                <div className="min-w-0">
-                  <p className="mb-2 font-mono text-micro font-medium uppercase tracking-wide text-link">In playtest now</p>
-                  <h2 id="lead" className="text-h1 font-semibold text-fg [overflow-wrap:anywhere]">
-                    <Link href={`/p/${lead.username}/${lead.slug}`} className="hover:text-link">{lead.title}</Link>
+              <section aria-labelledby="lead" className="group relative overflow-hidden rounded-panel" style={{ boxShadow: '0 1px 2px rgb(24 25 37 / 0.06), 0 30px 60px -30px rgb(24 25 37 / 0.30)' }}>
+                <ProjectMark title={lead.title} id={lead.id} coverUrl={lead.cover_url} engine={lead.engine} genre={lead.genre} stage={leadHasCover ? null : lead.stage} eager className={leadHasCover ? '!aspect-[21/9] [&>span]:!hidden' : '!aspect-[21/9]'} />
+                {leadHasCover && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(10,10,12,.86) 0%, rgba(10,10,12,.55) 44%, rgba(10,10,12,0) 74%)' }} />}
+                <div className={`absolute inset-0 flex max-w-[620px] flex-col justify-center gap-3 p-6 sm:p-9 ${leadHasCover ? 'text-white' : ''}`}>
+                  <p className="flex items-center gap-2 font-mono text-micro font-medium uppercase tracking-wide" style={leadHasCover ? { color: '#f4b48a' } : undefined}>
+                    <span className="size-1.5 rounded-full" style={{ background: leadHasCover ? '#f4b48a' : 'var(--accent)' }} />
+                    <span className={leadHasCover ? '' : 'text-link'}>In playtest now</span>
+                  </p>
+                  <h2 id="lead" className={`text-h1 font-semibold tracking-[-0.02em] sm:text-[2.5rem] sm:leading-[1.05] [overflow-wrap:anywhere] ${leadHasCover ? '' : 'text-fg'}`}>
+                    <Link href={`/p/${lead.username}/${lead.slug}`} className="after:absolute after:inset-0 after:content-['']">{lead.title}</Link>
                   </h2>
-                  <Link href={`/dev/${lead.username}`} className="mt-1 inline-block w-fit text-small text-fg-secondary hover:text-link">
-                    {lead.display_name || lead.username}
-                  </Link>
-                  {lead.short_description && <p className="mt-3 max-w-prose text-body text-fg-secondary [overflow-wrap:anywhere]">{lead.short_description}</p>}
-                  <p className="mt-3 font-mono text-micro text-fg-secondary">{[leadStage, leadEngine, lead.genre].filter(Boolean).join(' · ')}</p>
-                  <Button asChild variant="primary" size="sm" className="mt-5"><Link href={`/p/${lead.username}/${lead.slug}`}>View project</Link></Button>
+                  {lead.short_description && <p className={`max-w-prose text-body leading-relaxed [overflow-wrap:anywhere] ${leadHasCover ? 'text-white/80' : 'text-fg-secondary'}`}>{lead.short_description}</p>}
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <Button asChild variant={leadHasCover ? 'secondary' : 'primary'} size="sm" className={`relative z-10 ${leadHasCover ? 'border-transparent bg-white text-fg hover:bg-white/90' : ''}`}><Link href={`/p/${lead.username}/${lead.slug}`}>View project</Link></Button>
+                    <Link href={`/dev/${lead.username}`} className={`relative z-10 font-mono text-micro ${leadHasCover ? 'text-white/70' : 'text-fg-secondary'} hover:underline`}>{[leadStage, leadEngine, lead.genre].filter(Boolean).join(' · ')} · {lead.display_name || lead.username}</Link>
+                  </div>
                 </div>
               </section>
             )}

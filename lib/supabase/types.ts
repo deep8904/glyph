@@ -47,6 +47,7 @@ export type DevlogPost = {
   title: string
   content: string
   published_at: string | null
+  is_featured: boolean
   created_at: string
   updated_at: string
 }
@@ -118,6 +119,8 @@ export const REACTION_TYPES = [
 
 // ── V4 Types ──────────────────────────────────────────────────
 
+// build_url is NOT selectable directly (migration 032): the developer and testers
+// they accepted receive it through the get_playtest_build() RPC only.
 export type PlaytestRequest = {
   id: string
   project_id: string
@@ -138,7 +141,7 @@ export type PlaytestSession = {
   id: string
   request_id: string
   tester_id: string
-  status: 'requested' | 'accepted' | 'completed' | 'skipped'
+  status: 'requested' | 'accepted' | 'completed' | 'skipped' | 'withdrawn'
   created_at: string
   updated_at: string
 }
@@ -208,7 +211,7 @@ export type CollaborationApplication = {
   post_id: string
   applicant_id: string
   message: string
-  status: 'pending' | 'accepted' | 'rejected'
+  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn'
   created_at: string
 }
 

@@ -1,21 +1,26 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Clock, Users, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody } from '@/components/layout/PageShell'
+import { DiscoveryFrame } from '@/components/discovery/DiscoveryFrame'
 import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
+import { ObjectHeader } from '@/components/object/ObjectHeader'
+import { JAM_PHASE } from '@/components/jams/JamRow'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { MetadataBar } from '@/components/ui/MetadataBar'
+import { Section } from '@/components/ui/Section'
+import { StatusText } from '@/components/workflow/StatusLabel'
+import { StatusSteps, type Step } from '@/components/workflow/StatusSteps'
 
-const STATUS_COLORS: Record<string, string> = {
-  upcoming: 'bg-blue-50 text-blue-700',
-  running: 'bg-green-50 text-green-700',
-  voting: 'bg-yellow-50 text-yellow-700',
-  completed: 'bg-gray-100 text-gray-500',
-}
+const dt = (iso: string) => new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
-}
+type Entry = { id: string; votes_count: number; projects: { title: string; slug: string | null } | null; profiles: { username: string; display_name: string | null } | null }
 
+/**
+ * A jam: who runs it → when (its phases, with where it stands now) → what it is → participation.
+ * Participation is entries, and an entry is an existing project — the row links to its canonical page. The jam
+ * has no posts or devlogs of its own. Results (votes) are shown only once voting has opened.
+ */
 export default async function JamDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const supabase = await createClient()
@@ -27,137 +32,101 @@ export default async function JamDetailPage({ params }: { params: Promise<{ slug
     .eq('slug', slug)
     .maybeSingle()
 
-  if (!jam || (!jam.admin_approved && jam.profiles?.username !== (user ? (await supabase.from('profiles').select('username').eq('id', user.id).maybeSingle()).data?.username : null))) notFound()
+  // RLS already limits reads to approved jams and the host's own; this keeps the same 404 for anything else.
+  const isHost = !!user && jam?.host_id === user.id
+  if (!jam || (!jam.admin_approved && !isHost)) notFound()
+  const j = jam as unknown as typeof jam & { profiles: { username: string; display_name: string | null } | null }
 
-  type Jam = typeof jam & { profiles: { username: string; display_name: string | null } }
-  const j = jam as unknown as Jam
-
-  const { data: entries } = await supabase
+  const { data: entries, error: entriesError } = await supabase
     .from('jam_entries')
     .select('id, votes_count, projects!project_id(title, slug), profiles!team_lead_id(username, display_name)')
     .eq('jam_id', jam.id)
     .order('votes_count', { ascending: false })
     .limit(20)
-
-  type Entry = { id: string; votes_count: number; projects: { title: string; slug: string | null } | null; profiles: { username: string; display_name: string | null } | null }
   const typedEntries = (entries ?? []) as unknown as Entry[]
 
-  const canSubmit = j.status === 'running' && !!user
-  const canVote = j.status === 'voting' && !!user
-  const hasResults = j.status === 'completed' || j.status === 'voting'
+  const status: string = j.status
+  const phase = JAM_PHASE[status] ?? { label: status, tone: 'neutral' as const }
+  const showResults = status === 'completed' || status === 'voting'
+  const steps: Step[] =
+    status === 'cancelled'
+      ? [{ label: 'This jam was cancelled', state: 'ended' }]
+      : [
+          { label: 'The jam runs', state: status === 'upcoming' || status === 'running' ? 'current' : 'done', note: `${dt(j.start_at)} → ${dt(j.end_at)}` },
+          { label: 'Voting', state: status === 'voting' ? 'current' : status === 'completed' ? 'done' : 'todo', note: `${dt(j.voting_start_at)} → ${dt(j.voting_end_at)}` },
+          { label: 'Results', state: status === 'completed' ? 'current' : 'todo', note: status === 'completed' ? 'Final.' : 'Published when voting closes.' },
+        ]
 
   return (
-    <PageShell wide>
-      <PanelHeader breadcrumb={[{ label: 'Jams', href: '/jams' }, { label: j.title }]} />
-      <PanelBody>
-        <Link href="/jams" className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-gray-400 hover:text-indigo-600 transition-colors mb-6">
-          <ArrowLeft className="h-3 w-3" /> All jams
-        </Link>
+    <DiscoveryFrame label="Jams">
+      {() => (
+        <article className="max-w-3xl">
+          <Link href="/jams" className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← Game jams</Link>
 
-        <div className="flex flex-wrap items-start gap-3 mb-2">
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider ${STATUS_COLORS[j.status] ?? 'bg-gray-100 text-gray-500'}`}>
-            {j.status}
-          </span>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{j.title}</h1>
-        </div>
-        <p className="text-sm text-gray-500 mb-2">
-          Hosted by <Link href={`/dev/${j.profiles.username}`} className="text-indigo-600 hover:underline">{j.profiles.display_name ?? j.profiles.username}</Link>
-        </p>
-        {j.theme && <p className="text-sm font-medium text-indigo-600 mb-6">Theme: {j.theme}</p>}
+          <ObjectHeader title={j.title} state={<StatusText label={phase.label} tone={phase.tone} />}>
+            {j.profiles && <p>Hosted by <Link href={`/dev/${j.profiles.username}`} className="font-medium text-link underline-offset-2 hover:underline">{j.profiles.display_name ?? j.profiles.username}</Link></p>}
+            {j.theme && <p><span className="font-medium text-fg">Theme:</span> {j.theme}</p>}
+          </ObjectHeader>
 
-        {/* Timeline */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
-          {[
-            { label: 'Jam Starts', value: j.start_at },
-            { label: 'Jam Ends', value: j.end_at },
-            { label: 'Voting Opens', value: j.voting_start_at },
-            { label: 'Voting Closes', value: j.voting_end_at },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-1">{label}</div>
-              <div className="text-sm text-gray-900">{formatDate(value)}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Description */}
-        <div className="mb-8">
-          <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">About</h2>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{j.description}</p>
-        </div>
-
-        {/* Rules */}
-        {j.rules && (
-          <div className="mb-8">
-            <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">Rules</h2>
-            <div className="prose prose-sm max-w-none">
-              <MarkdownRenderer content={j.rules} />
-            </div>
-          </div>
-        )}
-
-        {/* Prizes */}
-        {j.prizes && Object.keys(j.prizes).length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">Prizes</h2>
-            <div className="space-y-2">
-              {Object.entries(j.prizes as Record<string, string>).map(([place, prize]) => (
-                <div key={place} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3">
-                  <span className="text-sm font-mono font-semibold text-gray-500 w-16">{place}</span>
-                  <span className="text-sm text-gray-900">{prize}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Entries */}
-        {typedEntries.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">
-              Entries ({typedEntries.length})
-            </h2>
-            <div className="space-y-2">
-              {typedEntries.map((entry, i) => (
-                <div key={entry.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    {hasResults && <span className="text-sm font-mono font-semibold text-gray-400 w-6">{i + 1}.</span>}
-                    <div>
-                      <span className="text-sm font-medium text-gray-900">{entry.projects?.title ?? 'Untitled'}</span>
-                      <span className="ml-2 text-[11px] font-mono text-gray-400">by {entry.profiles?.display_name ?? entry.profiles?.username}</span>
-                    </div>
-                  </div>
-                  {hasResults && (
-                    <span className="text-[11px] font-mono text-indigo-500">{entry.votes_count} vote{entry.votes_count !== 1 ? 's' : ''}</span>
-                  )}
-                  {canVote && (
-                    <Link href={`/jams/${slug}/vote#entry-${entry.id}`} className="text-xs font-mono text-indigo-600 hover:underline">Vote →</Link>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* CTAs */}
-        <div className="flex flex-wrap gap-3">
-          {canSubmit && (
-            <Link href={`/jams/${slug}/submit`} className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5">
-              Submit Entry
-            </Link>
+          {!j.admin_approved && isHost && (
+            <p role="status" className="mt-6 rounded-media border border-warning-line bg-warning-subtle px-4 py-3 text-small text-warning">Awaiting review by the Glyph team. Only you can see this page until it is approved.</p>
           )}
-          {canVote && (
-            <Link href={`/jams/${slug}/vote`} className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20">
-              Vote on Entries
-            </Link>
-          )}
-          {j.status === 'completed' && (
-            <Link href={`/jams/${slug}/results`} className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20">
-              View Results
-            </Link>
-          )}
-        </div>
-      </PanelBody>
-    </PageShell>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            {status === 'running' && (user ? <Button asChild variant="primary"><Link href={`/jams/${slug}/submit`}>Submit a project</Link></Button> : <Button asChild variant="primary"><Link href="/login">Sign in to enter</Link></Button>)}
+            {status === 'voting' && (user ? <Button asChild variant="primary"><Link href={`/jams/${slug}/vote`}>Vote on entries</Link></Button> : <Button asChild variant="primary"><Link href="/login">Sign in to vote</Link></Button>)}
+            {showResults && <Button asChild variant={status === 'completed' ? 'primary' : 'secondary'}><Link href={`/jams/${slug}/results`}>{status === 'completed' ? 'View results' : 'Standings so far'}</Link></Button>}
+          </div>
+
+          <div className="mt-8 space-y-8">
+            <Section id="jam-when" title="When"><StatusSteps label="Jam phases" steps={steps} /></Section>
+
+            <Section id="jam-about" title="About">
+              <p className="max-w-prose whitespace-pre-wrap text-body text-fg-secondary [overflow-wrap:anywhere]">{j.description}</p>
+              <MetadataBar className="mt-4" items={[{ label: 'Team size', value: `up to ${j.max_team_size}` }, { label: 'Pre-made assets', value: j.allow_existing_assets ? 'Allowed' : 'Not allowed' }]} />
+            </Section>
+
+            {j.rules && <Section id="jam-rules" title="Rules"><MarkdownRenderer content={j.rules} className="max-w-2xl" /></Section>}
+
+            {j.prizes && Object.keys(j.prizes).length > 0 && (
+              <Section id="jam-prizes" title="Prizes">
+                <dl className="divide-y divide-line-subtle border-y border-line-subtle">
+                  {Object.entries(j.prizes as Record<string, string>).map(([place, prize]) => (
+                    <div key={place} className="flex gap-4 py-2"><dt className="w-20 shrink-0 text-small font-medium text-fg-muted">{place}</dt><dd className="text-body text-fg">{prize}</dd></div>
+                  ))}
+                </dl>
+              </Section>
+            )}
+
+            <Section id="jam-entries" title="Entries" count={typedEntries.length || undefined} description="Projects entered in this jam. Each opens its own project page.">
+              {entriesError ? (
+                <EmptyState kind="restricted" className="border-y-0 py-2" title="Entries could not be loaded" description="Reload the page to try again." />
+              ) : typedEntries.length === 0 ? (
+                <EmptyState kind="first-use" className="border-y-0 py-2" title="No entries yet" description={status === 'upcoming' ? 'Entries open when the jam starts.' : status === 'running' ? 'Be the first to enter a project.' : 'Nobody entered this jam.'} />
+              ) : (
+                <ul className="divide-y divide-line-subtle border-y border-line-subtle">
+                  {typedEntries.map((entry, i) => {
+                    const lead = entry.profiles?.username
+                    const href = lead && entry.projects?.slug ? `/p/${lead}/${entry.projects.slug}` : null
+                    return (
+                      <li key={entry.id} className="flex items-center gap-3 py-3">
+                        {showResults && <span className="w-6 shrink-0 font-mono text-small text-fg-muted">{i + 1}</span>}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-body font-medium text-fg [overflow-wrap:anywhere]">
+                            {href ? <Link href={href} className="inline-flex min-h-11 items-center hover:text-link sm:min-h-0">{entry.projects?.title ?? 'Untitled'}</Link> : entry.projects?.title ?? 'Untitled'}
+                          </p>
+                          <p className="text-small text-fg-muted">by {entry.profiles?.display_name ?? lead}</p>
+                        </div>
+                        {showResults && <span className="shrink-0 font-mono text-small text-fg-secondary">{entry.votes_count} {entry.votes_count === 1 ? 'vote' : 'votes'}</span>}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </Section>
+          </div>
+        </article>
+      )}
+    </DiscoveryFrame>
   )
 }

@@ -1,6 +1,9 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PageShell, PanelHeader, PanelBody } from '@/components/layout/PageShell'
+import Link from 'next/link'
+import { DiscoveryFrame } from '@/components/discovery/DiscoveryFrame'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { JamSubmitForm } from '@/components/jams/JamSubmitForm'
 import type { Project } from '@/lib/supabase/types'
 
@@ -20,21 +23,19 @@ export default async function JamSubmitPage({ params }: { params: Promise<{ slug
   const typedProjects = (projects ?? []) as Pick<Project, 'id' | 'title'>[]
 
   return (
-    <PageShell>
-      <PanelHeader breadcrumb={[{ label: 'Jams', href: '/jams' }, { label: jam.title, href: `/jams/${slug}` }, { label: 'Submit Entry' }]} />
-      <PanelBody>
-        <div className="mb-6">
-          <h1 className="text-lg font-semibold tracking-tight text-gray-900 mb-1">Submit Your Entry</h1>
-          <p className="text-sm text-gray-500">Submit a project for <strong>{jam.title}</strong>. You can update your submission before the jam ends.</p>
+    <DiscoveryFrame label="Jams">
+      {() => (
+        <div className="max-w-2xl">
+          <Link href={`/jams/${slug}`} className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← {jam.title}</Link>
+          <h1 className="mt-1 text-h1 font-semibold text-fg">Submit a project</h1>
+          <p className="mb-6 mt-1 max-w-prose text-small text-fg-secondary">Enter one of your Glyph projects in <strong className="font-medium text-fg">{jam.title}</strong>. The entry is your project itself — voters open its project page — so keep it up to date. You can change your submission until the jam ends.</p>
+          {typedProjects.length === 0 ? (
+            <EmptyState kind="first-use" title="You need a project to enter" description="Jam entries are Glyph projects." action={<Button asChild variant="primary" size="sm"><Link href="/dashboard/projects/new">Create a project</Link></Button>} />
+          ) : (
+            <JamSubmitForm jamId={jam.id} jamSlug={slug} projects={typedProjects} />
+          )}
         </div>
-        {typedProjects.length === 0 ? (
-          <div className="text-center py-16 text-sm text-gray-500">
-            You need a project to submit. <a href="/dashboard/projects/new" className="text-indigo-600 hover:underline">Create one first →</a>
-          </div>
-        ) : (
-          <JamSubmitForm jamId={jam.id} jamSlug={slug} projects={typedProjects} />
-        )}
-      </PanelBody>
-    </PageShell>
+      )}
+    </DiscoveryFrame>
   )
 }

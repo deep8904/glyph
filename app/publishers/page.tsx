@@ -1,79 +1,61 @@
-import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { PageShell, PanelHeader, PanelBody, EmptyState } from '@/components/layout/PageShell'
-import { Building2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { DiscoveryFrame } from '@/components/discovery/DiscoveryFrame'
+import { Pager } from '@/components/discovery/Pager'
+import { PublisherRow, type PublisherListRow } from '@/components/publisher/PublisherRow'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { parsePage } from '@/lib/discovery/queries'
 
-export default async function PublishersPage() {
+export const metadata = { title: 'Publishers — Glyph' }
+const PAGE_SIZE = 20
+
+/**
+ * Directory of verified publishers — identity only. Verification is an admin decision; RLS exposes only verified
+ * accounts (plus your own), newest verified first, no filters or metrics. A publisher's relationship with a
+ * developer lives on the project page and in private inboxes, not here.
+ */
+export default async function PublishersPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const page = parsePage((await searchParams).page)
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const from = (page - 1) * PAGE_SIZE
 
-  const { data: publishers } = await supabase
+  const { data, error } = await supabase
     .from('publisher_accounts')
-    .select('id, company_name, verified, created_at, profiles!user_id(username, display_name, avatar_url)')
+    .select('id, company_name, description, website')
     .eq('verified', true)
     .order('created_at', { ascending: false })
-    .limit(50)
-
-  type Publisher = { id: string; company_name: string; verified: boolean; created_at: string; profiles: { username: string; display_name: string | null; avatar_url: string | null } | null }
-  const typedPublishers = (publishers ?? []) as unknown as Publisher[]
+    .order('id', { ascending: false })
+    .range(from, from + PAGE_SIZE)
+    .returns<PublisherListRow[]>()
+  const rows = (data ?? []).slice(0, PAGE_SIZE)
+  const hasMore = (data ?? []).length > PAGE_SIZE
 
   return (
-    <PageShell wide>
-      <PanelHeader
-        breadcrumb={[{ label: 'Publishers' }]}
-        action={
-          user ? (
-            <Link href="/dashboard/publisher" className="text-xs text-indigo-600 hover:underline">My publisher account →</Link>
-          ) : null
-        }
-      />
-      <PanelBody>
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold tracking-tight text-gray-900 mb-1">Publisher Directory</h1>
-          <p className="text-sm text-gray-500">Verified publishers looking to connect with indie game developers.</p>
-        </div>
+    <DiscoveryFrame label="Publishers">
+      {(viewer) => (
+        <div>
+          <header>
+            <h1 className="text-h1 font-semibold text-fg">Publishers</h1>
+            <p className="mt-1 max-w-prose text-small text-fg-secondary">Verified by Glyph. Developers decide whether to reply.</p>
+          </header>
 
-        {typedPublishers.length === 0 ? (
-          <EmptyState
-            icon={<Building2 className="h-8 w-8 text-gray-300" />}
-            title="No publishers yet"
-            description="Publishers will appear here once verified by the Glyph team."
-            action={
-              user
-                ? <Link href="/dashboard/publisher" className="rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:-translate-y-0.5">Register as Publisher</Link>
-                : undefined
-            }
-          />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {typedPublishers.map((pub) => (
-              <div key={pub.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center flex-shrink-0">
-                    <Building2 className="h-5 w-5 text-indigo-400" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{pub.company_name}</p>
-                    {pub.profiles && (
-                      <Link href={`/dev/${pub.profiles.username}`} className="text-[10px] font-mono text-indigo-500 hover:underline">
-                        @{pub.profiles.username}
-                      </Link>
-                    )}
-                  </div>
-                </div>
-                {user && (
-                  <Link
-                    href={`/dashboard/publisher/contact/${pub.id}`}
-                    className="block text-center rounded-full border border-indigo-200 px-4 py-2 text-xs font-mono text-indigo-600 hover:bg-indigo-50 transition-colors"
-                  >
-                    View Profile
-                  </Link>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </PanelBody>
-    </PageShell>
+          {error ? (
+            <ErrorState className="mt-6" title="The directory could not be loaded" description="This may be temporary." retryHref={`/publishers${page > 1 ? `?page=${page}` : ''}`} />
+          ) : rows.length === 0 ? (
+            <EmptyState
+              kind={page > 1 ? 'no-results' : 'first-use'}
+              className="mt-6"
+              title={page > 1 ? 'Nothing further in the directory' : 'No verified publishers yet'}
+              description={viewer ? 'Represent a publisher? Register your account; accounts are reviewed before they are listed.' : 'Publishers appear here once Glyph has verified them.'}
+              action={viewer ? <Link href="/dashboard/publisher" className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">Publisher tools</Link> : undefined}
+            />
+          ) : (
+            <ul className="mt-4 divide-y divide-line-subtle border-y border-line-subtle">{rows.map((p) => <PublisherRow key={p.id} publisher={p} />)}</ul>
+          )}
+          <Pager page={page} hasMore={hasMore} hrefForPage={(n) => `/publishers${n > 1 ? `?page=${n}` : ''}`} />
+        </div>
+      )}
+    </DiscoveryFrame>
   )
 }

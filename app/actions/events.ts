@@ -69,9 +69,8 @@ export async function rsvpToEvent(eventId: string, status: 'going' | 'maybe' | '
     await supabase.from('event_rsvps').insert({ event_id: eventId, user_id: user.id, status })
   }
 
-  // Update rsvp_count (going only)
-  const { count } = await supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'going')
-  await supabase.from('events').update({ rsvp_count: count ?? 0 }).eq('id', eventId)
+  // events.rsvp_count is kept correct by the recompute_event_rsvp_count trigger (migration 038),
+  // which runs as the row owner regardless of who RSVPs — no client-side update needed here.
 
   revalidatePath(`/events/${eventId}`)
   return { ok: true }

@@ -1,17 +1,17 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useId, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
 import { createCollabPost } from '@/app/actions/collaboration'
 import { ROLES, CONTRACT_TYPES } from '@/lib/supabase/types'
-
-const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all duration-300'
-const selectCls = `${inputCls} appearance-none cursor-pointer`
-const labelCls = 'block text-[11px] font-mono font-semibold uppercase tracking-widest text-gray-400 mb-2'
+import { Button } from '@/components/ui/Button'
+import { Field } from '@/components/ui/Field'
+import { Input, Select, Textarea } from '@/components/ui/controls'
 
 export function NewCollabForm({ projects }: { projects: { id: string; title: string }[] }) {
   const router = useRouter()
+  const uid = useId()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState('')
 
@@ -50,108 +50,113 @@ export function NewCollabForm({ projects }: { projects: { id: string; title: str
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className={labelCls}>Post Type *</label>
-        <div className="flex gap-3">
-          {(['seeking_collaborator', 'available_to_collaborate'] as const).map((t) => (
-            <button key={t} type="button" onClick={() => setPostType(t)}
-              className={`flex-1 rounded-xl py-3 text-sm font-medium transition-all duration-200 ${postType === t ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'border border-gray-200 bg-white text-gray-600 hover:border-indigo-200'}`}>
-              {t === 'seeking_collaborator' ? 'Seeking Collaborator' : 'Available to Collaborate'}
-            </button>
+      <fieldset>
+        <legend className="mb-2 text-small font-medium text-fg">What kind of post is this?</legend>
+        <div className="space-y-2">
+          {([
+            ['seeking_collaborator', 'Looking for help', 'You have a project and need someone for a role.'],
+            ['available_to_collaborate', 'Offering help', 'You are available to work on someone else’s project.'],
+          ] as const).map(([value, label, hint]) => (
+            <label key={value} htmlFor={`${uid}-${value}`} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-media border border-line-strong px-3 py-2.5 has-[:checked]:border-accent has-[:checked]:bg-accent-subtle">
+              <input id={`${uid}-${value}`} type="radio" name="post_type" value={value} checked={postType === value} onChange={() => setPostType(value)} className="mt-0.5 size-5 accent-[var(--accent)]" />
+              <span>
+                <span className="block text-body font-medium text-fg">{label}</span>
+                <span className="block text-small text-fg-muted">{hint}</span>
+              </span>
+            </label>
           ))}
         </div>
-      </div>
+      </fieldset>
 
-      {isSeeking && (
-        <div>
-          <label className={labelCls}>Project (required for Seeking) *</label>
-          {projects.length === 0 ? (
-            <p className="text-sm text-red-500">You need a project to post a "Seeking collaborator" listing. <a href="/dashboard/projects/new" className="underline">Create one first.</a></p>
-          ) : (
-            <select className={selectCls} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-              <option value="">— Select project —</option>
-              {projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-            </select>
-          )}
-        </div>
-      )}
-
-      {!isSeeking && projects.length > 0 && (
-        <div>
-          <label className={labelCls}>Link to Project (optional)</label>
-          <select className={selectCls} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-            <option value="">— No project —</option>
-            {projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-          </select>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {isSeeking ? (
-          <div>
-            <label className={labelCls}>Role Needed</label>
-            <select className={selectCls} value={roleNeeded} onChange={(e) => setRoleNeeded(e.target.value)}>
-              <option value="">Select role…</option>
-              {ROLES.map((r) => <option key={r.value} value={r.label}>{r.label}</option>)}
-            </select>
-          </div>
+      {isSeeking ? (
+        projects.length === 0 ? (
+          <p role="alert" className="text-small text-danger">
+            A “Looking for help” post has to be about a project. <Link href="/dashboard/projects/new" className="font-medium underline">Create one first.</Link>
+          </p>
         ) : (
-          <div>
-            <label className={labelCls}>Role Offered</label>
-            <select className={selectCls} value={roleOffered} onChange={(e) => setRoleOffered(e.target.value)}>
-              <option value="">Select role…</option>
-              {ROLES.map((r) => <option key={r.value} value={r.label}>{r.label}</option>)}
-            </select>
-          </div>
+          <Field label="Project" required hint="The project this role is for.">
+            {(p) => (
+              <Select {...p} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+                <option value="">Select a project…</option>
+                {projects.map((pr) => <option key={pr.id} value={pr.id}>{pr.title}</option>)}
+              </Select>
+            )}
+          </Field>
+        )
+      ) : (
+        projects.length > 0 && (
+          <Field label="Related project" hint="Optional.">
+            {(p) => (
+              <Select {...p} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+                <option value="">No project</option>
+                {projects.map((pr) => <option key={pr.id} value={pr.id}>{pr.title}</option>)}
+              </Select>
+            )}
+          </Field>
+        )
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {isSeeking ? (
+          <Field label="Role needed" required>
+            {(p) => (
+              <Select {...p} value={roleNeeded} onChange={(e) => setRoleNeeded(e.target.value)}>
+                <option value="">Select a role…</option>
+                {ROLES.map((r) => <option key={r.value} value={r.label}>{r.label}</option>)}
+              </Select>
+            )}
+          </Field>
+        ) : (
+          <Field label="Role you offer">
+            {(p) => (
+              <Select {...p} value={roleOffered} onChange={(e) => setRoleOffered(e.target.value)}>
+                <option value="">Select a role…</option>
+                {ROLES.map((r) => <option key={r.value} value={r.label}>{r.label}</option>)}
+              </Select>
+            )}
+          </Field>
         )}
-        <div>
-          <label className={labelCls}>Contract Type *</label>
-          <select className={selectCls} value={contractType} onChange={(e) => setContractType(e.target.value as typeof contractType)}>
-            {CONTRACT_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
-        </div>
+        <Field label="Arrangement" required>
+          {(p) => (
+            <Select {...p} value={contractType} onChange={(e) => setContractType(e.target.value as typeof contractType)}>
+              {CONTRACT_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </Select>
+          )}
+        </Field>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className={labelCls}>Compensation Range (optional)</label>
-          <input className={inputCls} value={compensationRange} onChange={(e) => setCompensationRange(e.target.value)} placeholder="e.g. 10-20% rev share" maxLength={200} />
-        </div>
-        <div>
-          <label className={labelCls}>Time Commitment (optional)</label>
-          <input className={inputCls} value={timeCommitment} onChange={(e) => setTimeCommitment(e.target.value)} placeholder="e.g. 10h/week" maxLength={200} />
-        </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Compensation" hint="Optional, e.g. 10–20% rev share.">
+          {(p) => <Input {...p} value={compensationRange} onChange={(e) => setCompensationRange(e.target.value)} maxLength={200} />}
+        </Field>
+        <Field label="Time commitment" hint="Optional, e.g. 10h/week.">
+          {(p) => <Input {...p} value={timeCommitment} onChange={(e) => setTimeCommitment(e.target.value)} maxLength={200} />}
+        </Field>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button type="button" role="switch" aria-checked={remoteAllowed} onClick={() => setRemoteAllowed((p) => !p)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${remoteAllowed ? 'bg-indigo-600' : 'bg-gray-200'}`}>
-          <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${remoteAllowed ? 'translate-x-6' : 'translate-x-1'}`} />
-        </button>
-        <span className="text-sm text-gray-700">Remote OK</span>
-      </div>
+      <label htmlFor={`${uid}-remote`} className="flex min-h-11 cursor-pointer items-center gap-3">
+        <input id={`${uid}-remote`} type="checkbox" checked={remoteAllowed} onChange={(e) => setRemoteAllowed(e.target.checked)} className="size-5 accent-[var(--accent)]" />
+        <span className="text-body text-fg">Remote is fine</span>
+      </label>
 
       {!remoteAllowed && (
-        <div>
-          <label className={labelCls}>Location</label>
-          <input className={inputCls} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. London, UK" maxLength={100} />
-        </div>
+        <Field label="Location">
+          {(p) => <Input {...p} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. London, UK" maxLength={100} />}
+        </Field>
       )}
 
-      <div>
-        <label className={labelCls}>Description *</label>
-        <textarea className={`${inputCls} resize-none`} rows={5} maxLength={5000} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={isSeeking ? "Describe your project and what you're looking for in a collaborator…" : "Describe your skills, what you're looking to work on, and what you bring to a project…"} required />
-        <p className="mt-1 text-right text-[11px] font-mono text-gray-400">{description.length}/5000</p>
-      </div>
+      <Field label="Description" required hint={`${description.length}/5000`}>
+        {(p) => (
+          <Textarea {...p} rows={6} maxLength={5000} value={description} onChange={(e) => setDescription(e.target.value)} required placeholder={isSeeking ? 'What the project is, what the role involves, and what you are looking for in a person.' : 'Your skills, what you want to work on, and what you bring to a project.'} />
+        )}
+      </Field>
+      <p className="text-small text-fg-muted">Posts stay open for 60 days. You review applications, and can mark the post filled or close it at any time.</p>
 
-      {error && <p className="text-xs font-mono text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>}
+      {error && <p role="alert" className="rounded-media border border-danger-line bg-danger-subtle px-4 py-3 text-small text-danger">{error}</p>}
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2">
-        <button type="button" onClick={() => router.push('/collaborate')} className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-300">Cancel</button>
-        <button type="submit" disabled={pending} className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 disabled:opacity-60 disabled:pointer-events-none">
-          {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-          Post
-        </button>
+      <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="ghost" onClick={() => router.push('/collaborate')}>Cancel</Button>
+        <Button type="submit" variant="primary" loading={pending}>Post opportunity</Button>
       </div>
     </form>
   )

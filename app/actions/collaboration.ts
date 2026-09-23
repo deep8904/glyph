@@ -5,6 +5,22 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { stripDangerousUnicode } from '@/lib/utils'
 
+/*
+ * Lifecycle rules (who may apply, valid status changes, notifications) are
+ * enforced in the database by migration 032 — these actions validate input,
+ * give clear errors, and never duplicate those rules as the only line of defence.
+ * Errors raised deliberately by the database (SQLSTATE P0001) are safe to show;
+ * anything else becomes a generic message.
+ */
+
+type DbError = { code?: string; message: string } | null
+function friendly(error: DbError, fallback: string): string {
+  if (!error) return fallback
+  if (error.code === 'P0001') return error.message
+  if (error.code === '23505') return 'You have already applied to this post.'
+  return fallback
+}
+
 export type CollabPostInput = {
   project_id: string
   post_type: 'seeking_collaborator' | 'available_to_collaborate'
@@ -27,7 +43,6 @@ export async function createCollabPost(input: CollabPostInput) {
   if (!['seeking_collaborator', 'available_to_collaborate'].includes(input.post_type)) return { error: 'Invalid post type.' }
   if (!['full_time', 'part_time', 'freelance', 'rev_share', 'volunteer'].includes(input.contract_type)) return { error: 'Invalid contract type.' }
 
-  // Verify project ownership if provided
   let projectId: string | null = null
   if (input.project_id) {
     const { data: project } = await supabase.from('projects').select('id').eq('id', input.project_id).eq('owner_id', user.id).maybeSingle()
@@ -35,12 +50,14 @@ export async function createCollabPost(input: CollabPostInput) {
     projectId = project.id
   }
 
-  // "Seeking collaborator" requires a linked project
   if (input.post_type === 'seeking_collaborator' && !projectId) {
     return { error: 'Seeking collaborator posts must link to a project.' }
   }
+  if (input.post_type === 'seeking_collaborator' && !input.role_needed.trim()) {
+    return { error: 'Say which role you are looking for.' }
+  }
 
-  const { error } = await supabase.from('collaboration_posts').insert({
+  const { data: created, error } = await supabase.from('collaboration_posts').insert({
     project_id: projectId,
     author_id: user.id,
     post_type: input.post_type,
@@ -52,10 +69,12 @@ export async function createCollabPost(input: CollabPostInput) {
     remote_allowed: input.remote_allowed,
     location: input.location ? stripDangerousUnicode(input.location.slice(0, 100)) : null,
     description: stripDangerousUnicode(input.description.trim()),
-  })
+  }).select('id').single()
 
-  if (error) return { error: error.message }
-  redirect('/collaborate')
+  if (error || !created) return { error: 'Could not publish the post. Try again.' }
+  revalidatePath('/collaborate')
+  // Land on the post itself so the author sees exactly what was published.
+  redirect(`/collaborate/${created.id}`)
 }
 
 export async function applyToCollabPost(postId: string, message: string) {
@@ -63,60 +82,78 @@ export async function applyToCollabPost(postId: string, message: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Sign in to apply.' }
 
-  if (!message || message.length > 2000) return { error: 'Message required (max 2000 chars).' }
+  const clean = stripDangerousUnicode((message ?? '').trim())
+  if (!clean || clean.length > 2000) return { error: 'Message required (max 2000 chars).' }
 
-  const { data: post } = await supabase.from('collaboration_posts').select('author_id, status').eq('id', postId).maybeSingle()
-  if (!post) return { error: 'Post not found.' }
-  if (post.author_id === user.id) return { error: "You can't apply to your own post." }
-  if (post.status !== 'open') return { error: 'This post is no longer open.' }
-
+  // Open / not expired / not your own post / not blocked are enforced by the
+  // collab_applications_guard trigger; its message is shown as-is.
   const { error } = await supabase.from('collaboration_applications').insert({
     post_id: postId,
     applicant_id: user.id,
-    message: stripDangerousUnicode(message.trim()),
+    message: clean,
   })
-  if (error?.code === '23505') return { error: 'You already applied to this post.' }
-  if (error) return { error: error.message }
+  if (error) return { error: friendly(error, 'Could not send your application. Try again.') }
 
-  // Notify post author
-  await supabase.from('notifications').insert({
-    recipient_id: post.author_id,
-    actor_id: user.id,
-    type: 'mention',
-    entity_type: 'collaboration_post',
-    entity_id: postId,
-  })
-
+  revalidatePath(`/collaborate/${postId}`)
+  revalidatePath('/collaborate')
   return { ok: true }
 }
 
 export async function updateApplicationStatus(applicationId: string, status: 'accepted' | 'rejected') {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Unauthorized' }
+  if (!user) return { error: 'Sign in to continue.' }
+  if (status !== 'accepted' && status !== 'rejected') return { error: 'Invalid decision.' }
 
-  const { data: app } = await supabase
+  // Only the post owner may decide, and only on a pending application (guard trigger + RLS).
+  const { data, error } = await supabase
     .from('collaboration_applications')
-    .select('post_id, applicant_id')
+    .update({ status })
     .eq('id', applicationId)
-    .maybeSingle()
-  if (!app) return { error: 'Application not found.' }
+    .select('post_id')
+  if (error) return { error: friendly(error, 'Could not save your decision. Try again.') }
+  if (!data || data.length === 0) return { error: 'Application not found or not yours to decide.' }
 
-  const { data: post } = await supabase.from('collaboration_posts').select('author_id').eq('id', app.post_id).maybeSingle()
-  if (!post || post.author_id !== user.id) return { error: 'Not authorized.' }
-
-  await supabase.from('collaboration_applications').update({ status }).eq('id', applicationId)
-  revalidatePath(`/collaborate/${app.post_id}`)
+  revalidatePath(`/collaborate/${data[0].post_id}`)
   return { ok: true }
 }
 
-export async function closeCollabPost(postId: string) {
+export async function withdrawApplication(applicationId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Unauthorized' }
+  if (!user) return { error: 'Sign in to continue.' }
 
-  const { error } = await supabase.from('collaboration_posts').update({ status: 'closed' }).eq('id', postId).eq('author_id', user.id)
-  if (error) return { error: error.message }
+  const { data, error } = await supabase
+    .from('collaboration_applications')
+    .update({ status: 'withdrawn' })
+    .eq('id', applicationId)
+    .eq('applicant_id', user.id)
+    .select('post_id')
+  if (error) return { error: friendly(error, 'Could not withdraw your application. Try again.') }
+  if (!data || data.length === 0) return { error: 'Application not found.' }
+
+  revalidatePath(`/collaborate/${data[0].post_id}`)
+  return { ok: true }
+}
+
+/** 'filled' = you found someone; 'closed' = you are no longer looking. Both stop new applications. */
+export async function closeCollabPost(postId: string, outcome: 'filled' | 'closed' = 'closed') {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sign in to continue.' }
+  if (outcome !== 'filled' && outcome !== 'closed') return { error: 'Invalid outcome.' }
+
+  const { data, error } = await supabase
+    .from('collaboration_posts')
+    .update({ status: outcome })
+    .eq('id', postId)
+    .eq('author_id', user.id)
+    .eq('status', 'open')
+    .select('id')
+  if (error) return { error: 'Could not update the post. Try again.' }
+  if (!data || data.length === 0) return { error: 'This post is already closed.' }
+
   revalidatePath('/collaborate')
+  revalidatePath(`/collaborate/${postId}`)
   return { ok: true }
 }

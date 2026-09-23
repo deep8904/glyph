@@ -1,13 +1,18 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Calendar } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { Avatar } from '@/components/ui/Avatar'
+import { Button } from '@/components/ui/Button'
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
 import { ReactionsBar } from '@/components/devlog/ReactionsBar'
 import { CommentThread } from '@/components/devlog/CommentThread'
+import { ProjectIdentityMarker } from '@/components/project/ProjectIdentityMarker'
 import { REACTION_TYPES } from '@/lib/supabase/types'
-import type { Profile, Project, DevlogPost, Comment } from '@/lib/supabase/types'
+import type { Profile, Project, DevlogPost } from '@/lib/supabase/types'
 import type { CommentData } from '@/components/devlog/CommentThread'
+import { Shell } from '@/components/shell/Shell'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -16,10 +21,6 @@ function formatDate(iso: string) {
     day: 'numeric',
     year: 'numeric',
   })
-}
-
-function initials(name: string) {
-  return name.slice(0, 1).toUpperCase()
 }
 
 export default async function DevlogPostPage({
@@ -44,10 +45,10 @@ export default async function DevlogPostPage({
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, title, slug, visibility')
+    .select('id, title, slug, visibility, stage, cover_url, cover_image_url')
     .eq('owner_id', profile.id)
     .eq('slug', projectSlug)
-    .maybeSingle<Pick<Project, 'id' | 'title' | 'slug' | 'visibility'>>()
+    .maybeSingle<Pick<Project, 'id' | 'title' | 'slug' | 'visibility' | 'stage' | 'cover_url' | 'cover_image_url'>>()
 
   if (!project) notFound()
 
@@ -69,8 +70,9 @@ export default async function DevlogPostPage({
   // Fetch reactions, comments, and current user's profile in parallel
   const [
     { data: allReactions },
-    { data: rawComments },
+    { data: rawComments, error: commentsError },
     { data: currentProfile },
+    { data: siblings },
   ] = await Promise.all([
     supabase
       .from('reactions')
@@ -84,7 +86,23 @@ export default async function DevlogPostPage({
     currentUser
       ? supabase.from('profiles').select('id').eq('id', currentUser.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    // Published siblings in publish order, for previous/next. Drafts never
+    // appear here, so neither visitors nor the owner can step into a draft.
+    supabase
+      .from('devlog_posts')
+      .select('slug, title, published_at')
+      .eq('project_id', project.id)
+      .not('published_at', 'is', null)
+      .lte('published_at', new Date().toISOString())
+      .order('published_at', { ascending: true })
+      .limit(200),
   ])
+
+  const timeline = siblings ?? []
+  const idx = isDraft ? -1 : timeline.findIndex((d) => d.slug === post.slug)
+  const prevPost = idx > 0 ? timeline[idx - 1] : null
+  const nextPost = idx >= 0 && idx < timeline.length - 1 ? timeline[idx + 1] : null
+  const editHref = `/dashboard/projects/${project.id}/devlogs/${post.id}/edit`
 
   // Build reaction counts
   const reactionCounts = REACTION_TYPES.map(({ type }) => ({
@@ -131,111 +149,72 @@ export default async function DevlogPostPage({
   const currentUserId = currentProfile ? currentUser?.id ?? null : null
 
   return (
-    <div className="min-h-screen relative overflow-hidden font-sans">
-      <div className="fixed inset-0 z-0 bg-plasma pointer-events-none" />
-      <div className="fixed inset-y-0 right-0 w-[120vw] md:w-[70vw] translate-x-[10%] md:translate-x-0 z-0 flex pointer-events-none opacity-40 mix-blend-overlay">
-        <div className="h-full flex-1 relative border-l border-white/60 shadow-[-15px_0_30px_-10px_rgba(255,255,255,1)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.8), rgba(255,255,255,0.4))', backdropFilter: 'blur(20px)' }} />
-        <div className="h-full flex-1 relative border-l border-white/40 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.8)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.4), rgba(255,255,255,0.1))', backdropFilter: 'blur(10px)' }} />
-        <div className="h-full flex-1 relative border-l border-white/20 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.4)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.1), rgba(255,255,255,0))', backdropFilter: 'blur(4px)' }} />
-      </div>
-
-      <main className="relative z-10 w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12 min-h-screen flex flex-col">
-        <div className="flex-1 bg-white/95 backdrop-blur-2xl rounded-[2.5rem] panel-shadow border border-white overflow-hidden flex flex-col">
-          {/* Top bar */}
-          <div className="flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 md:px-10 border-b border-gray-100/50">
-            <Link href="/" className="flex items-center gap-1 text-lg font-semibold tracking-tighter text-gray-900">
-              Glyph<span className="text-indigo-600 leading-none">°</span>
-            </Link>
-            <Link
-              href={`/p/${username}/${projectSlug}`}
-              className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> {project.title}
-            </Link>
+    <Shell breadcrumb={[{ label: ownerName, href: `/dev/${username}` }, { label: project.title, href: `/p/${username}/${projectSlug}` }, { label: post.title }]}>
+      <article className="mx-auto w-full max-w-2xl">
+        {isDraft && (
+          <div role="note" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-media border border-warning-line bg-warning-subtle px-4 py-3 text-small text-warning">
+            <span className="font-medium">Draft — only you can see this post.</span>
+            <Button asChild variant="secondary" size="sm"><Link href={editHref}>Continue editing</Link></Button>
           </div>
+        )}
 
-          <article className="px-5 sm:px-8 md:px-12 py-8 sm:py-10 md:py-12">
-            {isDraft && (
-              <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-mono text-amber-700">
-                Draft — only you can see this post.
-              </div>
+        {/* Record header: project identity, title, author, date */}
+        <header className="mb-8">
+          <div className="mb-4">
+            <ProjectIdentityMarker project={{ title: project.title, slug: project.slug, stage: project.stage, cover_url: project.cover_url, cover_image_url: project.cover_image_url, username }} />
+          </div>
+          <h1 className="text-display font-semibold text-fg [overflow-wrap:anywhere]">{post.title}</h1>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-small text-fg-secondary">
+            <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center gap-2 font-medium text-fg hover:text-link">
+              <Avatar name={ownerName} src={profile.avatar_url} size="sm" />
+              {ownerName}
+            </Link>
+            {post.published_at && <time dateTime={post.published_at}>{formatDate(post.published_at)}</time>}
+            {isOwner && !isDraft && (
+              <Button asChild variant="ghost" size="sm"><Link href={editHref}><Pencil aria-hidden strokeWidth={1.75} className="size-3.5" /> Edit devlog</Link></Button>
             )}
+          </div>
+        </header>
 
-            {/* Post header */}
-            <header className="mb-8 pb-8 border-b border-gray-100">
-              <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <Link
-                  href={`/dev/${username}`}
-                  className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  {profile.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={profile.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
-                  ) : (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-mono font-semibold text-indigo-600">
-                      {initials(ownerName)}
-                    </span>
-                  )}
-                  {ownerName}
-                </Link>
-                <span className="text-gray-300">·</span>
-                <Link href={`/p/${username}/${projectSlug}`} className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors">
-                  {project.title}
-                </Link>
-              </div>
+        {/* Body */}
+        <MarkdownRenderer content={post.content} />
 
-              <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-gray-900 mb-4 leading-tight">
-                {post.title}
-              </h1>
-
-              {post.published_at && (
-                <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-gray-400">
-                  <Calendar className="h-3.5 w-3.5" />
-                  {formatDate(post.published_at)}
-                </div>
-              )}
-            </header>
-
-            {/* Content */}
-            <MarkdownRenderer content={post.content} />
-
-            {/* Reactions */}
-            <div className="mt-10 pt-8 border-t border-gray-100 space-y-2">
-              <p className="text-[11px] font-mono uppercase tracking-widest text-gray-400 mb-3">React</p>
-              <ReactionsBar
-                devlogPostId={post.id}
-                currentUserId={currentUserId}
-                initialCounts={reactionCounts}
-              />
-            </div>
-
-            {/* Comments */}
-            <div className="mt-10 pt-8 border-t border-gray-100">
-              <CommentThread
-                devlogPostId={post.id}
-                currentUserId={currentUserId}
-                comments={topLevel}
-              />
-            </div>
-
-            {/* Footer */}
-            <footer className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
-              <Link
-                href={`/p/${username}/${projectSlug}`}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" /> More devlogs from {project.title}
+        {/* Earlier / later in this project's record */}
+        {(prevPost || nextPost) && (
+          <nav aria-label="Devlog navigation" className="mt-12 grid gap-6 border-t border-line pt-6 sm:grid-cols-2">
+            {prevPost ? (
+              <Link href={`/p/${username}/${projectSlug}/${prevPost.slug}`} className="group block min-h-11">
+                <span className="flex items-center gap-1 text-small text-fg-muted"><ArrowLeft aria-hidden strokeWidth={1.75} className="size-3.5" /> Earlier</span>
+                <span className="mt-1 line-clamp-2 block text-body font-medium text-fg group-hover:text-link">{prevPost.title}</span>
               </Link>
-              <Link
-                href={`/dev/${username}`}
-                className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-              >
-                {ownerName}&apos;s profile →
+            ) : <span className="hidden sm:block" />}
+            {nextPost && (
+              <Link href={`/p/${username}/${projectSlug}/${nextPost.slug}`} className="group block min-h-11 sm:text-right">
+                <span className="flex items-center gap-1 text-small text-fg-muted sm:justify-end">Later <ArrowRight aria-hidden strokeWidth={1.75} className="size-3.5" /></span>
+                <span className="mt-1 line-clamp-2 block text-body font-medium text-fg group-hover:text-link">{nextPost.title}</span>
               </Link>
-            </footer>
-          </article>
-        </div>
-      </main>
-    </div>
+            )}
+          </nav>
+        )}
+
+        {/* Reactions */}
+        <section aria-labelledby="reactions-heading" className="mt-10 border-t border-line pt-6">
+          <h2 id="reactions-heading" className="mb-3 text-h3 font-semibold text-fg">Reactions</h2>
+          <ReactionsBar devlogPostId={post.id} devlogAuthorId={profile.id} currentUserId={currentUserId} initialCounts={reactionCounts} />
+        </section>
+
+        {/* Feedback */}
+        <section id="comments" aria-labelledby="comments-heading" className="mt-10 scroll-mt-20 border-t border-line pt-6">
+          <SectionHeader id="comments-heading" title="Feedback" count={rawList.length > 0 ? rawList.length : undefined} className="mb-4" />
+          <CommentThread devlogPostId={post.id} devlogAuthorId={profile.id} currentUserId={currentUserId} comments={topLevel} loadFailed={!!commentsError} />
+        </section>
+
+        {/* Related context */}
+        <footer className="mt-12 flex flex-col gap-1 border-t border-line pt-6 text-small text-fg-secondary sm:flex-row sm:items-center sm:justify-between">
+          <Link href={`/p/${username}/${projectSlug}`} className="inline-flex min-h-11 items-center font-medium text-link underline-offset-2 hover:underline">More from {project.title}</Link>
+          <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center hover:text-fg hover:underline underline-offset-2">{ownerName}&apos;s profile</Link>
+        </footer>
+      </article>
+    </Shell>
   )
 }

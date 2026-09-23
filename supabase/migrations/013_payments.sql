@@ -30,7 +30,9 @@ create table if not exists public.featured_listings (
 create index if not exists subscriptions_user_idx on public.subscriptions(user_id);
 create index if not exists subscriptions_studio_idx on public.subscriptions(studio_id);
 create index if not exists featured_listings_entity_idx on public.featured_listings(entity_type, entity_id);
-create index if not exists featured_listings_active_idx on public.featured_listings(ends_at) where ends_at > now();
+-- Plain index, not partial on `ends_at > now()` — Postgres requires a
+-- partial index predicate to be IMMUTABLE, and now() is only STABLE.
+create index if not exists featured_listings_ends_at_idx on public.featured_listings(ends_at);
 
 create trigger subscriptions_updated_at
   before update on public.subscriptions

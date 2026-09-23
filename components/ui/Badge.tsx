@@ -1,42 +1,53 @@
+import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
-type BadgeVariant = 'default' | 'secondary' | 'solid' | 'success' | 'muted'
-type BadgeSize = 'sm' | 'md'
+/**
+ * Small status/label chip. Text always says the state; colour only reinforces it.
+ * Legacy `variant` names (default/secondary/solid/success/muted) still work so
+ * existing callers keep rendering; new code uses `tone`.
+ */
+const badgeVariants = cva('inline-flex items-center gap-1 rounded-badge border font-medium', {
+  variants: {
+    tone: {
+      neutral: 'border-line bg-surface-muted text-fg-secondary',
+      accent: 'border-accent-line bg-accent-subtle text-link',
+      success: 'border-success-line bg-success-subtle text-success',
+      warning: 'border-warning-line bg-warning-subtle text-warning',
+      danger: 'border-danger-line bg-danger-subtle text-danger',
+      info: 'border-info-line bg-info-subtle text-info',
+      /** For dark backdrops (public plasma pages) until they are migrated. */
+      'on-dark': 'border-white/20 bg-white/10 text-white',
+    },
+    size: {
+      sm: 'px-1.5 py-px text-micro',
+      md: 'px-2 py-0.5 text-micro',
+    },
+    mono: { true: 'font-mono', false: '' },
+  },
+  defaultVariants: { tone: 'neutral', size: 'md', mono: false },
+})
 
-const VARIANTS: Record<BadgeVariant, string> = {
-  default: 'border border-indigo-200/80 bg-indigo-50/50 text-indigo-600',
-  secondary: 'border border-gray-200 bg-gray-50 text-gray-600',
-  solid: 'border border-indigo-500/30 bg-indigo-500/20 text-indigo-300',
-  success: 'border border-green-200 bg-green-50 text-green-700',
-  muted: 'border border-gray-200 bg-gray-50 text-gray-500',
-}
-
-const SIZES: Record<BadgeSize, string> = {
-  sm: 'px-2.5 py-0.5 text-[10px]',
-  md: 'px-3 py-1 text-[11px]',
+type LegacyVariant = 'default' | 'secondary' | 'solid' | 'success' | 'muted'
+const LEGACY: Record<LegacyVariant, NonNullable<VariantProps<typeof badgeVariants>['tone']>> = {
+  default: 'accent',
+  secondary: 'neutral',
+  solid: 'on-dark',
+  success: 'success',
+  muted: 'neutral',
 }
 
 export function Badge({
   children,
-  variant = 'default',
-  size = 'md',
+  tone,
+  variant,
+  size,
+  mono,
   className,
-}: {
+}: VariantProps<typeof badgeVariants> & {
   children: React.ReactNode
-  variant?: BadgeVariant
-  size?: BadgeSize
+  /** @deprecated use `tone` */
+  variant?: LegacyVariant
   className?: string
 }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full font-semibold uppercase tracking-wider font-mono',
-        VARIANTS[variant],
-        SIZES[size],
-        className
-      )}
-    >
-      {children}
-    </span>
-  )
+  return <span className={cn(badgeVariants({ tone: tone ?? (variant ? LEGACY[variant] : 'neutral'), size, mono }), className)}>{children}</span>
 }

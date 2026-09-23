@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, UserPlus, UserMinus } from 'lucide-react'
+import { Check, UserPlus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/Button'
 
 export function FollowButton({
   targetId,
@@ -50,23 +51,14 @@ export function FollowButton({
   }
 
   return (
-    <button
+    <Button
       onClick={handleToggle}
-      disabled={loading}
-      className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none ${
-        following
-          ? 'border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:text-red-600'
-          : 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 shadow-lg shadow-indigo-600/20'
-      }`}
+      loading={loading}
+      aria-pressed={following}
+      variant={following ? 'secondary' : 'primary'}
     >
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : following ? (
-        <UserMinus className="h-4 w-4" />
-      ) : (
-        <UserPlus className="h-4 w-4" />
-      )}
+      {!loading && (following ? <Check aria-hidden strokeWidth={1.75} className="size-4" /> : <UserPlus aria-hidden strokeWidth={1.75} className="size-4" />)}
       {following ? 'Following' : 'Follow'}
-    </button>
+    </Button>
   )
 }

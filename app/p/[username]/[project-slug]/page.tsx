@@ -1,12 +1,21 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Tag, Globe, GitBranch, Joystick, Gamepad2, Users } from 'lucide-react'
+import { Globe, GitBranch, Joystick, Pencil, PenLine, Building2, Trophy } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/Badge'
-import { DevlogCard } from '@/components/devlog/DevlogCard'
+import { DevlogRow } from '@/components/devlog/DevlogRow'
+import { Avatar } from '@/components/ui/Avatar'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { MetadataBar } from '@/components/ui/MetadataBar'
+import { Section } from '@/components/ui/Section'
 import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
-import { labelFor, ENGINES, PROJECT_STAGES } from '@/lib/supabase/types'
-import type { Profile, Project, DevlogPost } from '@/lib/supabase/types'
+import { AddToShortlistButton } from '@/components/publisher/AddToShortlistButton'
+import { labelFor, ENGINES, PROJECT_STAGES, CONTRACT_TYPES } from '@/lib/supabase/types'
+import { isHttpsUrl, relativeTime } from '@/lib/utils'
+import type { Profile, Project } from '@/lib/supabase/types'
+import { Shell } from '@/components/shell/Shell'
 
 type PlaytestRequest = {
   id: string
@@ -17,6 +26,11 @@ type PlaytestRequest = {
   current_testers: number
   status: string
 }
+
+type StudioLink = { studios: { slug: string; name: string; status: string } | null }
+type CollabPost = { id: string; post_type: string; role_needed: string | null; role_offered: string | null; contract_type: string }
+
+const CONTRACT_LABELS = Object.fromEntries(CONTRACT_TYPES.map((c) => [c.value, c.label])) as Record<string, string>
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -55,215 +69,289 @@ export default async function PublicProjectPage({
 
   if (project.visibility === 'private' && !isOwner) notFound()
 
-  const [{ data: devlogs }, { data: openPlaytest }] = await Promise.all([
-    supabase
-      .from('devlog_posts')
-      .select('id, slug, title, content, published_at')
-      .eq('project_id', project.id)
-      .not('published_at', 'is', null)
-      .lte('published_at', new Date().toISOString())
-      .order('published_at', { ascending: false })
-      .limit(50),
-    supabase
-      .from('playtest_requests')
-      .select('id, description, platforms, focus_areas, requested_testers, current_testers, status')
-      .eq('project_id', project.id)
-      .eq('status', 'open')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle<PlaytestRequest>(),
-  ])
+  const nowIso = new Date().toISOString()
 
-  const typedDevlogs = (devlogs ?? []) as Pick<DevlogPost, 'id' | 'slug' | 'title' | 'content' | 'published_at'>[]
-  const screenshots = (project.screenshots as string[] | null) ?? []
+  const [{ data: devlogRows, error: devlogsError }, { data: openPlaytest }, { data: publisherAccount }, { data: studioLinks }, { data: collabPosts }] =
+    await Promise.all([
+      // Owner sees every devlog (drafts included, via owner-only RLS); visitors
+      // only ever get published ones, filtered here and again by RLS.
+      isOwner
+        ? supabase
+            .from('devlog_posts')
+            .select('id, slug, title, content, published_at')
+            .eq('project_id', project.id)
+            .order('published_at', { ascending: false, nullsFirst: true })
+            .limit(100)
+        : supabase
+            .from('devlog_posts')
+            .select('id, slug, title, content, published_at')
+            .eq('project_id', project.id)
+            .not('published_at', 'is', null)
+            .lte('published_at', nowIso)
+            .order('published_at', { ascending: false })
+            .limit(100),
+      supabase
+        .from('playtest_requests')
+        .select('id, description, platforms, focus_areas, requested_testers, current_testers, status')
+        .eq('project_id', project.id)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle<PlaytestRequest>(),
+      currentUser && !isOwner
+        ? supabase.from('publisher_accounts').select('id').eq('user_id', currentUser.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from('studio_projects')
+        .select('studios(slug, name, status)')
+        .eq('project_id', project.id)
+        .returns<StudioLink[]>(),
+      supabase
+        .from('collaboration_posts')
+        .select('id, post_type, role_needed, role_offered, contract_type')
+        .eq('project_id', project.id)
+        .eq('status', 'open')
+        .gt('expires_at', nowIso)
+        .order('created_at', { ascending: false })
+        .limit(5)
+        .returns<CollabPost[]>(),
+    ])
+  const isPublisherViewer = !!publisherAccount
+
+  // Where this project has been entered (game jams). The jam page links back here; nothing is copied.
+  const { data: jamEntryRows } = await supabase
+    .from('jam_entries')
+    .select('id, game_jams!jam_id(slug, title, status, admin_approved)')
+    .eq('project_id', project.id)
+  type JamLink = { slug: string; title: string; status: string; admin_approved: boolean }
+  const jams = ((jamEntryRows ?? []) as unknown as { id: string; game_jams: JamLink | null }[])
+    .map((r) => r.game_jams)
+    .filter((j): j is JamLink => !!j && j.admin_approved)
+
+  const { data: publisherShortlists } = isPublisherViewer
+    ? await supabase.from('publisher_shortlists').select('id, name, items').eq('publisher_id', publisherAccount!.id)
+    : { data: null }
+  type ShortlistRow = { id: string; name: string; items: string[] }
+  const typedShortlists = (publisherShortlists ?? []) as unknown as ShortlistRow[]
+
+  const entries = (devlogRows ?? []).map((d) => ({
+    ...d,
+    isDraft: !d.published_at || d.published_at > nowIso,
+  }))
+  const publishedCount = entries.filter((e) => !e.isDraft).length
+  const latestPublished = entries.find((e) => !e.isDraft)?.published_at ?? null
+  const studios = (studioLinks ?? []).map((l) => l.studios).filter((st): st is NonNullable<StudioLink['studios']> => !!st && st.status === 'active')
+  const collabs = collabPosts ?? []
+
+  const coverUrl = [project.cover_url, project.cover_image_url].find(isHttpsUrl) ?? null
+  const screenshots = ((project.screenshots as string[] | null) ?? []).filter(isHttpsUrl)
+  const externalLinks = Object.entries((project.external_links as Record<string, string> | null) ?? {}).filter(([, url]) => isHttpsUrl(url))
 
   const engine = labelFor(ENGINES, project.engine)
   const stage = labelFor(PROJECT_STAGES, project.stage)
   const ownerName = profile.display_name || profile.username
+  const projectHref = `/p/${username}/${projectSlug}`
 
-  const externalLinks = project.external_links as Record<string, string> | null ?? {}
+  const facts = [
+    // Stage is already the title badge above — stating it a second time here was pure repetition.
+    { label: 'Engine', value: engine },
+    { label: 'Genre', value: project.genre },
+    { label: 'Started', value: formatDate(project.created_at) },
+    { label: 'Last devlog', value: latestPublished ? relativeTime(latestPublished) : null },
+    { label: 'Devlogs', value: publishedCount > 0 ? String(publishedCount) : null, mono: true },
+  ]
+  const tags = ((project.tags as string[] | null) ?? []).filter(Boolean)
 
   return (
-    <div className="min-h-screen relative overflow-hidden font-sans">
-      <div className="fixed inset-0 z-0 bg-plasma pointer-events-none" />
-      <div className="fixed inset-y-0 right-0 w-[120vw] md:w-[70vw] translate-x-[10%] md:translate-x-0 z-0 flex pointer-events-none opacity-40 mix-blend-overlay">
-        <div className="h-full flex-1 relative border-l border-white/60 shadow-[-15px_0_30px_-10px_rgba(255,255,255,1)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.8), rgba(255,255,255,0.4))', backdropFilter: 'blur(20px)' }} />
-        <div className="h-full flex-1 relative border-l border-white/40 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.8)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.4), rgba(255,255,255,0.1))', backdropFilter: 'blur(10px)' }} />
-        <div className="h-full flex-1 relative border-l border-white/20 shadow-[-15px_0_30px_-10px_rgba(255,255,255,0.4)]" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.1), rgba(255,255,255,0))', backdropFilter: 'blur(4px)' }} />
-      </div>
-
-      <main className="relative z-10 w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12 min-h-screen flex flex-col">
-        <div className="flex-1 bg-white/95 backdrop-blur-2xl rounded-[2.5rem] panel-shadow border border-white overflow-hidden flex flex-col">
-          {/* Top bar */}
-          <div className="flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 md:px-10 border-b border-gray-100/50">
-            <Link href="/" className="flex items-center gap-1 text-lg font-semibold tracking-tighter text-gray-900">
-              Glyph<span className="text-indigo-600 leading-none">°</span>
-            </Link>
-            <Link
-              href={`/dev/${username}`}
-              className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> {ownerName}
-            </Link>
+    <Shell breadcrumb={[{ label: ownerName, href: `/dev/${username}` }, { label: project.title }]}>
+      <div className="mx-auto w-full max-w-5xl">
+        {coverUrl && (
+          <div className="mb-8 overflow-hidden rounded-media border border-line bg-surface-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={coverUrl} alt={`${project.title} cover art`} className="aspect-[21/9] max-h-80 w-full object-cover" />
           </div>
+        )}
 
-          <div className="px-5 sm:px-8 md:px-12 py-8 sm:py-10 md:py-12 space-y-10">
-            {/* Project header */}
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                {stage && <Badge variant="default">{stage}</Badge>}
-                {project.visibility === 'unlisted' && (
-                  <Badge variant="muted">Unlisted</Badge>
-                )}
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-gray-900 mb-3">
-                {project.title}
-              </h1>
-              {project.short_description && (
-                <p className="text-base text-gray-500 leading-relaxed">{project.short_description}</p>
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-x-12">
+          {/* Identity */}
+          <header className="lg:col-start-1">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              {stage && <Badge tone="accent">{stage}</Badge>}
+              {project.is_primary && <Badge>Current project</Badge>}
+              {openPlaytest && <Badge tone="success">Open for playtesting</Badge>}
+              {isOwner && project.visibility !== 'public' && (
+                <Badge tone="warning">{project.visibility === 'private' ? 'Private — only you can see this' : 'Unlisted — reachable by link only'}</Badge>
               )}
             </div>
+            <h1 className="text-display font-semibold text-fg [overflow-wrap:anywhere]">{project.title}</h1>
+            {project.short_description && <p className="mt-2 max-w-prose text-h3 font-normal text-fg-secondary">{project.short_description}</p>}
 
-            {/* Meta badges */}
-            {(engine || project.genre || (project.tags && project.tags.length > 0)) && (
-              <div className="flex flex-wrap gap-2">
-                {engine && <Badge variant="muted">{engine}</Badge>}
-                {project.genre && <Badge variant="muted">{project.genre}</Badge>}
-                {(project.tags as string[])?.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[11px] font-mono text-gray-500"
-                  >
-                    <Tag className="h-3 w-3" />{tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* External links */}
-            {Object.keys(externalLinks).length > 0 && (
-              <div className="flex flex-wrap gap-3">
-                {Object.entries(externalLinks).map(([platform, url]) => {
-                  const Icon = platform.toLowerCase().includes('github') ? GitBranch
-                    : platform.toLowerCase().includes('itch') ? Joystick
-                    : Globe
-                  return (
-                    <a
-                      key={platform}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:border-indigo-200 hover:text-indigo-600 transition-all duration-300"
-                    >
-                      <Icon className="h-4 w-4" /> {platform}
-                    </a>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Long description */}
-            {project.long_description && (
-              <div>
-                <h2 className="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
-                  About
-                </h2>
-                <MarkdownRenderer content={project.long_description} />
-              </div>
-            )}
-
-            {/* Screenshots gallery */}
-            {screenshots.length > 0 && (
-              <div>
-                <h2 className="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
-                  Screenshots
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {screenshots.map((url, i) => (
-                    <div key={i} className="rounded-2xl overflow-hidden bg-gray-100 aspect-video">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Open playtest card */}
-            {openPlaytest && (
-              <div className="rounded-3xl border border-indigo-100 bg-indigo-50/40 p-6">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="flex items-center gap-2">
-                    <Gamepad2 className="h-4 w-4 text-indigo-500" />
-                    <span className="text-sm font-semibold text-gray-900">Open Playtest</span>
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-mono font-semibold text-green-700">OPEN</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                    <Users className="h-3.5 w-3.5" />
-                    {openPlaytest.current_testers}/{openPlaytest.requested_testers} testers
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-2">{openPlaytest.description}</p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {openPlaytest.platforms.map((p) => (
-                    <span key={p} className="rounded-full border border-indigo-200 bg-white px-2.5 py-0.5 text-[11px] font-mono text-indigo-600">{p}</span>
-                  ))}
-                  {openPlaytest.focus_areas.map((f) => (
-                    <span key={f} className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-[11px] font-mono text-gray-500">{f.replace(/_/g, ' ')}</span>
-                  ))}
-                </div>
-                <Link
-                  href={`/playtests/${openPlaytest.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-all duration-300 shadow-md shadow-indigo-600/20"
-                >
-                  Sign Up to Test
-                </Link>
-              </div>
-            )}
-
-            {/* Devlog feed */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-                  Devlogs {typedDevlogs.length > 0 ? `(${typedDevlogs.length})` : ''}
-                </h2>
-                {isOwner && (
-                  <Link
-                    href={`/dashboard/projects/${project.id}/devlogs/new`}
-                    className="text-[11px] font-mono uppercase tracking-wider text-indigo-600 hover:text-indigo-700 transition-colors"
-                  >
-                    + Write
-                  </Link>
-                )}
-              </div>
-
-              {typedDevlogs.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {typedDevlogs.map((post) => (
-                    <DevlogCard
-                      key={post.id}
-                      post={post}
-                      href={`/p/${username}/${projectSlug}/${post.slug}`}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-3xl border border-dashed border-gray-200 bg-gray-50/40 p-8 text-center">
-                  <p className="text-sm text-gray-400">No devlogs published yet.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <p className="pt-4 border-t border-gray-100 font-mono text-[11px] uppercase tracking-widest text-gray-400">
-              Started {formatDate(project.created_at)} · by{' '}
-              <Link href={`/dev/${username}`} className="hover:text-indigo-600 transition-colors">
+            <p className="mt-4">
+              <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center gap-2 text-small font-medium text-fg hover:text-link">
+                <Avatar name={ownerName} src={profile.avatar_url} size="sm" />
                 {ownerName}
               </Link>
             </p>
+
+            {isOwner && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild variant="secondary">
+                  <Link href={`/dashboard/projects/${project.id}/edit`}><Pencil aria-hidden strokeWidth={1.75} className="size-4" /> Edit project</Link>
+                </Button>
+                <Button asChild variant="primary">
+                  <Link href={`/dashboard/projects/${project.id}/devlogs/new`}><PenLine aria-hidden strokeWidth={1.75} className="size-4" /> Write devlog</Link>
+                </Button>
+              </div>
+            )}
+          </header>
+
+          {/* Structured facts — the "About" column; stacks under the header on narrow screens */}
+          <aside aria-label="Project details" className="mt-8 space-y-6 border-t border-line pt-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:border-t-0 lg:pt-1">
+            <MetadataBar layout="responsive" items={facts} />
+            {studios.length > 0 && (
+              <div>
+                <h2 className="text-micro font-medium text-fg-muted">Studio</h2>
+                <ul className="mt-1 space-y-0.5">
+                  {studios.map((st) => (
+                    <li key={st.slug}>
+                      <Link href={`/studios/${st.slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-small text-link underline-offset-2 hover:underline lg:min-h-0 lg:py-0.5">
+                        <Building2 aria-hidden strokeWidth={1.75} className="size-3.5" /> {st.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {jams.length > 0 && (
+              <div>
+                <h2 className="text-micro font-medium text-fg-muted">Game jams</h2>
+                <ul className="mt-1 space-y-0.5">
+                  {jams.map((j) => (
+                    <li key={j.slug}>
+                      <Link href={`/jams/${j.slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-small text-link underline-offset-2 hover:underline lg:min-h-0 lg:py-0.5">
+                        <Trophy aria-hidden strokeWidth={1.75} className="size-3.5" /> Entered in {j.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {tags.length > 0 && (
+              <div>
+                <h2 className="text-micro font-medium text-fg-muted">Tags</h2>
+                <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-small text-fg-secondary">
+                  {tags.map((tag) => <li key={tag}>#{tag}</li>)}
+                </ul>
+              </div>
+            )}
+            {externalLinks.length > 0 && (
+              <div>
+                <h2 className="text-micro font-medium text-fg-muted">Links</h2>
+                <ul className="mt-1">
+                  {externalLinks.map(([platform, url]) => {
+                    const Icon = platform.toLowerCase().includes('github') ? GitBranch : platform.toLowerCase().includes('itch') ? Joystick : Globe
+                    return (
+                      <li key={platform}>
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-small font-medium text-link underline-offset-2 hover:underline lg:min-h-0 lg:py-1">
+                          <Icon aria-hidden strokeWidth={1.75} className="size-4" /> {platform}<span className="sr-only"> (opens in a new tab)</span>
+                        </a>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+          </aside>
+
+          {/* Narrative and record */}
+          <div className="mt-10 space-y-10 lg:col-start-1">
+            {project.long_description && (
+              <Section id="about" title="About">
+                <MarkdownRenderer content={project.long_description} className="max-w-2xl" />
+              </Section>
+            )}
+
+            {screenshots.length > 0 && (
+              <Section id="screenshots" title="Screenshots">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {screenshots.map((url, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={url} src={url} alt={`${project.title} screenshot ${i + 1}`} loading="lazy" className="aspect-video w-full rounded-media border border-line object-cover" />
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            <Section id="devlogs" title="Devlogs" count={publishedCount > 0 ? publishedCount : undefined}>
+              {devlogsError ? (
+                <ErrorState inline title="We couldn't load the devlogs" description="This may be temporary. Reload the page to try again." />
+              ) : entries.length > 0 ? (
+                <ol className="divide-y divide-line-subtle border-y border-line-subtle">
+                  {entries.map((entry) => (
+                    <DevlogRow
+                      key={entry.id}
+                      variant="timeline"
+                      entry={entry}
+                      projectHref={projectHref}
+                      editHref={isOwner ? `/dashboard/projects/${project.id}/devlogs/${entry.id}/edit` : undefined}
+                    />
+                  ))}
+                </ol>
+              ) : (
+                <EmptyState
+                  kind="first-use"
+                  className="border-y-0 py-2"
+                  title="No devlogs yet"
+                  description={isOwner ? "The first one starts this project's public record." : `${ownerName} hasn't published a devlog for this project yet.`}
+                  action={isOwner ? <Button asChild variant="primary" size="sm"><Link href={`/dashboard/projects/${project.id}/devlogs/new`}>Write the first devlog</Link></Button> : undefined}
+                />
+              )}
+            </Section>
+
+            {openPlaytest && (
+              <Section id="playtest" title="Open playtest">
+                <p className="text-small text-fg-secondary">
+                  <span className="font-mono text-fg">{openPlaytest.current_testers}/{openPlaytest.requested_testers}</span> testers
+                  {openPlaytest.platforms.length > 0 && <> · {openPlaytest.platforms.join(', ')}</>}
+                  {openPlaytest.focus_areas.length > 0 && <> · Focus: {openPlaytest.focus_areas.map((f) => f.replace(/_/g, ' ')).join(', ')}</>}
+                </p>
+                <p className="mt-2 line-clamp-3 max-w-prose text-body text-fg-secondary">{openPlaytest.description}</p>
+                <Button asChild variant={isOwner ? 'secondary' : 'primary'} className="mt-3">
+                  <Link href={isOwner ? '/dashboard/playtests' : `/playtests/${openPlaytest.id}`}>{isOwner ? 'Manage playtest' : 'View and sign up'}</Link>
+                </Button>
+              </Section>
+            )}
+
+            {collabs.length > 0 && (
+              <Section id="collab" title="Looking for collaborators">
+                <ul className="divide-y divide-line-subtle border-y border-line-subtle">
+                  {collabs.map((post) => (
+                    <li key={post.id}>
+                      <Link href={`/collaborate/${post.id}`} className="group flex min-h-11 items-center justify-between gap-3 py-2">
+                        <span className="truncate text-body text-fg group-hover:text-link">
+                          {post.post_type === 'seeking_collaborator' ? `Seeking: ${post.role_needed ?? 'a role'}` : `Offering: ${post.role_offered ?? 'any role'}`}
+                        </span>
+                        <span className="shrink-0 text-small text-fg-muted">{CONTRACT_LABELS[post.contract_type] ?? post.contract_type}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            )}
+
+            {isPublisherViewer && (
+              <Section id="publisher" title="Publisher tools">
+                <div className="flex flex-wrap items-center gap-4">
+                  <AddToShortlistButton projectId={project.id} shortlists={typedShortlists} />
+                  <Link href={`/dashboard/publisher/contact/${project.owner_id}?project=${project.id}`} className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">
+                    Contact developer about this project
+                  </Link>
+                </div>
+              </Section>
+            )}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </Shell>
   )
 }

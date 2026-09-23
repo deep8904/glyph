@@ -1,12 +1,157 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* ─────────────────────────────────────────────
-   Glyph design system — Tailwind v4 theme tokens
-   (Tailwind v4 is configured here, not in a JS config file)
+   Glyph design system — tokens (docs/design/glyph-design-system.md)
+
+   Two tiers. Primitives are Tailwind's own palette/scale. Semantic tokens
+   (below, on :root) are what components use; @theme inline exposes them as
+   Tailwind utilities (bg-surface, text-fg-muted, border-line, rounded-control …).
+   New names only — Tailwind's default color/radius/text names are NOT
+   overridden, so existing pages keep rendering as before.
    ───────────────────────────────────────────── */
+:root {
+  /* surfaces — Neuform: white canvas dominant; slate reserved for inverse/Operate moments */
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #fafafa;
+  --surface-elevated: #ffffff;
+  --surface-inverse: #33394a;
+  --surface-inverse-raised: #3d4459;
+  --overlay: rgb(24 25 37 / 0.45);
+  /* lines — literal Neuform border, one step up for stronger dividers */
+  --line: #d8dadf;
+  --line-subtle: #eceef1;
+  --line-strong: #b7bcc7;
+  --line-on-inverse: rgb(255 255 255 / 0.12);
+  /* text — Carbon kept (negligible delta from Neuform's #111827); slate repurposed as the
+     deliberate structural-contrast secondary text color the brief asks for, not decoration */
+  --fg: #181925;
+  --fg-secondary: #53617a;
+  --fg-muted: #8a93a6;
+  --fg-on-accent: #181925;
+  --fg-on-inverse: #ffffff;
+  --fg-on-inverse-secondary: #c4c9d4;
+  /* the one accent — Neuform primary/secondary orange. --link and --focus-ring are darkened,
+     separate shades: the raw accent (#E48B59) is ~2.6:1 on white, below AA for text/UI use. */
+  --accent: #e48b59;
+  --accent-hover: #d97a46;
+  --accent-secondary: #ed7b46;
+  --accent-subtle: #fdf2ea;
+  --accent-line: #f3d9c4;
+  --link: #a8551f;
+  --focus-ring: #d97a46;
+  /* status: solid/text, subtle background, line — recast so warning doesn't compete with accent's hue */
+  --success: #2fa35c;
+  --success-subtle: #e6f7ec;
+  --success-line: #bce8cc;
+  --warning: #c97a2e;
+  --warning-subtle: #fbf0e4;
+  --warning-line: #edd2ac;
+  --danger: #d64545;
+  --danger-hover: #b83737;
+  --danger-subtle: #fbebeb;
+  --danger-line: #f0bcbc;
+  --info: #3b6fb0;
+  --info-subtle: #e9f0f9;
+  --info-line: #bcd3ea;
+  /* radius — badges/pills are the one genuinely pill shape; buttons/controls stay 8px so pills
+     don't become the default action/container shape. Cards 16px. Tables match cards, not 24px. */
+  --r-badge: 9999px;
+  --r-control: 8px;
+  --r-pill: 9999px;
+  --r-media: 8px;
+  --r-panel: 16px;
+  --r-table: 16px;
+  /* elevation: subtle three-step stack — raised (card) < popover < dialog. No dramatic shadows. */
+  --elev-raised: 0 1px 2px rgb(24 25 37 / 0.04), 0 1px 1px rgb(24 25 37 / 0.03);
+  --elev-popover: 0 4px 16px -2px rgb(24 25 37 / 0.10), 0 0 0 1px rgb(24 25 37 / 0.05);
+  --elev-dialog: 0 16px 40px -8px rgb(24 25 37 / 0.20), 0 0 0 1px rgb(24 25 37 / 0.05);
+  /* motion — timing bands. Duration only; components already carry easing per §6 of the plan. */
+  --motion-micro: 140ms;
+  --motion-control: 160ms;
+  --motion-drawer: 200ms;
+  --motion-page: 350ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 @theme inline {
-  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  /* Legacy alias: Space Grotesk was removed (Phase A). font-display now renders Inter. */
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-inverse: var(--surface-inverse);
+  --color-surface-inverse-raised: var(--surface-inverse-raised);
+  --color-overlay: var(--overlay);
+  --color-line: var(--line);
+  --color-line-subtle: var(--line-subtle);
+  --color-line-strong: var(--line-strong);
+  --color-line-on-inverse: var(--line-on-inverse);
+  --color-fg: var(--fg);
+  --color-fg-secondary: var(--fg-secondary);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-fg-on-inverse: var(--fg-on-inverse);
+  --color-fg-on-inverse-secondary: var(--fg-on-inverse-secondary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-line: var(--accent-line);
+  --color-link: var(--link);
+  --color-focus: var(--focus-ring);
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-line: var(--success-line);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-line: var(--warning-line);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-line: var(--danger-line);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-line: var(--info-line);
+
+  --radius-badge: var(--r-badge);
+  --radius-control: var(--r-control);
+  --radius-pill: var(--r-pill);
+  --radius-media: var(--r-media);
+  --radius-panel: var(--r-panel);
+  --radius-table: var(--r-table);
+
+  --shadow-raised: var(--elev-raised);
+  --shadow-popover: var(--elev-popover);
+  --shadow-dialog: var(--elev-dialog);
+
+  /* type scale — Neuform, application-adapted (not the source's literal 64px everywhere: see
+     glyph-neuform-redesign-plan.md §3). Display is reserved for Landing hero + the largest
+     Identity/Work anchors, not a blanket size bump. Strictly descending 44>30>24>18>16>14>12. */
+  --text-display: 2.75rem;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+  --text-h1: 1.875rem;
+  --text-h1--line-height: 1.2;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 1.25;
+  --text-h2--letter-spacing: -0.012em;
+  --text-h3: 1.125rem;
+  --text-h3--line-height: 1.3;
+  --text-h3--letter-spacing: -0.01em;
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.45;
+  --text-micro: 0.75rem;
+  --text-micro--line-height: 1.35;
+  --text-micro--letter-spacing: 0.01em;
 }
 
 @layer base {
@@ -14,64 +159,61 @@
     scroll-behavior: smooth;
   }
   body {
-    background-color: #0f0e13;
+    background-color: var(--canvas);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
   ::selection {
-    background: #e0e7ff;
-    color: #312e81;
+    background: var(--accent-subtle);
+    color: var(--fg);
   }
 }
 
-/* ── Plasma background ── */
+/* ── Backdrop: Visitors atmospheric hero band — sky→lavender oklab gradient ── */
 .bg-plasma {
-  background-color: #0f0e13;
-  background-image:
-    radial-gradient(at 0% 0%, hsla(245, 100%, 73%, 0.3) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(188, 100%, 65%, 0.2) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(245, 100%, 73%, 0.3) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, hsla(280, 100%, 70%, 0.2) 0px, transparent 50%);
-  animation: breathe 15s ease-in-out infinite alternate;
+  background-color: #ffffff;
+  background-image: linear-gradient(to right in oklab, #2c78fc 0%, #918df6 100%);
 }
 
-@keyframes breathe {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(1.1); opacity: 1; }
+/* ── Fine grain, fixed layer only (never over scrolling content) ── */
+.bg-grain::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ── Glass panel shadow ── */
+/* ── Panel shadow: Visitors three-layer subtle stack ── */
 .panel-shadow {
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.4),
-    0 20px 40px -10px rgba(0, 0, 0, 0.2),
-    0 0 100px -20px rgba(79, 70, 229, 0.15);
+    0 1px 3px 0 rgba(0, 0, 0, 0.06),
+    0 8px 16px 0 rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
 }
 
-/* ── Scroll reveal ── */
-.reveal {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+/* ── Above-the-fold entrance: pure CSS, no JS/GSAP dependency, so it can
+   never flash a near-blank page while a JS bundle loads and hydrates. ── */
+@keyframes reveal-hero-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
 }
-.reveal.active {
-  opacity: 1;
-  transform: translateY(0);
+.reveal-hero {
+  animation: reveal-hero-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.delay-100 { transition-delay: 100ms; }
-.delay-200 { transition-delay: 200ms; }
-.delay-300 { transition-delay: 300ms; }
-.delay-400 { transition-delay: 400ms; }
-.delay-500 { transition-delay: 500ms; }
+.reveal-hero-1 { animation-delay: 0s; }
+.reveal-hero-2 { animation-delay: 0.08s; }
+.reveal-hero-3 { animation-delay: 0.16s; }
+.reveal-hero-4 { animation-delay: 0.24s; }
+.reveal-hero-5 { animation-delay: 0.1s; }
 
 /* ── Accessibility: reduce motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
+  .reveal-hero {
     opacity: 1;
     transform: none;
-    transition: none;
-  }
-  .bg-plasma {
     animation: none;
   }
   * {
@@ -84,16 +226,7 @@
 /* ── Focus states: WCAG AA ── */
 @layer base {
   :focus-visible {
-    outline: 2px solid #4f46e5;
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
-  button:focus-visible,
-  a:focus-visible,
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible {
-    outline: 2px solid #4f46e5;
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
 }
@@ -131,4 +264,38 @@
   overflow: visible;
   clip: auto;
   white-space: normal;
+}
+
+/* ── Overlay/menu motion (Radix data-state). State change only; reduced-motion rule above shortens these. ── */
+@keyframes ui-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ui-pop-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes ui-slide-in-right { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes ui-slide-in-left { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes ui-slide-in-bottom { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes ui-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+[data-ui-overlay][data-state='open'] { animation: ui-fade-in 150ms ease-out; }
+[data-ui-pop][data-state='open'] { animation: ui-pop-in 150ms ease-out; }
+[data-ui-drawer='right'][data-state='open'] { animation: ui-slide-in-right 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+[data-ui-drawer='left'][data-state='open'] { animation: ui-slide-in-left 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+[data-ui-drawer='bottom'][data-state='open'] { animation: ui-slide-in-bottom 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+[data-ui-toast][data-state='open'] { animation: ui-toast-in 150ms ease-out; }
+
+/* ── Long-form content (devlogs, project About): typography plugin mapped to tokens ── */
+.prose-glyph {
+  --tw-prose-body: var(--fg-secondary);
+  --tw-prose-headings: var(--fg);
+  --tw-prose-lead: var(--fg-secondary);
+  --tw-prose-links: var(--link);
+  --tw-prose-bold: var(--fg);
+  --tw-prose-counters: var(--fg-muted);
+  --tw-prose-bullets: var(--line-strong);
+  --tw-prose-hr: var(--line);
+  --tw-prose-quotes: var(--fg);
+  --tw-prose-quote-borders: var(--accent-line);
+  --tw-prose-captions: var(--fg-muted);
+  --tw-prose-code: var(--fg);
+  --tw-prose-pre-code: #e5e7eb;
+  --tw-prose-pre-bg: #111827;
+  --tw-prose-th-borders: var(--line-strong);
+  --tw-prose-td-borders: var(--line);
 }

@@ -27,6 +27,7 @@ export const DISCOVER_NAV: NavLink[] = [
   { label: 'Explore', href: '/explore', match: ['/explore'] },
   { label: 'Collaborate', href: '/collaborate', match: ['/collaborate'] },
   { label: 'Playtests', href: '/playtests/browse', match: ['/playtests'] },
+  { label: 'Studios', href: '/studios', match: ['/studios'] },
   { label: 'Jams', href: '/jams', match: ['/jams'] },
   { label: 'Events', href: '/events', match: ['/events'] },
   { label: 'Publishers', href: '/publishers', match: ['/publishers'] },

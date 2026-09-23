@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Gamepad2, MailCheck, Eye, EyeOff } from 'lucide-react'
+import { Gamepad2, MailCheck, Eye, EyeOff, KeyRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { FocusedShell } from '@/components/shell/FocusedShell'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Field } from '@/components/ui/Field'
 import { IconButton } from '@/components/ui/IconButton'
 import { Input } from '@/components/ui/controls'
 import { cn } from '@/lib/utils'
@@ -44,7 +45,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
   const isSignup = mode === 'signup'
 
-  const [view, setView] = useState<'form' | 'verify'>('form')
+  const [view, setView] = useState<'form' | 'verify' | 'recover'>('form')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -177,6 +178,23 @@ export default function AuthForm({ mode }: { mode: Mode }) {
     router.push('/login?signup=success')
   }
 
+  // ── Forgot password → send a recovery link ──
+  const handleRecover = async (e: React.FormEvent) => {
+    e.preventDefault()
+    reset()
+    if (!EMAIL_REGEX.test(email)) {
+      setError('Enter a valid email address.')
+      return
+    }
+    setLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset-password` })
+    setLoading(false)
+    // Always show the same confirmation, whether or not the address has an account —
+    // this must not reveal which emails are registered.
+    if (error && error.status !== 400) { setError('Could not send a reset link right now. Try again.'); return }
+    setNotice(`If ${email} has a Glyph account, a password reset link is on its way.`)
+  }
+
   const handleResend = async () => {
     if (cooldown > 0) return
     reset()
@@ -225,29 +243,43 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                 </div>
 
                 <form onSubmit={isSignup ? handleSignup : handleLogin} className="flex flex-col gap-3 text-left">
-                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" autoComplete="email" />
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={isSignup ? 'Create a password' : 'Password'}
-                      autoComplete={isSignup ? 'new-password' : 'current-password'}
-                      className="pr-11"
-                    />
-                    <IconButton
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowPassword((s) => !s)}
-                      label={showPassword ? 'Hide password' : 'Show password'}
-                      className="absolute right-1 top-1/2 -translate-y-1/2"
-                    >
-                      {showPassword ? <EyeOff aria-hidden strokeWidth={1.75} className="size-4" /> : <Eye aria-hidden strokeWidth={1.75} className="size-4" />}
-                    </IconButton>
-                  </div>
+                  <Field label="Email">
+                    {(p) => <Input {...p} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" autoComplete="email" />}
+                  </Field>
+                  <Field label="Password">
+                    {(p) => (
+                      <div className="relative">
+                        <Input
+                          {...p}
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder={isSignup ? 'Create a password' : undefined}
+                          autoComplete={isSignup ? 'new-password' : 'current-password'}
+                          className="pr-11"
+                        />
+                        <IconButton
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowPassword((s) => !s)}
+                          label={showPassword ? 'Hide password' : 'Show password'}
+                          className="absolute right-1 top-1/2 -translate-y-1/2"
+                        >
+                          {showPassword ? <EyeOff aria-hidden strokeWidth={1.75} className="size-4" /> : <Eye aria-hidden strokeWidth={1.75} className="size-4" />}
+                        </IconButton>
+                      </div>
+                    )}
+                  </Field>
                   {isSignup && (
-                    <Input type={showPassword ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Confirm password" autoComplete="new-password" />
+                    <Field label="Confirm password">
+                      {(p) => <Input {...p} type={showPassword ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />}
+                    </Field>
+                  )}
+                  {!isSignup && (
+                    <button type="button" onClick={() => { reset(); setView('recover') }} className="self-end text-small text-link underline-offset-2 hover:underline">
+                      Forgot password?
+                    </button>
                   )}
                   <Button type="submit" variant="primary" disabled={anyLoading} loading={loading} className="w-full justify-center">
                     {loading ? (isSignup ? 'Creating…' : 'Signing in…') : isSignup ? 'Create account' : 'Sign in'}
@@ -266,6 +298,30 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                 )}
               </p>
             </div>
+          ) : view === 'recover' ? (
+            <div className="flex flex-col text-center">
+              <div className="flex justify-center">
+                <Badge tone="accent" className="mb-6"><KeyRound aria-hidden strokeWidth={1.75} className="size-3.5" /> Reset password</Badge>
+              </div>
+
+              <h1 className="mb-2 text-display font-semibold tracking-tight text-fg">Forgot your password?</h1>
+              <p className="mb-8 text-small leading-relaxed text-fg-secondary">Enter your email and we&apos;ll send a link to set a new one.</p>
+
+              <form onSubmit={handleRecover} className="flex flex-col gap-3 text-left">
+                <Field label="Email">
+                  {(p) => <Input {...p} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" autoComplete="email" />}
+                </Field>
+                <Button type="submit" variant="primary" disabled={loading} loading={loading} className="w-full justify-center">
+                  {loading ? 'Sending…' : 'Send reset link'}
+                </Button>
+                {error && <p role="alert" className="text-left text-small font-medium text-danger">{error}</p>}
+                {notice && <p role="status" className="text-left text-small text-link">{notice}</p>}
+              </form>
+
+              <Button variant="link" onClick={() => { setView('form'); reset() }} className="mt-8 text-fg-muted">
+                ← Back to log in
+              </Button>
+            </div>
           ) : (
             <div className="flex flex-col text-center">
               <div className="flex justify-center">
@@ -278,15 +334,20 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               </p>
 
               <form onSubmit={handleVerify} className="flex flex-col gap-3">
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={token}
-                  onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
-                  placeholder="000000"
-                  className={cn('text-center font-mono text-h2 tracking-[0.5em]')}
-                />
+                <Field label="6-digit code">
+                  {(p) => (
+                    <Input
+                      {...p}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={token}
+                      onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
+                      placeholder="000000"
+                      className={cn('text-center font-mono text-h2 tracking-[0.5em]')}
+                    />
+                  )}
+                </Field>
                 <Button type="submit" variant="primary" disabled={loading} loading={loading} className="w-full justify-center">
                   {loading ? 'Verifying…' : 'Verify & create account'}
                 </Button>

@@ -92,7 +92,6 @@ export default async function StudioPage({ params }: { params: Promise<{ slug: s
         return (
           <article className="max-w-3xl">
             <ObjectHeader
-              eyebrow="Studio"
               title={studio.name}
               state={studio.verified ? <Badge tone="success">Verified studio</Badge> : undefined}
               leading={

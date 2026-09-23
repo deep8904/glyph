@@ -10,7 +10,7 @@ const LIMIT = 100
 
 type Row = {
   id: string; type: string; entity_type: string | null; entity_id: string | null; read_at: string | null; created_at: string
-  actor_id: string | null; profiles: { username: string; display_name: string | null } | null
+  actor_id: string | null; profiles: { username: string; display_name: string | null; avatar_url: string | null } | null
 }
 
 const ids = (rows: Row[], entity: string) => [...new Set(rows.filter((n) => n.entity_type === entity && n.entity_id).map((n) => n.entity_id as string))]
@@ -31,7 +31,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   const [{ data: notifs, error }, { data: blocks }, { data: mutes }] = await Promise.all([
     supabase
       .from('notifications')
-      .select('id, type, entity_type, entity_id, read_at, created_at, actor_id, profiles!actor_id(username, display_name)')
+      .select('id, type, entity_type, entity_id, read_at, created_at, actor_id, profiles!actor_id(username, display_name, avatar_url)')
       .eq('recipient_id', user.id)
       .order('created_at', { ascending: false })
       .limit(LIMIT)
@@ -86,10 +86,16 @@ export default async function NotificationsPage({ searchParams }: { searchParams
 
   const actorNames = new Map<string, string>()
   const actorUsernames = new Map<string, string>()
-  for (const n of rows) if (n.actor_id && n.profiles) { actorNames.set(n.actor_id, n.profiles.display_name || n.profiles.username); actorUsernames.set(n.actor_id, n.profiles.username) }
+  const actorAvatars = new Map<string, string | null>()
+  for (const n of rows) if (n.actor_id && n.profiles) {
+    actorNames.set(n.actor_id, n.profiles.display_name || n.profiles.username)
+    actorUsernames.set(n.actor_id, n.profiles.username)
+    actorAvatars.set(n.actor_id, n.profiles.avatar_url)
+  }
   const raw: RawNotification[] = rows.map((n) => ({
     id: n.id, type: n.type, entity_type: n.entity_type, entity_id: n.entity_id, read_at: n.read_at, created_at: n.created_at,
     actor_id: n.actor_id, actorName: n.actor_id ? actorNames.get(n.actor_id) ?? null : null,
+    actorAvatar: n.actor_id ? actorAvatars.get(n.actor_id) ?? null : null,
   }))
   const presented = presentNotifications(raw, objects, actorUsernames)
 

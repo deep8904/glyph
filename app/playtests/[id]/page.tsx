@@ -71,8 +71,7 @@ export default async function PlaytestPage({ params }: { params: Promise<{ id: s
           <Link href={isAuthor ? '/dashboard/playtests' : '/playtests/browse'} className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">{isAuthor ? '← Your playtests' : '← Playtests'}</Link>
 
           <header className="mt-1">
-            <p className="text-small font-medium text-fg-muted">Playtest</p>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className="text-display font-semibold text-fg [overflow-wrap:anywhere]">{title}</h1>
               <StatusLabel label={st.label} tone={st.tone} />
             </div>

@@ -34,7 +34,7 @@ export default function GraphFixtures() {
         <h1 className="text-h1 font-semibold text-fg">Graph object fixtures (development only)</h1>
 
         <Section id="g-header" title="ObjectHeader">
-          <ObjectHeader eyebrow="Game jam" title="Fixture Jam with a fairly long title to test wrapping on narrow screens" state={<StatusText label="Voting open" tone="attention" />}><p>Hosted by Fixture Host</p><p><span className="font-medium text-fg">Theme:</span> One Room</p></ObjectHeader>
+          <ObjectHeader title="Fixture Jam with a fairly long title to test wrapping on narrow screens" state={<StatusText label="Voting open" tone="attention" />}><p>Hosted by Fixture Host</p><p><span className="font-medium text-fg">Theme:</span> One Room</p></ObjectHeader>
         </Section>
 
         <Section id="g-jamrows" title="Jam rows and phases">

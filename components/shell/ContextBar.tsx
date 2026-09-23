@@ -43,7 +43,12 @@ export function ContextBar({ breadcrumb, flags }: { breadcrumb?: Crumb[]; flags?
         </nav>
       )}
       {section && (
-        <nav aria-label={section.label} className="flex gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8">
+        // Fade the scrollable edges so a row that runs past the viewport reads as "more here,
+        // scroll" instead of stopping abruptly — a constant cue, not dependent on scroll position.
+        <nav
+          aria-label={section.label}
+          className="flex gap-1 overflow-x-auto px-4 [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)] sm:px-6 lg:px-8"
+        >
           {section.items.map((it) => {
             const active = isItemActive(pathname, it)
             return (

@@ -29,12 +29,16 @@ export default async function ExplorePage() {
   return (
     <DiscoveryFrame label="Explore">
       {async (viewer) => {
-        const [playtests, projects, collaborators, devlogs] = await Promise.all([
+        const [playtests, projectsRaw, collaborators, devlogs] = await Promise.all([
           exploreProjects(supabase, { size: PREVIEW, openPlaytest: true }),
-          exploreProjects(supabase, { size: PREVIEW }),
+          exploreProjects(supabase, { size: PREVIEW * 2 }),
           exploreDevelopers(supabase, { size: PREVIEW, excludeUserId: viewer?.id ?? null, openToCollab: true }),
           exploreDevlogs(supabase, { size: PREVIEW }),
         ])
+        // A project with an open playtest already leads the page above; don't show it again
+        // one section down under "Projects" — a curated page doesn't repeat its own lead story.
+        const shownAbove = new Set(playtests.rows.map((p) => p.id))
+        const projects = { ...projectsRaw, rows: projectsRaw.rows.filter((p) => !shownAbove.has(p.id)).slice(0, PREVIEW) }
         const following = await followedAmong(supabase, viewer?.id ?? null, collaborators.rows.map((d) => d.id))
         const failed = <ErrorState inline title="This section could not be loaded" description="This may be temporary. Reload the page to try again." />
 

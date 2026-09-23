@@ -10,6 +10,28 @@ import { EVENT_TYPES } from '@/lib/supabase/types'
 
 export const metadata = { title: 'Events — Glyph' }
 
+/** Today / this week / later — a date-anchored agenda reads faster than a flat list for occurrences. */
+function groupByWhen(events: EventListRow[]) {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const endOfToday = new Date(startOfToday.getTime() + 86400000)
+  const endOfWeek = new Date(startOfToday.getTime() + 7 * 86400000)
+  const today: EventListRow[] = []
+  const thisWeek: EventListRow[] = []
+  const later: EventListRow[] = []
+  for (const e of events) {
+    const start = new Date(e.start_at)
+    if (start < endOfToday) today.push(e)
+    else if (start < endOfWeek) thisWeek.push(e)
+    else later.push(e)
+  }
+  return [
+    ['Today', today],
+    ['This week', thisWeek],
+    ['Later', later],
+  ] as const
+}
+
 /**
  * Events: occurrences people attend — meetups, showcases, talks, workshops. Upcoming first; filter by kind and by city
  * (both live in the URL). An event links to people and projects that already exist in Glyph; it has no content of its own.
@@ -70,9 +92,18 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
               action={filtered ? <Link href="/events" className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">Show all events</Link> : user ? <Button asChild variant="primary" size="sm"><Link href="/dashboard/events/new">Host an event</Link></Button> : <Button asChild variant="primary" size="sm"><Link href="/signup">Join Glyph</Link></Button>}
             />
           ) : (
-            <ul className="mt-2 divide-y divide-line-subtle border-y border-line-subtle">
-              {events.map((evt) => <EventRow key={evt.id} event={evt} />)}
-            </ul>
+            <div className="mt-6 space-y-8">
+              {groupByWhen(events).map(([label, group]) =>
+                group.length === 0 ? null : (
+                  <div key={label}>
+                    <h2 className="text-h3 font-semibold text-fg">{label}</h2>
+                    <ul className="mt-2 divide-y divide-line-subtle border-y border-line-subtle">
+                      {group.map((evt) => <EventRow key={evt.id} event={evt} />)}
+                    </ul>
+                  </div>
+                )
+              )}
+            </div>
           )}
         </div>
       )}

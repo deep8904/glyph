@@ -20,7 +20,7 @@ export function SettingsNav() {
   const pathname = usePathname()
   return (
     <nav aria-label="Settings" className="mb-6 shrink-0 border-b border-line sm:mb-0 sm:mr-8 sm:w-44 sm:border-b-0">
-      <ul className="-mb-px flex overflow-x-auto sm:mb-0 sm:flex-col sm:overflow-visible">
+      <ul className="-mb-px flex overflow-x-auto [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)] sm:mb-0 sm:flex-col sm:overflow-visible sm:[mask-image:none]">
         {ITEMS.map(({ href, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           const last = href === '/settings/danger'

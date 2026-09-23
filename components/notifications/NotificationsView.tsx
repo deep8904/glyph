@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Bell } from 'lucide-react'
+import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -7,7 +8,7 @@ import { TabLinks } from '@/components/ui/Tabs'
 import { MarkAllReadButton } from './MarkAllReadButton'
 import { NotificationLink } from './NotificationLink'
 import type { PresentedRow } from '@/lib/notifications/present'
-import { cn, relativeTime } from '@/lib/utils'
+import { relativeTime } from '@/lib/utils'
 
 /**
  * The notification list, as a pure view over presented rows so every state can be rendered from fixtures.
@@ -70,7 +71,10 @@ export function NotificationsView({
               {shown.map((p) => {
                 const body = (
                   <>
-                    <span aria-hidden className={cn('mt-2 size-2 shrink-0 rounded-full', p.unread ? 'bg-accent' : 'bg-transparent')} />
+                    <span className="relative mt-0.5 shrink-0">
+                      <Avatar name={p.actorPrimaryName} src={p.actorAvatar} size="md" />
+                      {p.unread && <span aria-hidden className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-accent ring-2 ring-surface" />}
+                    </span>
                     <span className="min-w-0 flex-1 text-body [overflow-wrap:anywhere]">
                       {p.unread && <span className="sr-only">Unread. </span>}
                       <span className={p.unread ? 'font-semibold text-fg' : 'font-medium text-fg'}>{p.actors}</span>{' '}

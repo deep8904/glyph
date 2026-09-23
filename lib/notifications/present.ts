@@ -23,6 +23,7 @@ export type RawNotification = {
   created_at: string
   actor_id: string | null
   actorName: string | null
+  actorAvatar?: string | null
 }
 
 /** What the notification points at, resolved from real rows. `gone` = the object no longer exists / is not visible. */
@@ -34,6 +35,10 @@ export type PresentedRow = {
   unread: boolean
   time: string
   actors: string
+  /** The most recent actor's own name, for the avatar's initials fallback — `actors` may be a joined list ("A, B and 2 others"). */
+  actorPrimaryName: string
+  /** The most recent actor's avatar (or null for a deleted account, or when the object supplies the "actor" — e.g. a publisher). Merged rows still show one face: the newest. */
+  actorAvatar: string | null
   action: string
   href: string | null
   /** The object exists no more, or the viewer can no longer see it. The event still happened, so the row stays, but it does not link. */
@@ -119,6 +124,8 @@ export function presentNotifications(
       unread: g.some((x) => !x.read_at),
       time: first.created_at,
       actors: actorList(g.map((x) => x.actorName ?? (first.type === 'publisher_contact' && obj?.extra ? obj.extra : 'A deleted account'))),
+      actorPrimaryName: first.actorName ?? (first.type === 'publisher_contact' && obj?.extra ? obj.extra : 'A deleted account'),
+      actorAvatar: first.actorAvatar ?? null,
       action: action(first.type, obj),
       href: hrefFor(first, obj, first.actor_id ? actorUsernames.get(first.actor_id) ?? null : null),
       unavailable: !!obj?.gone,

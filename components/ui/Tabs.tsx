@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 export const Tabs = T.Root
 
 export function TabsList({ className, ...props }: React.ComponentProps<typeof T.List>) {
-  return <T.List className={cn('flex gap-1 overflow-x-auto border-b border-line', className)} {...props} />
+  return <T.List className={cn('flex gap-1 overflow-x-auto border-b border-line [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)]', className)} {...props} />
 }
 
 export function TabsTrigger({ className, ...props }: React.ComponentProps<typeof T.Trigger>) {
@@ -43,7 +43,7 @@ export function TabLinks({
   className?: string
 }) {
   return (
-    <nav aria-label={label} className={cn('flex gap-1 overflow-x-auto border-b border-line', className)}>
+    <nav aria-label={label} className={cn('flex gap-1 overflow-x-auto border-b border-line [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)]', className)}>
       {items.map((it) => {
         const active = it.href === activeHref
         return (

@@ -46,7 +46,7 @@ export default async function PublisherPage({ params }: { params: Promise<{ id: 
       {(viewer) => (
         <article className="max-w-3xl">
           <Link href="/publishers" className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← Publishers</Link>
-          <ObjectHeader eyebrow="Publisher" title={pub.company_name} state={<StatusText label={pub.verified ? 'Verified publisher' : 'Not yet verified'} tone={pub.verified ? 'positive' : 'attention'} />} />
+          <ObjectHeader title={pub.company_name} state={<StatusText label={pub.verified ? 'Verified publisher' : 'Not yet verified'} tone={pub.verified ? 'positive' : 'attention'} />} />
           {viewer?.id === pub.user_id && !pub.verified && (
             <p role="status" className="mt-6 rounded-media border border-warning-line bg-warning-subtle px-4 py-3 text-small text-warning">
               Only you can see this page until Glyph verifies your account. <Link href="/dashboard/publisher" className="font-medium underline">Publisher dashboard</Link>

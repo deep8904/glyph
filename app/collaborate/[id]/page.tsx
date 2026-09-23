@@ -7,6 +7,7 @@ import { ApplicationActions } from '@/components/collaborate/ApplicationActions'
 import { ClosePostButton } from '@/components/collaborate/ClosePostButton'
 import { APPLICATION_STATUS, POST_STATUS, StatusLabel, StatusText } from '@/components/workflow/StatusLabel'
 import { Avatar } from '@/components/ui/Avatar'
+import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { MetadataBar } from '@/components/ui/MetadataBar'
 import { SectionHeader } from '@/components/ui/SectionHeader'
@@ -100,9 +101,9 @@ export default async function CollabPostPage({ params }: { params: Promise<{ id:
           <Link href="/collaborate" className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← Collaborate</Link>
 
           <header className="mt-1">
-            <p className="text-small font-medium text-fg-muted">{seeking ? 'Looking for' : 'Available to collaborate as'}</p>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className="text-display font-semibold text-fg [overflow-wrap:anywhere]">{roleTitle}</h1>
+              <Badge tone={seeking ? 'accent' : 'neutral'}>{seeking ? 'Looking for' : 'Available to collaborate as'}</Badge>
               <StatusLabel label={stateLabel.label} tone={stateLabel.tone} />
             </div>
             <p className="mt-2 text-body text-fg-secondary [overflow-wrap:anywhere]">

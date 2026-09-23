@@ -6,6 +6,7 @@ import { RsvpButton } from '@/components/events/RsvpButton'
 import { DemoSlotRequest } from '@/components/events/DemoSlotRequest'
 import { formatEventWhen } from '@/components/events/EventRow'
 import { ObjectHeader } from '@/components/object/ObjectHeader'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { MetadataBar } from '@/components/ui/MetadataBar'
 import { Section } from '@/components/ui/Section'
@@ -55,7 +56,15 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         <article className="max-w-3xl">
           <Link href="/events" className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← Events</Link>
 
-          <ObjectHeader eyebrow={TYPE_LABELS[e.type] ?? 'Event'} title={e.title} state={state ? <StatusText label={state.label} tone={state.tone} /> : undefined}>
+          <ObjectHeader
+            title={e.title}
+            state={
+              <>
+                <Badge tone="neutral">{TYPE_LABELS[e.type] ?? 'Event'}</Badge>
+                {state && <StatusText label={state.label} tone={state.tone} />}
+              </>
+            }
+          >
             {e.profiles && <p>Hosted by <Link href={`/dev/${e.profiles.username}`} className="font-medium text-link underline-offset-2 hover:underline">{e.profiles.display_name ?? e.profiles.username}</Link></p>}
           </ObjectHeader>
 

@@ -121,7 +121,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </section>
             ) : (
               <>
-                <nav aria-label="Result types" className="mt-4 flex gap-1 overflow-x-auto border-b border-line">
+                <nav aria-label="Result types" className="mt-4 flex gap-1 overflow-x-auto border-b border-line [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)]">
                   {TYPES.map((t) => {
                     const active = t === type
                     const n = t === 'all' ? null : counts[t]

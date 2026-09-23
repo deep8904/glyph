@@ -8,6 +8,7 @@ const BUILD = Object.fromEntries(BUILD_TYPES.map((b) => [b.value, b.label])) as 
 export type ListingPlaytest = {
   id: string
   project_title: string
+  project_slug?: string | null
   build_type?: string
   platforms?: string[]
   description?: string
@@ -55,6 +56,7 @@ export function PlaytestListing({
 
   const left = playtest.requested_testers != null && playtest.current_testers != null ? Math.max(playtest.requested_testers - playtest.current_testers, 0) : null
   const build = [playtest.build_type ? BUILD[playtest.build_type] ?? playtest.build_type : null, playtest.platforms?.length ? playtest.platforms.join(', ') : null].filter(Boolean).join(' · ')
+  const projectHref = playtest.project_slug && playtest.username ? `/p/${playtest.username}/${playtest.project_slug}` : null
   return (
     <li className="py-4">
       <h3 className="text-h3 font-semibold text-fg [overflow-wrap:anywhere]">
@@ -63,6 +65,7 @@ export function PlaytestListing({
       <p className="text-small text-fg-muted">
         {playtest.username && <>by <Link href={`/dev/${playtest.username}`} className="hover:text-link">{playtest.display_name ?? playtest.username}</Link></>}
         {playtest.created_at && <> · {relativeTime(playtest.created_at)}</>}
+        {projectHref && <> · <Link href={projectHref} className="hover:text-link">Project page</Link></>}
       </p>
       {playtest.description && (
         <p className="mt-1 line-clamp-2 max-w-prose text-body text-fg-secondary">

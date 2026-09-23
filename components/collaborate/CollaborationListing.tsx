@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { CONTRACT_TYPES } from '@/lib/supabase/types'
 import { markdownExcerpt, relativeTime } from '@/lib/utils'
+import { Badge } from '@/components/ui/Badge'
 import { StatusText } from '@/components/workflow/StatusLabel'
 
 const CONTRACT = Object.fromEntries(CONTRACT_TYPES.map((c) => [c.value, c.label])) as Record<string, string>
@@ -16,6 +17,7 @@ export type ListingPost = {
   description?: string
   created_at?: string
   project_title: string | null
+  project_slug?: string | null
   username?: string
   display_name?: string | null
 }
@@ -43,8 +45,8 @@ export function CollaborationListing({
   hint?: string
 }) {
   const seeking = post.post_type === 'seeking_collaborator'
-  const eyebrow = seeking ? 'Looking for' : 'Offering'
   const arrangement = [post.contract_type ? CONTRACT[post.contract_type] ?? post.contract_type : null, post.remote_allowed ? 'Remote OK' : null, post.location].filter(Boolean).join(' · ')
+  const projectHref = post.project_slug && post.username ? `/p/${post.username}/${post.project_slug}` : null
 
   if (variant === 'mine') {
     return (
@@ -67,10 +69,12 @@ export function CollaborationListing({
 
   return (
     <li className="py-4">
-      <p className="text-micro font-medium text-fg-muted">{eyebrow}</p>
-      <h3 className="text-h3 font-semibold text-fg [overflow-wrap:anywhere]">
+      <h3 className="flex flex-wrap items-center gap-2 text-h3 font-semibold text-fg [overflow-wrap:anywhere]">
         <Link href={`/collaborate/${post.id}`} className="inline-flex min-h-11 items-center hover:text-link focus-visible:text-link sm:min-h-0">{roleOf(post)}</Link>
-        {post.project_title && <span className="font-normal text-fg-secondary"> · {post.project_title}</span>}
+        <Badge tone={seeking ? 'accent' : 'neutral'}>{seeking ? 'Looking for' : 'Offering'}</Badge>
+        {post.project_title && (
+          projectHref ? <Link href={projectHref} className="text-body font-normal text-fg-secondary hover:text-link">{post.project_title}</Link> : <span className="text-body font-normal text-fg-secondary">{post.project_title}</span>
+        )}
       </h3>
       {post.description && <p className="mt-1 line-clamp-2 max-w-prose text-body text-fg-secondary">{markdownExcerpt(post.description, 220)}</p>}
       <p className="mt-2 text-small text-fg-muted [overflow-wrap:anywhere]">

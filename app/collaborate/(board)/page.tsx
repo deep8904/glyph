@@ -52,7 +52,7 @@ export default async function CollaboratePage({ searchParams }: { searchParams: 
 
   let query = supabase
     .from('discoverable_collab_posts')
-    .select('id, post_type, role_needed, role_offered, contract_type, remote_allowed, location, description, created_at, project_title, username, display_name')
+    .select('id, post_type, role_needed, role_offered, contract_type, remote_allowed, location, description, created_at, project_title, project_slug, username, display_name')
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(PAGE_LIMIT)

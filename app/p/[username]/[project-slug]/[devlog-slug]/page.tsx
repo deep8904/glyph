@@ -8,6 +8,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
 import { ReactionsBar } from '@/components/devlog/ReactionsBar'
 import { CommentThread } from '@/components/devlog/CommentThread'
+import { ProjectIdentityMarker } from '@/components/project/ProjectIdentityMarker'
 import { REACTION_TYPES } from '@/lib/supabase/types'
 import type { Profile, Project, DevlogPost } from '@/lib/supabase/types'
 import type { CommentData } from '@/components/devlog/CommentThread'
@@ -44,10 +45,10 @@ export default async function DevlogPostPage({
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, title, slug, visibility')
+    .select('id, title, slug, visibility, stage, cover_url, cover_image_url')
     .eq('owner_id', profile.id)
     .eq('slug', projectSlug)
-    .maybeSingle<Pick<Project, 'id' | 'title' | 'slug' | 'visibility'>>()
+    .maybeSingle<Pick<Project, 'id' | 'title' | 'slug' | 'visibility' | 'stage' | 'cover_url' | 'cover_image_url'>>()
 
   if (!project) notFound()
 
@@ -157,11 +158,11 @@ export default async function DevlogPostPage({
           </div>
         )}
 
-        {/* Record header: project context, title, author, date */}
+        {/* Record header: project identity, title, author, date */}
         <header className="mb-8">
-          <p className="mb-3">
-            <Link href={`/p/${username}/${projectSlug}`} className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">{project.title}</Link>
-          </p>
+          <div className="mb-4">
+            <ProjectIdentityMarker project={{ title: project.title, slug: project.slug, stage: project.stage, cover_url: project.cover_url, cover_image_url: project.cover_image_url, username }} />
+          </div>
           <h1 className="text-display font-semibold text-fg [overflow-wrap:anywhere]">{post.title}</h1>
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-small text-fg-secondary">
             <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center gap-2 font-medium text-fg hover:text-link">

@@ -30,7 +30,7 @@ export default async function PlaytestsBrowsePage() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('discoverable_playtests')
-    .select('id, build_type, platforms, description, focus_areas, requested_testers, current_testers, created_at, project_title, username, display_name')
+    .select('id, build_type, platforms, description, focus_areas, requested_testers, current_testers, created_at, project_title, project_slug, username, display_name')
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(PAGE_LIMIT)

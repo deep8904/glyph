@@ -63,7 +63,7 @@ export default async function JamDetailPage({ params }: { params: Promise<{ slug
         <article className="max-w-3xl">
           <Link href="/jams" className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← Game jams</Link>
 
-          <ObjectHeader eyebrow="Game jam" title={j.title} state={<StatusText label={phase.label} tone={phase.tone} />}>
+          <ObjectHeader title={j.title} state={<StatusText label={phase.label} tone={phase.tone} />}>
             {j.profiles && <p>Hosted by <Link href={`/dev/${j.profiles.username}`} className="font-medium text-link underline-offset-2 hover:underline">{j.profiles.display_name ?? j.profiles.username}</Link></p>}
             {j.theme && <p><span className="font-medium text-fg">Theme:</span> {j.theme}</p>}
           </ObjectHeader>

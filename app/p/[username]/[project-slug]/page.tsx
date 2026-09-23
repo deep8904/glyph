@@ -178,6 +178,7 @@ export default async function PublicProjectPage({
             <div className="mb-3 flex flex-wrap items-center gap-2">
               {stage && <Badge tone="accent">{stage}</Badge>}
               {project.is_primary && <Badge>Current project</Badge>}
+              {openPlaytest && <Badge tone="success">Open for playtesting</Badge>}
               {isOwner && project.visibility !== 'public' && (
                 <Badge tone="warning">{project.visibility === 'private' ? 'Private — only you can see this' : 'Unlisted — reachable by link only'}</Badge>
               )}

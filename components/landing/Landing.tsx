@@ -1,10 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import Lenis from 'lenis'
 import {
   UserSquare,
   FileText,
@@ -20,72 +17,16 @@ import {
   GitBranch,
 } from 'lucide-react'
 
-function useLenisSmoothScroll() {
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-
-    const lenis = new Lenis({
-      duration: 1.1,
-      easing: (t) => 1 - Math.pow(1 - t, 3),
-    })
-    lenis.on('scroll', ScrollTrigger.update)
-
-    const tick = (time: number) => lenis.raf(time * 1000)
-    gsap.ticker.add(tick)
-    gsap.ticker.lagSmoothing(0)
-
-    return () => {
-      gsap.ticker.remove(tick)
-      lenis.destroy()
-    }
-  }, [])
-}
-
-function useGsapReveal(scope: React.RefObject<HTMLElement | null>) {
-  useEffect(() => {
-    if (!scope.current) return
-    gsap.registerPlugin(ScrollTrigger)
-
-    const ctx = gsap.context(() => {
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      const targets = gsap.utils.toArray<HTMLElement>('.reveal')
-
-      if (reduceMotion) {
-        gsap.set(targets, { opacity: 1, y: 0 })
-        return
-      }
-
-      ScrollTrigger.batch(targets, {
-        start: 'top 88%',
-        once: true,
-        onEnter: (batch) =>
-          gsap.to(batch, {
-            opacity: 1,
-            y: 0,
-            duration: 0.7,
-            ease: 'power3.out',
-            stagger: 0.08,
-            overwrite: true,
-          }),
-      })
-    }, scope)
-
-    return () => ctx.revert()
-  }, [scope])
-}
+// The hero's own entrance (reveal-hero, CSS-only, staggered by delay) is the one
+// restrained entrance sequence this page uses. Below-the-fold content used to get a
+// second, scroll-triggered GSAP reveal batch, plus a Lenis smooth-scroll takeover of
+// the whole page — both removed: content arriving as you scroll to it is ornamental,
+// not causal, and changing default scroll physics had no demonstrated product value.
 
 const NAV_LINKS = [
   { href: '#features', label: 'Features' },
   { href: '#community', label: 'Community' },
-  { href: '#events', label: 'Events' },
-  { href: '#jobs', label: 'Jobs' },
-]
-
-const METRICS = [
-  { value: '250K', sublabel: 'Active indie developers globally' },
-  { value: '8,554', sublabel: 'Indie games on Steam in 2024 — highest ever' },
-  { value: '48%', sublabel: 'Of all Steam full-game revenue' },
-  { value: '$10.8B', sublabel: 'Projected indie market size by 2031' },
+  { href: '#how-it-works', label: 'How it works' },
 ]
 
 const STEPS = [
@@ -112,12 +53,13 @@ const STEPS = [
 function HeroProductWindow() {
   return (
     <div className="rounded-[1.75rem] bg-white border border-gray-100 shadow-2xl shadow-gray-300/40 overflow-hidden">
-      {/* Window chrome */}
+      {/* Window chrome — explicitly labelled as an example, not a captured screenshot */}
       <div className="flex items-center gap-1.5 h-9 px-4 bg-gray-50/80 border-b border-gray-100">
         <span className="h-2 w-2 rounded-full bg-gray-200" />
         <span className="h-2 w-2 rounded-full bg-gray-200" />
         <span className="h-2 w-2 rounded-full bg-gray-200" />
         <span className="ml-3 text-[11px] text-gray-400">glyph.dev/p/mira/hollow-tide</span>
+        <span className="ml-auto rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">Example</span>
       </div>
 
       {/* Project identity */}
@@ -156,8 +98,7 @@ function HeroProductWindow() {
         </svg>
         <p className="text-sm text-gray-700 leading-relaxed">Reworked the dash-attack hitbox and added screen shake.</p>
         <div className="flex items-center gap-3 mt-2 text-[11px] text-gray-400">
-          <span>12 comments</span>
-          <span>34 views</span>
+          <span className="inline-flex items-center gap-1"><MessageCircle className="h-3 w-3" /> Comments open</span>
         </div>
       </div>
 
@@ -173,7 +114,7 @@ function HeroProductWindow() {
             <div className="h-6 w-6 rounded-full bg-indigo-400 border-2 border-white" />
             <div className="h-6 w-6 rounded-full bg-indigo-600 border-2 border-white" />
           </div>
-          <span className="text-xs font-medium text-indigo-600">7 signed up</span>
+          <span className="text-xs font-medium text-indigo-600">Testers wanted</span>
         </div>
       </div>
     </div>
@@ -181,9 +122,6 @@ function HeroProductWindow() {
 }
 
 export function Landing({ isAuthed }: { isAuthed: boolean }) {
-  const scopeRef = useRef<HTMLDivElement>(null)
-  useGsapReveal(scopeRef)
-  useLenisSmoothScroll()
   const [menuOpen, setMenuOpen] = useState(false)
 
   // Lock body scroll while the mobile menu is open.
@@ -204,7 +142,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
   }, [menuOpen])
 
   return (
-    <div ref={scopeRef} className="min-h-screen relative overflow-x-hidden font-sans">
+    <div className="min-h-screen relative overflow-x-hidden font-sans">
       {/* Backdrop */}
       <div className="fixed inset-0 z-0 bg-plasma bg-grain pointer-events-none" />
 
@@ -311,7 +249,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
 
             {/* Problem */}
             <section className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
-              <div className="reveal space-y-6">
+              <div className="space-y-6">
                 <h2 className="text-3xl md:text-4xl font-display font-medium tracking-tight text-gray-900 text-balance">
                   Your workflow is scattered across 7 platforms. None of them are built for you.
                 </h2>
@@ -321,7 +259,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                   The result: isolation and lack of structured feedback.
                 </p>
               </div>
-              <div className="reveal relative p-1 rounded-3xl bg-linear-to-b from-gray-100 to-white">
+              <div className="relative p-1 rounded-3xl bg-linear-to-b from-gray-100 to-white">
                 <div className="bg-white rounded-[22px] p-8 sm:p-10 md:p-14 shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col items-center justify-center text-center">
                   <span className="text-6xl sm:text-7xl font-light tracking-tighter text-gray-900 mb-4">7</span>
                   <p className="text-sm text-gray-500 uppercase tracking-widest leading-relaxed">
@@ -331,32 +269,17 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
               </div>
             </section>
 
-            {/* Market stats */}
-            <section id="community" className="space-y-10">
-              <h2 className="reveal text-2xl md:text-3xl font-display font-medium tracking-tight text-gray-900 max-w-xl">
-                The indie market is the biggest it has ever been. The infrastructure hasn&apos;t caught up.
-              </h2>
-              <dl className="reveal grid grid-cols-2 lg:grid-cols-4 divide-x divide-y divide-gray-100 border-y border-gray-100">
-                {METRICS.map((m) => (
-                  <div key={m.sublabel} className="flex flex-col gap-2 py-6 px-6 first:pl-0">
-                    <dd className="text-3xl md:text-4xl font-light tracking-tight text-gray-900">{m.value}</dd>
-                    <dt className="text-sm text-gray-500 leading-snug">{m.sublabel}</dt>
-                  </div>
-                ))}
-              </dl>
-            </section>
-
             {/* Features bento */}
             <section id="features" className="space-y-12 bg-gray-50/50 -mx-5 sm:-mx-8 md:-mx-16 lg:-mx-24 px-5 sm:px-8 md:px-16 lg:px-24 py-16 sm:py-20 md:py-24 border-y border-gray-100">
-              <div className="reveal max-w-2xl">
+              <div className="max-w-2xl">
                 <h2 className="text-3xl md:text-4xl font-display font-medium tracking-tight text-gray-900 mb-4">
                   Everything you need before launch. Nothing you don&apos;t.
                 </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-[minmax(260px,auto)] gap-4 md:gap-6">
                 {/* Developer Profile — 2 col */}
-                <div className="group flex flex-col p-8 rounded-3xl bg-linear-to-br from-white to-gray-50/80 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal sm:col-span-2">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
+                <div className="group flex flex-col p-8 rounded-3xl bg-linear-to-br from-white to-gray-50/80 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 sm:col-span-2">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-transparent bg-indigo-50 text-indigo-600 mb-6 group-hover:border-indigo-200 group-hover:text-indigo-700 transition-colors duration-300">
                     <UserSquare className="h-6 w-6" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 tracking-tight mb-3">Developer Profile</h3>
@@ -366,8 +289,8 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                   </div>
                 </div>
                 {/* Devlogs — 2 row, dark */}
-                <div className="group flex flex-col p-8 rounded-3xl bg-indigo-900 text-white shadow-[0_20px_40px_-15px_rgba(79,70,229,0.3)] transition-all duration-300 reveal lg:row-span-2">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white mb-6 group-hover:scale-110 group-hover:bg-white/20 transition-all duration-300">
+                <div className="group flex flex-col p-8 rounded-3xl bg-indigo-900 text-white shadow-[0_20px_40px_-15px_rgba(79,70,229,0.3)] transition-all duration-300 lg:row-span-2">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white mb-6 group-hover:bg-white/15 transition-all duration-300">
                     <FileText className="h-6 w-6" />
                   </div>
                   <h3 className="text-lg font-medium text-white tracking-tight mb-3">Project Pages &amp; Devlogs</h3>
@@ -377,32 +300,32 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                   </div>
                 </div>
                 {/* Playtesting */}
-                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
+                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-transparent bg-indigo-50 text-indigo-600 mb-6 group-hover:border-indigo-200 group-hover:text-indigo-700 transition-colors duration-300">
                     <Joystick className="h-6 w-6" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 tracking-tight mb-3">Structured Playtesting</h3>
                   <p className="text-sm text-gray-500 leading-relaxed max-w-sm flex-1">Request testers and collect feedback by category — gameplay, controls, UI, difficulty. Track how your game improves over time.</p>
                 </div>
                 {/* Events */}
-                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
+                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-transparent bg-indigo-50 text-indigo-600 mb-6 group-hover:border-indigo-200 group-hover:text-indigo-700 transition-colors duration-300">
                     <MapPin className="h-6 w-6" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 tracking-tight mb-3">Local Events &amp; Showcases</h3>
                   <p className="text-sm text-gray-500 leading-relaxed max-w-sm flex-1">City-based meetups and game jams with RSVP and demo slots. Find your local developer community.</p>
                 </div>
                 {/* Collaboration — 2 col */}
-                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal sm:col-span-2">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
+                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 sm:col-span-2">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-transparent bg-indigo-50 text-indigo-600 mb-6 group-hover:border-indigo-200 group-hover:text-indigo-700 transition-colors duration-300">
                     <Users className="h-6 w-6" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 tracking-tight mb-3">Collaboration Board</h3>
                   <p className="text-sm text-gray-500 leading-relaxed max-w-sm flex-1">Full-time, freelance, rev-share, and volunteer roles — every listing linked to a real project page so you know exactly what you&apos;re joining.</p>
                 </div>
                 {/* Publisher discovery */}
-                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 reveal">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-6 group-hover:scale-110 group-hover:bg-indigo-100 transition-all duration-300">
+                <div className="group flex flex-col p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-transparent bg-indigo-50 text-indigo-600 mb-6 group-hover:border-indigo-200 group-hover:text-indigo-700 transition-colors duration-300">
                     <Building2 className="h-6 w-6" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 tracking-tight mb-3">Publisher Discovery</h3>
@@ -413,16 +336,16 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
 
             {/* How it works */}
             <section id="how-it-works" className="max-w-4xl mx-auto space-y-12 sm:space-y-16">
-              <div className="reveal text-center">
+              <div className="text-center">
                 <h2 className="text-3xl md:text-4xl font-display font-medium tracking-tight text-gray-900">Up and running in minutes.</h2>
               </div>
               <div className="relative space-y-8 sm:space-y-12 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-linear-to-b before:from-transparent before:via-gray-200 before:to-transparent">
                 {STEPS.map((item, i) => (
-                  <div key={item.step} className={`reveal relative flex items-center justify-between md:justify-normal group ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
+                  <div key={item.step} className={`relative flex items-center justify-between md:justify-normal group ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
                     <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-indigo-50 shrink-0 md:order-1 shadow-sm z-10 ${i % 2 === 1 ? 'md:translate-x-1/2' : 'md:-translate-x-1/2'}`}>
                       <span className="w-2 h-2 rounded-full bg-indigo-600" />
                     </div>
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-6 md:p-8 rounded-2xl bg-white border border-gray-100 shadow-sm transition-transform duration-300 group-hover:-translate-y-1">
+                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-6 md:p-8 rounded-2xl bg-white border border-gray-100 shadow-sm transition-colors duration-300 group-hover:border-indigo-100">
                       <h3 className="text-lg font-medium text-gray-900 mb-2">{item.title}</h3>
                       <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
                     </div>
@@ -432,7 +355,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
             </section>
 
             {/* Always free */}
-            <section id="events" className="reveal relative overflow-hidden rounded-[2.5rem] bg-gray-900 text-white p-8 sm:p-12 md:p-16 lg:p-20 text-center">
+            <section id="pricing" className="relative overflow-hidden rounded-[2.5rem] bg-gray-900 text-white p-8 sm:p-12 md:p-16 lg:p-20 text-center">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-indigo-500/10 blur-[100px] pointer-events-none" />
               <div className="relative z-10 max-w-3xl mx-auto space-y-8">
                 <h2 className="text-3xl md:text-5xl font-display font-medium tracking-tight text-white text-balance">
@@ -451,7 +374,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
             </section>
 
             {/* Community */}
-            <section className="reveal max-w-3xl mx-auto text-center space-y-6 pb-12">
+            <section id="community" className="max-w-3xl mx-auto text-center space-y-6 pb-12">
               <Code2 className="h-10 w-10 text-gray-300 mb-4 mx-auto" />
               <h2 className="text-2xl md:text-3xl font-display font-medium tracking-tight text-gray-900">
                 Built for the developer who is still in the middle of it.
@@ -465,7 +388,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
           </div>
 
           {/* Footer */}
-          <footer id="jobs" className="mt-auto border-t border-gray-100 bg-gray-50/50 px-5 py-10 sm:px-8 sm:py-12 md:px-16 text-sm">
+          <footer className="mt-auto border-t border-gray-100 bg-gray-50/50 px-5 py-10 sm:px-8 sm:py-12 md:px-16 text-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
               <div className="sm:col-span-2 space-y-4">
                 <div className="flex items-center gap-1 text-lg font-display font-semibold tracking-tighter text-gray-900">
@@ -478,8 +401,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
                 <ul className="space-y-2 text-gray-500">
                   <li><a href="#features" className="hover:text-indigo-600 transition-colors">Features</a></li>
                   <li><a href="#community" className="hover:text-indigo-600 transition-colors">Community</a></li>
-                  <li><a href="#events" className="hover:text-indigo-600 transition-colors">Events</a></li>
-                  <li><a href="#jobs" className="hover:text-indigo-600 transition-colors">Jobs</a></li>
+                  <li><a href="#pricing" className="hover:text-indigo-600 transition-colors">Pricing</a></li>
                 </ul>
               </div>
               <div className="space-y-3">

@@ -48,8 +48,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
             <Button variant="secondary" disabled title="Subscription management isn't available yet" className="mt-5">Manage subscription</Button>
           ) : (
             <div className="mt-5">
-              <p className="max-w-prose text-small text-fg-secondary">Paid plans aren&apos;t open yet. Every core feature — profile, projects, devlogs, playtesting, events, and the collaboration board — is free for individual developers.</p>
-              <Button asChild variant="secondary" className="mt-4"><Link href="/pricing">View plans</Link></Button>
+              <p className="max-w-prose text-small text-fg-secondary">Glyph is free. Every core feature — profile, projects, devlogs, playtesting, events, and the collaboration board — is free for individual developers, with no paid tiers.</p>
+              <Button asChild variant="secondary" className="mt-4"><Link href="/pricing">Read our pricing</Link></Button>
             </div>
           )}
         </div>

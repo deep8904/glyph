@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { labelFor, PROJECT_STAGES } from '@/lib/supabase/types'
-import { isHttpsUrl, relativeTime } from '@/lib/utils'
+import { relativeTime } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { ProjectMark } from '@/components/project/ProjectMark'
 import type { ProjectRowData } from '@/components/project/ProjectRow'
 
 /**
@@ -24,18 +25,18 @@ export function CurrentWorkPanel({
 }) {
   const href = project.slug ? `/p/${username}/${project.slug}` : null
   const stage = project.stage ? labelFor(PROJECT_STAGES, project.stage) : null
-  const cover = [project.cover_url, project.cover_image_url].find(isHttpsUrl) ?? null
 
   return (
-    <div className="flex flex-col gap-4 border border-line-subtle p-4 sm:flex-row sm:items-start">
-      {cover ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={cover} alt="" loading="lazy" className="h-24 w-36 shrink-0 rounded-media border border-line object-cover" />
-      ) : (
-        <div aria-hidden className="flex h-24 w-36 shrink-0 items-center justify-center rounded-media border border-line bg-surface-muted text-h2 font-semibold text-fg-muted">
-          {project.title.charAt(0).toUpperCase()}
-        </div>
-      )}
+    <div className="group flex flex-col gap-4 border border-line-subtle p-4 sm:flex-row sm:items-start">
+      <div className="w-full shrink-0 sm:w-40">
+        {href ? (
+          <Link href={href} aria-label={project.title} className="block">
+            <ProjectMark title={project.title} id={project.id} coverUrl={project.cover_url ?? project.cover_image_url} engine={project.engine} genre={project.genre} stage={project.stage} />
+          </Link>
+        ) : (
+          <ProjectMark title={project.title} id={project.id} coverUrl={project.cover_url ?? project.cover_image_url} engine={project.engine} genre={project.genre} stage={project.stage} />
+        )}
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-h3 font-semibold text-fg [overflow-wrap:anywhere]">
@@ -43,7 +44,7 @@ export function CurrentWorkPanel({
           </h3>
           {stage && <Badge tone="accent" mono>{stage}</Badge>}
         </div>
-        <p className="mt-1 font-mono text-micro text-fg-muted">
+        <p className="mt-1 font-mono text-micro text-fg-secondary">
           {latestDevlog ? <>Last devlog {relativeTime(latestDevlog.published_at)}</> : 'No devlogs yet'}
         </p>
         {latestDevlog && (

@@ -1,11 +1,13 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { labelFor, PROJECT_STAGES } from '@/lib/supabase/types'
-import { isHttpsUrl, relativeTime } from '@/lib/utils'
+import { relativeTime } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { ProjectMark } from '@/components/project/ProjectMark'
 
 export type CurrentWorkProject = {
+  id: string
   title: string
   slug: string | null
   stage: string | null
@@ -26,18 +28,16 @@ export type CurrentWorkDevlog = { title: string; href: string; published_at: str
 export function CurrentWork({ project, username, latestDevlog }: { project: CurrentWorkProject; username: string; latestDevlog?: CurrentWorkDevlog | null }) {
   const href = project.slug ? `/p/${username}/${project.slug}` : null
   const stage = project.stage ? labelFor(PROJECT_STAGES, project.stage) : null
-  const cover = [project.cover_url, project.cover_image_url].find(isHttpsUrl) ?? null
 
   return (
-    <div className="flex flex-col gap-5 sm:flex-row">
+    <div className="group flex flex-col gap-5 sm:flex-row">
       <div className="sm:w-2/5 sm:shrink-0">
-        {cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover} alt="" loading="lazy" className="aspect-video w-full rounded-panel border border-line object-cover" />
+        {href ? (
+          <Link href={href} aria-label={project.title} className="block">
+            <ProjectMark title={project.title} id={project.id} coverUrl={project.cover_url ?? project.cover_image_url} genre={null} stage={project.stage} />
+          </Link>
         ) : (
-          <div aria-hidden className="flex aspect-video w-full items-center justify-center rounded-panel border border-line bg-surface-muted text-h1 font-semibold text-fg-muted">
-            {project.title.charAt(0).toUpperCase()}
-          </div>
+          <ProjectMark title={project.title} id={project.id} coverUrl={project.cover_url ?? project.cover_image_url} genre={null} stage={project.stage} />
         )}
       </div>
       <div className="min-w-0 flex-1">

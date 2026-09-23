@@ -10,6 +10,23 @@ import { NotificationLink } from './NotificationLink'
 import type { PresentedRow } from '@/lib/notifications/present'
 import { relativeTime } from '@/lib/utils'
 
+/** Today / Yesterday / Earlier — a pure grouping of already-sorted rows, no new data. */
+function groupByDay(rows: PresentedRow[]) {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfYesterday = new Date(startOfToday.getTime() - 86400000)
+  const today: PresentedRow[] = []
+  const yesterday: PresentedRow[] = []
+  const earlier: PresentedRow[] = []
+  for (const r of rows) {
+    const t = new Date(r.time)
+    if (t >= startOfToday) today.push(r)
+    else if (t >= startOfYesterday) yesterday.push(r)
+    else earlier.push(r)
+  }
+  return [['Today', today], ['Yesterday', yesterday], ['Earlier', earlier]] as const
+}
+
 /**
  * The notification list, as a pure view over presented rows so every state can be rendered from fixtures.
  * Each row reads actor → action → object → time. Unread is a dot, heavier text and a screen-reader word,
@@ -67,34 +84,39 @@ export function NotificationsView({
           {shown.length === 0 ? (
             <EmptyState className="border-t-0" kind="no-results" title="Nothing unread" description="Every notification has been read." action={<Button asChild variant="secondary" size="sm"><Link href="/notifications">Show all notifications</Link></Button>} />
           ) : (
-            <ul className="divide-y divide-line-subtle border-b border-line-subtle">
-              {shown.map((p) => {
-                const body = (
-                  <>
-                    <span className="relative mt-0.5 shrink-0">
-                      <Avatar name={p.actorPrimaryName} src={p.actorAvatar} size="md" />
-                      {p.unread && <span aria-hidden className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-accent ring-2 ring-surface" />}
-                    </span>
-                    <span className="min-w-0 flex-1 text-body [overflow-wrap:anywhere]">
-                      {p.unread && <span className="sr-only">Unread. </span>}
-                      <span className={p.unread ? 'font-semibold text-fg' : 'font-medium text-fg'}>{p.actors}</span>{' '}
-                      <span className={p.unread ? 'text-fg' : 'text-fg-secondary'}>{p.action}</span>
-                      {p.unavailable && <span className="mt-0.5 block text-small text-fg-muted">No longer available: it was deleted, or you can no longer see it.</span>}
-                    </span>
-                    <time dateTime={p.time} className="shrink-0 pt-1 text-micro text-fg-muted">{relativeTime(p.time)}</time>
-                  </>
-                )
-                return (
-                  <li key={p.key}>
-                    {p.href ? (
-                      <NotificationLink ids={p.ids} unread={p.unread} href={p.href}>{body}</NotificationLink>
-                    ) : (
-                      <div className="flex min-h-11 items-start gap-3 px-1 py-3">{body}</div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
+            groupByDay(shown).map(([label, group]) => group.length === 0 ? null : (
+              <div key={label} className="mt-5 first:mt-4">
+                <h2 className="mb-1 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">{label}</h2>
+                <ul className="divide-y divide-line-subtle border-y border-line-subtle">
+                  {group.map((p) => {
+                    const body = (
+                      <>
+                        <span className="relative mt-0.5 shrink-0">
+                          <Avatar name={p.actorPrimaryName} src={p.actorAvatar} size="md" />
+                          {p.unread && <span aria-hidden className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-accent ring-2 ring-surface" />}
+                        </span>
+                        <span className="min-w-0 flex-1 text-body [overflow-wrap:anywhere]">
+                          {p.unread && <span className="sr-only">Unread. </span>}
+                          <span className={p.unread ? 'font-semibold text-fg' : 'font-medium text-fg'}>{p.actors}</span>{' '}
+                          <span className={p.unread ? 'text-fg' : 'text-fg-secondary'}>{p.action}</span>
+                          {p.unavailable && <span className="mt-0.5 block text-small text-fg-muted">No longer available: it was deleted, or you can no longer see it.</span>}
+                        </span>
+                        <time dateTime={p.time} className="shrink-0 pt-1 text-micro text-fg-muted">{relativeTime(p.time)}</time>
+                      </>
+                    )
+                    return (
+                      <li key={p.key}>
+                        {p.href ? (
+                          <NotificationLink ids={p.ids} unread={p.unread} href={p.href}>{body}</NotificationLink>
+                        ) : (
+                          <div className="flex min-h-11 items-start gap-3 px-1 py-3">{body}</div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ))
           )}
           {truncated && <p className="mt-3 text-micro text-fg-muted">Showing the latest {limit}.</p>}
         </>

@@ -199,6 +199,39 @@ export default async function DashboardPage() {
   // uses for its empty state (recent public devlogs; excludes yourself, blocked and muted people).
   const suggestedDevs = (followsCount ?? 0) === 0 ? await fetchSuggestedDevelopers(supabase, user.id, 4) : []
 
+  // A small, real preview of open opportunities elsewhere on Glyph — not personalised, not a
+  // second copy of /collaborate or /playtests/browse, just enough to remind this exists.
+  const [{ data: collabPreview }, { data: playtestPreview }] = await Promise.all([
+    supabase
+      .from('discoverable_collab_posts')
+      .select('id, post_type, role_needed, role_offered, project_title, username, created_at')
+      .neq('username', profile.username)
+      .order('created_at', { ascending: false })
+      .limit(2),
+    supabase
+      .from('discoverable_playtests')
+      .select('id, project_title, requested_testers, current_testers, username, created_at')
+      .neq('username', profile.username)
+      .order('created_at', { ascending: false })
+      .limit(2),
+  ])
+  type RawCollabPreview = { id: string; post_type: string; role_needed: string | null; role_offered: string | null; project_title: string | null; username: string; created_at: string }
+  type RawPlaytestPreview = { id: string; project_title: string | null; requested_testers: number; current_testers: number; username: string; created_at: string }
+  const opportunities = [
+    ...((collabPreview ?? []) as unknown as RawCollabPreview[]).map((c) => ({
+      id: `collab-${c.id}`,
+      href: `/collaborate/${c.id}`,
+      time: c.created_at,
+      text: c.post_type === 'seeking_collaborator' ? `Seeking ${c.role_needed ?? 'a role'}${c.project_title ? ` — ${c.project_title}` : ''}` : `Offering ${c.role_offered ?? 'help'}${c.project_title ? ` — ${c.project_title}` : ''}`,
+    })),
+    ...((playtestPreview ?? []) as unknown as RawPlaytestPreview[]).map((p) => ({
+      id: `playtest-${p.id}`,
+      href: `/playtests/${p.id}`,
+      time: p.created_at,
+      text: `${p.project_title ?? 'A project'} needs testers (${p.current_testers}/${p.requested_testers})`,
+    })),
+  ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+
   // ── Dynamic next action ────────────────────────────────────────────
   let nextAction: NextAction
   if (!currentProject) {
@@ -222,8 +255,8 @@ export default async function DashboardPage() {
   const facts = [labelFor(ROLES, profile.primary_role), labelFor(ENGINES, profile.primary_engine), labelFor(EXPERIENCE_LEVELS, profile.experience_level)].filter((v): v is string => !!v)
   const actorOf = (p: { username: string; display_name: string | null } | null) => p?.display_name ?? p?.username ?? 'Someone'
   const attention = [
-    ...applications.map((a) => ({ id: `app-${a.id}`, href: `/collaborate/${a.collaboration_posts.id}`, time: a.created_at, actor: actorOf(a.profiles), text: `applied for ${a.collaboration_posts.role_needed ?? 'a role'}` })),
-    ...sessions.map((x) => ({ id: `session-${x.id}`, href: '/dashboard/playtests', time: x.created_at, actor: actorOf(x.profiles), text: `requested to test ${x.playtest_requests.projects?.title ?? 'your project'}` })),
+    ...applications.map((a) => ({ id: `app-${a.id}`, href: `/collaborate/${a.collaboration_posts.id}`, time: a.created_at, actor: actorOf(a.profiles), text: `applied for ${a.collaboration_posts.role_needed ?? 'a role'}`, actionLabel: 'Review application' })),
+    ...sessions.map((x) => ({ id: `session-${x.id}`, href: '/dashboard/playtests', time: x.created_at, actor: actorOf(x.profiles), text: `requested to test ${x.playtest_requests.projects?.title ?? 'your project'}`, actionLabel: 'Review request' })),
   ].sort((x, y) => new Date(y.time).getTime() - new Date(x.time).getTime())
   const feedback = comments.flatMap((c) => {
     const devlog = devlogLookup.get(c.devlog_post_id)
@@ -261,6 +294,7 @@ export default async function DashboardPage() {
         followsCount={followsCount ?? 0}
         network={feedPreview.map((f) => ({ id: f.id, href: `/p/${f.username}/${f.project_slug}/${f.devlog_slug}`, title: f.devlog_title, context: `${f.display_name ?? f.username} on ${f.project_title}`, published_at: f.published_at }))}
         suggested={suggestedDevs}
+        opportunities={opportunities}
       />
     </Shell>
   )

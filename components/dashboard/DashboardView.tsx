@@ -1,5 +1,9 @@
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { EventRow } from '@/components/dashboard/EventRow'
+import { AttentionItem } from '@/components/dashboard/AttentionItem'
+import { CurrentWorkPanel } from '@/components/dashboard/CurrentWorkPanel'
+import { OpportunityRow } from '@/components/dashboard/OpportunityRow'
 import { ProjectRow, type ProjectRowData } from '@/components/project/ProjectRow'
 import { DevlogRow } from '@/components/devlog/DevlogRow'
 import { DeveloperRow } from '@/components/developer/DeveloperRow'
@@ -8,7 +12,6 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Section } from '@/components/ui/Section'
-import { relativeTime } from '@/lib/utils'
 import type { SuggestedDeveloper } from '@/lib/feed/queries'
 
 export type DashboardData = {
@@ -24,34 +27,31 @@ export type DashboardData = {
   projectsFailed: boolean
   latestDevlog: { title: string; slug: string; published_at: string } | null
   nextStep: { label: string; href: string; reason?: string }
-  /** Pending applications and playtest sign-ups, newest first. */
-  attention: { id: string; href: string; time: string; actor: string; text: string }[]
+  /** Pending applications and playtest sign-ups — items waiting on a decision. */
+  attention: { id: string; href: string; time: string; actor: string; text: string; actionLabel: string }[]
   attentionFailed: boolean
   unreadNotifications: number
   latestNotification: { at: string; actor: string } | null
-  /** Comments on the owner's own devlogs. */
+  /** Comments on the owner's own devlogs — FYI, not waiting on a decision. */
   feedback: { id: string; href: string; time: string; actor: string; devlogTitle: string }[]
   feedbackFailed: boolean
   followsCount: number
   network: { id: string; href: string; title: string; context: string; published_at: string }[]
   suggested: SuggestedDeveloper[]
+  /** Open collaboration/playtest posts elsewhere on Glyph, not personalised — a reminder, not a second listing page. */
+  opportunities: { id: string; href: string; text: string }[]
 }
 
 /**
- * Dashboard = what I need to do. Four questions in order: who am I, what am I building, what
- * happened on my work, what is happening in my network. Facts only: real pending items and real
- * timestamps — no scores, streaks or charts. Where to find collaborators/testers/events already
- * lives in the rail and the Explore tabs; this page does not repeat that list.
- * ≥1024px the last one sits in a side column.
+ * Dashboard = operate, decide, continue. Seven questions in order: who am I, what am I building,
+ * what needs a decision, what happened on my work, who's in my network, what's open elsewhere,
+ * what else am I building. Facts only: real pending items and real timestamps — no scores,
+ * streaks or charts. ≥1024px the secondary five (network/opportunities/other projects) sit in a
+ * side column so Current Work and Needs Attention keep the full main column's width.
  */
 export function DashboardView(d: DashboardData) {
-  // One "Activity" list instead of two near-identical modules (things that need a decision and
-  // things that are just FYI both read as "someone did something on my work" at a glance —
-  // the row text itself already says which is which; a second section added nothing but chrome).
-  const activity = [
-    ...d.attention.map((r) => ({ id: r.id, href: r.href, time: r.time, node: <><span className="font-medium text-fg">{r.actor}</span> {r.text}</> })),
-    ...d.feedback.map((c) => ({ id: c.id, href: c.href, time: c.time, node: <><span className="font-medium text-fg">{c.actor}</span> commented on {c.devlogTitle}</> })),
-  ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+  const hasAttention = d.attention.length > 0
+  const activity = d.feedback.map((c) => ({ id: c.id, href: c.href, time: c.time, node: <><span className="font-medium text-fg">{c.actor}</span> commented on {c.devlogTitle}</> }))
   const hasActivity = activity.length > 0 || d.unreadNotifications > 0
   const activityFailed = d.attentionFailed || d.feedbackFailed
   return (
@@ -75,29 +75,12 @@ export function DashboardView(d: DashboardData) {
           </div>
         </header>
 
-        {/* 2. What am I building */}
+        {/* 2. What am I building — the operational sibling of Profile's Current Work */}
         <Section id="current" title="Currently building">
           {d.projectsFailed ? (
             <ErrorState inline title="We couldn't load your projects" description="This may be temporary. Reload the page to try again." />
           ) : d.currentProject ? (
-            <div>
-              <ProjectRow project={d.currentProject} username={d.username} variant="feature" />
-              <p className="mt-3 text-small text-fg-secondary">
-                {d.latestDevlog ? (
-                  <>
-                    Latest devlog:{' '}
-                    {d.currentProject.slug ? (
-                      <Link href={`/p/${d.username}/${d.currentProject.slug}/${d.latestDevlog.slug}`} className="font-medium text-link underline-offset-2 hover:underline">{d.latestDevlog.title}</Link>
-                    ) : d.latestDevlog.title}
-                    <span className="text-fg-muted"> · {relativeTime(d.latestDevlog.published_at)}</span>
-                  </>
-                ) : 'No devlogs posted yet.'}
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <Button asChild variant="primary"><Link href={d.nextStep.href}>{d.nextStep.label}</Link></Button>
-                {d.nextStep.reason && <span className="text-small text-fg-muted">{d.nextStep.reason}</span>}
-              </div>
-            </div>
+            <CurrentWorkPanel project={d.currentProject} username={d.username} latestDevlog={d.latestDevlog} nextStep={d.nextStep} />
           ) : (
             <EmptyState
               kind="first-use"
@@ -109,9 +92,26 @@ export function DashboardView(d: DashboardData) {
           )}
         </Section>
 
-        {/* 3. What happened on my work — applications, playtest requests, comments, notifications, together */}
-        <Section id="activity" title="Activity" count={activity.length > 0 ? activity.length : undefined}>
-          {activityFailed ? (
+        {/* 3. What needs a decision — applications and playtest sign-ups waiting on you */}
+        {(hasAttention || d.attentionFailed) && (
+          <Section id="attention" title="Needs attention" count={hasAttention ? d.attention.length : undefined}>
+            {d.attentionFailed ? (
+              <ErrorState inline title="We couldn't load pending items" description="This may be temporary. Reload the page to try again." />
+            ) : (
+              <ul className="divide-y divide-line-subtle">
+                {d.attention.map((r) => (
+                  <AttentionItem key={r.id} href={r.href} time={r.time} actionLabel={r.actionLabel}>
+                    <span className="font-medium text-fg">{r.actor}</span> {r.text}
+                  </AttentionItem>
+                ))}
+              </ul>
+            )}
+          </Section>
+        )}
+
+        {/* 4. What happened on my work — FYI activity, not decisions */}
+        <Section id="activity" title="Activity on your work" count={activity.length > 0 ? activity.length : undefined}>
+          {d.feedbackFailed ? (
             <ErrorState inline title="We couldn't load your activity" description="This may be temporary. Reload the page to try again." />
           ) : hasActivity ? (
             <ul className="divide-y divide-line-subtle border-y border-line-subtle">
@@ -124,21 +124,13 @@ export function DashboardView(d: DashboardData) {
               )}
             </ul>
           ) : (
-            <EmptyState kind="cleared" className="border-y-0 py-2" title="Nothing yet" description="Applications, playtest requests, comments and notifications on your work appear here." />
+            <EmptyState kind="cleared" className="border-y-0 py-2" title="Nothing yet" description="Comments and reactions on your work appear here." />
           )}
         </Section>
-
-        {d.otherProjects.length > 0 && (
-          <Section id="projects" title="Your other projects" count={d.otherProjects.length}>
-            <ul className="divide-y divide-line-subtle">
-              {d.otherProjects.map((p) => <li key={p.id}><ProjectRow project={p} username={d.username} variant="compact" /></li>)}
-            </ul>
-          </Section>
-        )}
       </div>
 
-      <aside aria-label="Network and opportunities" className="mt-8 min-w-0 space-y-8 lg:mt-0">
-        {/* 5. What is happening in my network */}
+      <aside aria-label="Network, opportunities and other work" className="mt-8 min-w-0 space-y-8 lg:mt-0">
+        {/* 5. Who's in my network */}
         <Section id="network" title="From people you follow" description="Newest devlogs, in the order they were published.">
           {d.followsCount === 0 ? (
             <>
@@ -162,6 +154,27 @@ export function DashboardView(d: DashboardData) {
             </>
           )}
         </Section>
+
+        {/* 6. What's open elsewhere — a reminder, not a second Collaborate/Playtests page */}
+        {d.opportunities.length > 0 && (
+          <Section id="opportunities" title="Open elsewhere">
+            <ul className="divide-y divide-line-subtle">
+              {d.opportunities.map((o) => <OpportunityRow key={o.id} href={o.href}>{o.text}</OpportunityRow>)}
+            </ul>
+            <Link href="/collaborate" className="mt-1 inline-flex min-h-11 items-center gap-1 text-small font-medium text-link underline-offset-2 hover:underline">
+              Browse opportunities <ArrowRight aria-hidden strokeWidth={1.75} className="size-3.5" />
+            </Link>
+          </Section>
+        )}
+
+        {/* 7. What else am I building — Current Work already owns the dominant treatment */}
+        {d.otherProjects.length > 0 && (
+          <Section id="projects" title="Your other projects" count={d.otherProjects.length}>
+            <ul className="divide-y divide-line-subtle">
+              {d.otherProjects.map((p) => <li key={p.id}><ProjectRow project={p} username={d.username} variant="compact" /></li>)}
+            </ul>
+          </Section>
+        )}
       </aside>
     </div>
   )

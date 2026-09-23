@@ -13,14 +13,15 @@ const BASE: DashboardData = {
   latestDevlog: { title: 'Fixture devlog title', slug: 'fixture-devlog', published_at: ago(3) },
   nextStep: { label: 'Review applications', href: '/collaborate', reason: '2 pending' },
   attention: [
-    { id: 'a1', href: '#', time: ago(0.1), actor: 'Fixture Applicant', text: 'applied for Audio designer' },
-    { id: 'a2', href: '#', time: ago(1), actor: 'Fixture Tester', text: 'requested to test Fixture Project' },
+    { id: 'a1', href: '#', time: ago(0.1), actor: 'Fixture Applicant', text: 'applied for Audio designer', actionLabel: 'Review application' },
+    { id: 'a2', href: '#', time: ago(1), actor: 'Fixture Tester', text: 'requested to test Fixture Project', actionLabel: 'Review request' },
   ],
   attentionFailed: false, unreadNotifications: 3, latestNotification: { at: ago(0.2), actor: 'Fixture Follower' },
   feedback: [{ id: 'f1', href: '#', time: ago(1), actor: 'Fixture Commenter', devlogTitle: 'Fixture devlog title' }], feedbackFailed: false,
   followsCount: 2,
   network: [{ id: 'n1', href: '#', title: 'A devlog from someone I follow', context: 'Fixture Dev on Their Game', published_at: ago(1) }, { id: 'n2', href: '#', title: 'Another one', context: 'Other Dev on Other Game', published_at: ago(4) }],
   suggested: [],
+  opportunities: [{ id: 'o1', href: '#', text: 'Seeking Sound designer — Someone Else\'s Game' }, { id: 'o2', href: '#', text: 'A Different Project needs testers (1/8)' }],
 }
 const NEW_USER: DashboardData = {
   ...BASE, missingProfileFields: ['Bio', 'Avatar'], currentProject: null, otherProjects: [], latestDevlog: null, nextStep: { label: 'Create your first project', href: '/dashboard/projects/new' },

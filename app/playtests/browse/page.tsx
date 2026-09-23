@@ -58,9 +58,7 @@ export default async function PlaytestsBrowsePage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h1 className="text-h1 font-semibold text-fg">Playtests</h1>
-                  <p className="mt-1 max-w-prose text-small text-fg-secondary">
-                    Games that need testers. Request a place, play the build once the developer accepts you, and send them feedback. Looking for people to build with? See <Link href="/collaborate" className="font-medium text-link underline-offset-2 hover:underline">Collaborate</Link>.
-                  </p>
+                  <p className="mt-1 max-w-prose text-small text-fg-secondary">Games that need testers right now.</p>
                 </div>
                 {viewer && <Button asChild variant="secondary" className="shrink-0"><Link href="/dashboard/playtests">Manage your playtests</Link></Button>}
               </div>

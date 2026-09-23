@@ -97,8 +97,26 @@ export function sectionNav(pathname: string, flags: SidebarNavFlags): { label: s
       ],
     }
   }
-  if (pathname !== '/collaborate/new' && DISCOVER_PREFIXES.some((p) => on(pathname, p))) return { label: 'Explore sections', items: DISCOVER_NAV }
+  if (isDiscoveryHub(pathname)) return { label: 'Explore sections', items: DISCOVER_NAV }
   return null
+}
+
+/**
+ * The Explore/Collaborate/Playtests/Studios/Jams/Events/Publishers tab row is browsing chrome:
+ * it belongs on the hub/list pages where moving between those browsing modes is the task. It does
+ * NOT belong on a detail page (a studio, a collaboration post, a playtest, a jam, an event, a
+ * publisher) — that page is a destination, not a browsing context, and showing seven unrelated
+ * tabs there adds navigation with no relevance to "look at this one thing."
+ */
+function isDiscoveryHub(pathname: string): boolean {
+  if (pathname === '/explore' || pathname.startsWith('/explore/')) return true
+  if (pathname === '/collaborate') return true
+  if (pathname === '/playtests/browse') return true
+  if (pathname === '/studios') return true
+  if (pathname === '/jams') return true
+  if (pathname === '/events' || pathname.startsWith('/events/city/')) return true
+  if (pathname === '/publishers') return true
+  return false
 }
 
 export function isItemActive(pathname: string, item: NavLink): boolean {

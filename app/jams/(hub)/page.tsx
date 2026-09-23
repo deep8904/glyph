@@ -34,7 +34,7 @@ export default async function JamsPage() {
           <header className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-h1 font-semibold text-fg">Game jams</h1>
-              <p className="mt-1 max-w-prose text-small text-fg-secondary">Time-boxed events where developers make a game around a theme. Entries are projects from Glyph, so each one leads to a real project page and its devlogs.</p>
+              <p className="mt-1 max-w-prose text-small text-fg-secondary">Time-boxed. Entries are real Glyph projects.</p>
             </div>
             {user && <Button asChild variant="secondary" className="shrink-0"><Link href="/dashboard/jams/new">Host a jam</Link></Button>}
           </header>
@@ -47,7 +47,7 @@ export default async function JamsPage() {
               className="mt-6"
               title="No game jams yet"
               description="Jams appear here once they are hosted and approved."
-              action={user ? <Button asChild variant="primary" size="sm"><Link href="/dashboard/jams/new">Host a jam</Link></Button> : <Button asChild variant="primary" size="sm"><Link href="/login">Sign in to host one</Link></Button>}
+              action={user ? undefined : <Button asChild variant="primary" size="sm"><Link href="/login">Sign in to host one</Link></Button>}
             />
           ) : (
             <div className="mt-6 space-y-8">

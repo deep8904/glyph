@@ -35,17 +35,25 @@ export type DashboardData = {
   followsCount: number
   network: { id: string; href: string; title: string; context: string; published_at: string }[]
   suggested: SuggestedDeveloper[]
-  opportunities: { label: string; hint: string; href: string }[]
 }
 
 /**
- * Dashboard = what I need to do. Six questions in order: who am I, what am I building, what needs my
- * attention, what happened on my work, what is happening in my network, where can I find help or
- * collaborators. Facts only: real pending items and real timestamps — no scores, streaks or charts.
- * ≥1024px the last two sit in a side column.
+ * Dashboard = what I need to do. Four questions in order: who am I, what am I building, what
+ * happened on my work, what is happening in my network. Facts only: real pending items and real
+ * timestamps — no scores, streaks or charts. Where to find collaborators/testers/events already
+ * lives in the rail and the Explore tabs; this page does not repeat that list.
+ * ≥1024px the last one sits in a side column.
  */
 export function DashboardView(d: DashboardData) {
-  const hasAttention = d.attention.length > 0 || d.unreadNotifications > 0
+  // One "Activity" list instead of two near-identical modules (things that need a decision and
+  // things that are just FYI both read as "someone did something on my work" at a glance —
+  // the row text itself already says which is which; a second section added nothing but chrome).
+  const activity = [
+    ...d.attention.map((r) => ({ id: r.id, href: r.href, time: r.time, node: <><span className="font-medium text-fg">{r.actor}</span> {r.text}</> })),
+    ...d.feedback.map((c) => ({ id: c.id, href: c.href, time: c.time, node: <><span className="font-medium text-fg">{c.actor}</span> commented on {c.devlogTitle}</> })),
+  ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+  const hasActivity = activity.length > 0 || d.unreadNotifications > 0
+  const activityFailed = d.attentionFailed || d.feedbackFailed
   return (
     <div className="mx-auto w-full max-w-5xl lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-x-12">
       <div className="min-w-0 space-y-8">
@@ -101,15 +109,13 @@ export function DashboardView(d: DashboardData) {
           )}
         </Section>
 
-        {/* 3. What needs my attention */}
-        <Section id="attention" title="Needs your attention" count={d.attention.length > 0 ? d.attention.length : undefined}>
-          {d.attentionFailed ? (
-            <ErrorState inline title="We couldn't load pending items" description="This may be temporary. Reload the page to try again." />
-          ) : hasAttention ? (
+        {/* 3. What happened on my work — applications, playtest requests, comments, notifications, together */}
+        <Section id="activity" title="Activity" count={activity.length > 0 ? activity.length : undefined}>
+          {activityFailed ? (
+            <ErrorState inline title="We couldn't load your activity" description="This may be temporary. Reload the page to try again." />
+          ) : hasActivity ? (
             <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-              {d.attention.map((r) => (
-                <EventRow key={r.id} href={r.href} time={r.time}><span className="font-medium text-fg">{r.actor}</span> {r.text}</EventRow>
-              ))}
+              {activity.map((r) => <EventRow key={r.id} href={r.href} time={r.time}>{r.node}</EventRow>)}
               {d.unreadNotifications > 0 && (
                 <EventRow href="/notifications" time={d.latestNotification?.at ?? new Date().toISOString()}>
                   {d.unreadNotifications} unread {d.unreadNotifications === 1 ? 'notification' : 'notifications'}
@@ -118,22 +124,7 @@ export function DashboardView(d: DashboardData) {
               )}
             </ul>
           ) : (
-            <EmptyState kind="cleared" className="border-y-0 py-2" title="Nothing needs your attention" description="Applications, playtest requests and notifications appear here when they arrive." />
-          )}
-        </Section>
-
-        {/* 4. What happened on my work */}
-        <Section id="feedback" title="Feedback on your devlogs">
-          {d.feedbackFailed ? (
-            <ErrorState inline title="We couldn't load recent feedback" description="This may be temporary. Reload the page to try again." />
-          ) : d.feedback.length > 0 ? (
-            <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-              {d.feedback.map((c) => (
-                <EventRow key={c.id} href={c.href} time={c.time}><span className="font-medium text-fg">{c.actor}</span> commented on {c.devlogTitle}</EventRow>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState kind="first-use" className="border-y-0 py-2" title="No feedback yet" description="Comments on your devlogs appear here." />
+            <EmptyState kind="cleared" className="border-y-0 py-2" title="Nothing yet" description="Applications, playtest requests, comments and notifications on your work appear here." />
           )}
         </Section>
 
@@ -170,20 +161,6 @@ export function DashboardView(d: DashboardData) {
               <Link href="/feed" className="mt-1 inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">Open your Feed →</Link>
             </>
           )}
-        </Section>
-
-        {/* 6. Where can I find collaborators, testers and events */}
-        <Section id="opportunities" title="Opportunities" description="Places to find collaborators, testers and events.">
-          <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-            {d.opportunities.map((o) => (
-              <li key={o.href}>
-                <Link href={o.href} className="group block min-h-11 py-2.5">
-                  <span className="block text-body font-medium text-fg group-hover:text-link">{o.label}</span>
-                  <span className="block text-small text-fg-muted">{o.hint}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
         </Section>
       </aside>
     </div>

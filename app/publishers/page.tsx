@@ -37,7 +37,7 @@ export default async function PublishersPage({ searchParams }: { searchParams: P
         <div>
           <header>
             <h1 className="text-h1 font-semibold text-fg">Publishers</h1>
-            <p className="mt-1 max-w-prose text-small text-fg-secondary">Publishers verified by Glyph. They find games on project pages and can contact a developer about a public project; developers decide whether to reply.</p>
+            <p className="mt-1 max-w-prose text-small text-fg-secondary">Verified by Glyph. Developers decide whether to reply.</p>
           </header>
 
           {error ? (

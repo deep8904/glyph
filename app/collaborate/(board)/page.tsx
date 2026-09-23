@@ -94,14 +94,12 @@ export default async function CollaboratePage({ searchParams }: { searchParams: 
         const hasActivity = myApps.length > 0 || myPosts.length > 0
 
         return (
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-x-10">
+          <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-x-10">
             <header className="lg:col-span-2">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h1 className="text-h1 font-semibold text-fg">Collaborate</h1>
-                  <p className="mt-1 max-w-prose text-small text-fg-secondary">
-                    Projects that need contributors, and developers offering their skills. Looking for testers instead? See <Link href="/playtests/browse" className="font-medium text-link underline-offset-2 hover:underline">Playtests</Link>.
-                  </p>
+                  <p className="mt-1 max-w-prose text-small text-fg-secondary">Roles on projects — offered and wanted.</p>
                 </div>
                 {viewer && <Button asChild variant="primary" className="shrink-0"><Link href="/collaborate/new">Post an opportunity</Link></Button>}
               </div>
@@ -109,7 +107,7 @@ export default async function CollaboratePage({ searchParams }: { searchParams: 
 
             {/* Your side of it: applications you sent and posts you made — with their state and next step */}
             {hasActivity && (
-              <aside aria-label="Your collaboration activity" className="mt-6 space-y-6 lg:order-2 lg:mt-8">
+              <aside aria-label="Your collaboration activity" className="order-2 mt-6 space-y-6 lg:mt-8">
                 {myApps.length > 0 && (
                   <section aria-labelledby="my-apps">
                     <SectionHeader id="my-apps" title="Your applications" count={myApps.length} className="mb-1" />
@@ -155,7 +153,7 @@ export default async function CollaboratePage({ searchParams }: { searchParams: 
               </aside>
             )}
 
-            <section aria-labelledby="open-posts" className={hasActivity ? 'mt-8 lg:order-1' : 'mt-6 lg:col-span-2'}>
+            <section aria-labelledby="open-posts" className={hasActivity ? 'order-1 mt-8' : 'mt-6 lg:col-span-2'}>
               <h2 id="open-posts" className="sr-only">Open opportunities</h2>
               <TabLinks
                 label="Kind of opportunity"

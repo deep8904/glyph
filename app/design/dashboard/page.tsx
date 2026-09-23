@@ -6,12 +6,6 @@ import { DevlogRow, type DevlogSummary } from '@/components/devlog/DevlogRow'
 export const metadata = { title: 'Dashboard and feed (fixtures) — Glyph', robots: { index: false, follow: false } }
 
 const ago = (days: number) => new Date(Date.now() - days * 86400000).toISOString()
-const OPPS = [
-  { label: 'Collaboration board', hint: 'Find or offer a role on a project.', href: '/collaborate' },
-  { label: 'Playtests', hint: "Try other developers' builds and give feedback.", href: '/playtests/browse' },
-  { label: 'Game jams', hint: 'Join or follow a jam.', href: '/jams' },
-  { label: 'Events', hint: 'Local meetups and events.', href: '/events' },
-]
 const PROJECT = { id: 'p1', title: 'Fixture Project', slug: 'fixture-project', stage: 'alpha', short_description: 'A fixture project used to inspect the dashboard without real data.', updated_at: ago(2) }
 const BASE: DashboardData = {
   userId: 'u', username: 'fixture-user', displayName: 'Fixture User', avatarUrl: null, facts: ['Programmer', 'Godot'], missingProfileFields: [],
@@ -26,7 +20,7 @@ const BASE: DashboardData = {
   feedback: [{ id: 'f1', href: '#', time: ago(1), actor: 'Fixture Commenter', devlogTitle: 'Fixture devlog title' }], feedbackFailed: false,
   followsCount: 2,
   network: [{ id: 'n1', href: '#', title: 'A devlog from someone I follow', context: 'Fixture Dev on Their Game', published_at: ago(1) }, { id: 'n2', href: '#', title: 'Another one', context: 'Other Dev on Other Game', published_at: ago(4) }],
-  suggested: [], opportunities: OPPS,
+  suggested: [],
 }
 const NEW_USER: DashboardData = {
   ...BASE, missingProfileFields: ['Bio', 'Avatar'], currentProject: null, otherProjects: [], latestDevlog: null, nextStep: { label: 'Create your first project', href: '/dashboard/projects/new' },

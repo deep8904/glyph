@@ -37,9 +37,7 @@ export default async function StudiosIndexPage() {
       {() => (
         <div>
           <h1 className="text-h1 font-semibold text-fg">Studios</h1>
-          <p className="mt-1 max-w-prose text-small text-fg-secondary">
-            Teams building on Glyph. A studio is a shared identity — the work itself lives on each project&apos;s own page.
-          </p>
+          <p className="mt-1 max-w-prose text-small text-fg-secondary">Teams. The work lives on each project&apos;s own page.</p>
 
           {error ? (
             <ErrorState className="mt-6" title="Studios could not be loaded" description="This may be temporary." retryHref="/studios" />

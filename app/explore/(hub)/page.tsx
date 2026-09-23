@@ -46,9 +46,7 @@ export default async function ExplorePage() {
           <div>
             <header className="mb-8">
               <h1 className="text-h1 font-semibold text-fg">Explore</h1>
-              <p className="mt-1 max-w-prose text-small text-fg-secondary">
-                Games being built on Glyph and the people building them, grouped by what you can do. Every list is ordered by latest activity, not popularity.
-              </p>
+              <p className="mt-1 max-w-prose text-small text-fg-secondary">Recent activity, not popularity.</p>
             </header>
 
             <div className="space-y-10">

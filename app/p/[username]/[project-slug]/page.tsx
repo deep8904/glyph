@@ -153,7 +153,7 @@ export default async function PublicProjectPage({
   const projectHref = `/p/${username}/${projectSlug}`
 
   const facts = [
-    { label: 'Stage', value: stage },
+    // Stage is already the title badge above — stating it a second time here was pure repetition.
     { label: 'Engine', value: engine },
     { label: 'Genre', value: project.genre },
     { label: 'Started', value: formatDate(project.created_at) },

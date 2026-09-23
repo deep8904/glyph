@@ -219,14 +219,6 @@ export default async function DashboardPage() {
   }
 
   const nextStep = describeAction(nextAction, currentProject)
-  const opportunities = [
-    { label: 'Collaboration board', hint: 'Find or offer a role on a project.', href: '/collaborate' },
-    { label: 'Playtests', hint: "Try other developers' builds and give feedback.", href: '/playtests/browse' },
-    { label: 'Game jams', hint: 'Join or follow a jam.', href: '/jams' },
-    { label: 'Events', hint: 'Local meetups and events.', href: '/events' },
-    { label: nav.hasStudio ? 'Studio activity' : 'Studios', hint: nav.hasStudio ? 'Your team and invitations.' : 'Create a studio or see invitations.', href: '/dashboard/studios' },
-    ...(nav.hasPublisherAccount ? [{ label: 'Publisher tools', hint: 'Your publisher account.', href: '/dashboard/publisher' }] : []),
-  ]
   const facts = [labelFor(ROLES, profile.primary_role), labelFor(ENGINES, profile.primary_engine), labelFor(EXPERIENCE_LEVELS, profile.experience_level)].filter((v): v is string => !!v)
   const actorOf = (p: { username: string; display_name: string | null } | null) => p?.display_name ?? p?.username ?? 'Someone'
   const attention = [
@@ -269,7 +261,6 @@ export default async function DashboardPage() {
         followsCount={followsCount ?? 0}
         network={feedPreview.map((f) => ({ id: f.id, href: `/p/${f.username}/${f.project_slug}/${f.devlog_slug}`, title: f.devlog_title, context: `${f.display_name ?? f.username} on ${f.project_title}`, published_at: f.published_at }))}
         suggested={suggestedDevs}
-        opportunities={opportunities}
       />
     </Shell>
   )

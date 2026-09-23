@@ -72,7 +72,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
           <header className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-h1 font-semibold text-fg">Events</h1>
-              <p className="mt-1 max-w-prose text-small text-fg-secondary">Meetups, showcases, talks and workshops for game developers. Upcoming first.{city && <> Showing events in <span className="font-medium text-fg">{city}</span>. <Link href={href({}).replace(/([?&])city=[^&]*&?/, '$1').replace(/[?&]$/, '')} className="font-medium text-link underline-offset-2 hover:underline">Clear city</Link></>}</p>
+              <p className="mt-1 max-w-prose text-small text-fg-secondary">Upcoming first.{city && <> In <span className="font-medium text-fg">{city}</span>. <Link href={href({}).replace(/([?&])city=[^&]*&?/, '$1').replace(/[?&]$/, '')} className="font-medium text-link underline-offset-2 hover:underline">Clear city</Link></>}</p>
             </div>
             {user && <Button asChild variant="secondary" className="shrink-0"><Link href="/dashboard/events/new">Host an event</Link></Button>}
           </header>
@@ -89,7 +89,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
               className="mt-6"
               title={filtered ? 'No upcoming events match' : 'No upcoming events'}
               description={filtered ? 'Try another kind, or clear the city.' : 'Be the first to host a meetup in your city.'}
-              action={filtered ? <Link href="/events" className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">Show all events</Link> : user ? <Button asChild variant="primary" size="sm"><Link href="/dashboard/events/new">Host an event</Link></Button> : <Button asChild variant="primary" size="sm"><Link href="/signup">Join Glyph</Link></Button>}
+              action={filtered ? <Link href="/events" className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">Show all events</Link> : user ? undefined : <Button asChild variant="primary" size="sm"><Link href="/signup">Join Glyph</Link></Button>}
             />
           ) : (
             <div className="mt-6 space-y-8">

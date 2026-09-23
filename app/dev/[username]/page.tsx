@@ -173,9 +173,47 @@ export default async function ProfilePage({
   const facts = [role, engine, experience].filter((v): v is string => !!v)
   const projectsFailed = !!projectsError
 
+  // Supporting identity — who, availability, links, activity — lives in the context rail on
+  // desktop so Current Work and progress own the main column. A person page, not a portfolio grid.
+  const railContent = (
+    <div className="space-y-7">
+      {profile.bio && (
+        <div>
+          <h2 className="mb-1.5 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">About</h2>
+          <p className="whitespace-pre-line text-small leading-relaxed text-fg-secondary [overflow-wrap:anywhere]">{profile.bio}</p>
+        </div>
+      )}
+      <div className="border-t border-line-subtle pt-5">
+        <CollaborationCard isOpenToCollab={isOpen} posts={collabPosts ?? []} name={name} />
+      </div>
+      <div className="border-t border-line-subtle pt-5">
+        <h2 className="mb-2 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Activity</h2>
+        <MetadataBar layout="stacked" items={[
+          { label: 'Last devlog', value: mostRecentDevlog ? <><Link href={mostRecentDevlog.href} className="text-link underline-offset-2 hover:underline">{mostRecentDevlog.title}</Link> <span className="text-fg-muted">· {relativeTime(mostRecentDevlog.published_at)}</span></> : null },
+          { label: 'Project updated', value: currentProject ? relativeTime(currentProject.updated_at) : null },
+          { label: 'On Glyph since', value: memberSince(profile.created_at) },
+        ]} />
+      </div>
+      {socials.length > 0 && (
+        <div className="border-t border-line-subtle pt-5">
+          <h2 className="mb-1.5 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Links</h2>
+          <ul>
+            {socials.map(({ url, label, Icon }) => (
+              <li key={label}>
+                <a href={url as string} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-small font-medium text-link underline-offset-2 hover:underline lg:min-h-0 lg:py-1">
+                  <Icon aria-hidden strokeWidth={1.75} className="size-4" /> {label}<span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+
   return (
-    <Shell headerLabel="Developer profile">
-      <div className="mx-auto w-full max-w-4xl space-y-8">
+    <Shell headerLabel="Developer profile" rail={railContent}>
+      <div className="w-full max-w-3xl space-y-10">
         {/* Identity */}
         <ProfileHeader
           name={name}
@@ -257,42 +295,8 @@ export default async function ProfilePage({
           )}
         </Section>
 
-        {/* Activity — real timestamps only */}
-        <Section id="activity" title="Activity">
-          <MetadataBar
-            layout="stacked"
-            items={[
-              { label: 'Last devlog', value: mostRecentDevlog ? <><Link href={mostRecentDevlog.href} className="inline-flex min-h-11 items-center text-link underline-offset-2 hover:underline">{mostRecentDevlog.title}</Link> <span className="text-fg-muted">· {relativeTime(mostRecentDevlog.published_at)}</span></> : null },
-              { label: 'Current project updated', value: currentProject ? relativeTime(currentProject.updated_at) : null },
-              { label: 'On Glyph since', value: memberSince(profile.created_at) },
-            ]}
-          />
-        </Section>
-
-        {/* About */}
-        {profile.bio && (
-          <Section id="about" title="About">
-            <p className="max-w-prose whitespace-pre-line text-body text-fg-secondary [overflow-wrap:anywhere]">{profile.bio}</p>
-          </Section>
-        )}
-
-        {/* Collaboration — can I work with this person? */}
-        <CollaborationCard isOpenToCollab={isOpen} posts={collabPosts ?? []} name={name} />
-
-        {/* Links */}
-        {socials.length > 0 && (
-          <Section id="links" title="Links">
-            <ul className="flex flex-wrap gap-x-6">
-              {socials.map(({ url, label, Icon }) => (
-                <li key={label}>
-                  <a href={url as string} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-small font-medium text-link underline-offset-2 hover:underline">
-                    <Icon aria-hidden strokeWidth={1.75} className="size-4" /> {label}<span className="sr-only"> (opens in a new tab)</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
+        {/* Supporting identity inline below the main column on < xl (rail only renders ≥ 1280). */}
+        <div className="border-t border-line pt-6 xl:hidden">{railContent}</div>
       </div>
     </Shell>
   )

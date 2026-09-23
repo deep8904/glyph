@@ -37,10 +37,10 @@ export default function RootLayout({
       <head>
         {analyticsProps && <Script {...analyticsProps} strategy="afterInteractive" />}
       </head>
-      <body className="font-sans bg-[#0f0e13] text-gray-900 antialiased">
+      <body className="font-sans bg-canvas text-fg antialiased">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-pill focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-fg-on-accent"
         >
           Skip to main content
         </a>

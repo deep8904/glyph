@@ -11,50 +11,52 @@
    overridden, so existing pages keep rendering as before.
    ───────────────────────────────────────────── */
 :root {
-  /* surfaces */
-  --canvas: #f9fafb;
+  /* surfaces — Visitors: Paper White canvas, Linen/Mist bands */
+  --canvas: #ffffff;
   --surface: #ffffff;
-  --surface-muted: #f3f4f6;
+  --surface-muted: #fafafa;
   --surface-elevated: #ffffff;
-  --overlay: rgb(17 24 39 / 0.45);
+  --overlay: rgb(24 25 37 / 0.45);
   /* lines */
-  --line: #e5e7eb;
-  --line-subtle: #f3f4f6;
-  --line-strong: #d1d5db;
-  /* text (all ≥4.5:1 on --surface and --canvas) */
-  --fg: #111827;
-  --fg-secondary: #4b5563;
-  --fg-muted: #6b7280;
+  --line: #e8e8e8;
+  --line-subtle: #f5f5f5;
+  --line-strong: #d4d4d4;
+  /* text — Carbon / Graphite / Ash */
+  --fg: #181925;
+  --fg-secondary: #666666;
+  --fg-muted: #999999;
   --fg-on-accent: #ffffff;
-  /* the one accent */
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --accent-subtle: #eef2ff;
-  --accent-line: #c7d2fe;
-  --link: #4338ca;
-  --focus-ring: #4f46e5;
-  /* status: solid/text, subtle background, line */
-  --success: #15803d;
-  --success-subtle: #f0fdf4;
-  --success-line: #bbf7d0;
-  --warning: #b45309;
-  --warning-subtle: #fffbeb;
-  --warning-line: #fde68a;
-  --danger: #b91c1c;
-  --danger-hover: #991b1b;
-  --danger-subtle: #fef2f2;
-  --danger-line: #fecaca;
-  --info: #1d4ed8;
-  --info-subtle: #eff6ff;
-  --info-line: #bfdbfe;
-  /* radius */
-  --r-badge: 4px;
-  --r-control: 6px;
+  /* the one accent — Lavender, with Iris for secondary CTA emphasis */
+  --accent: #918df6;
+  --accent-hover: #7a75f0;
+  --accent-subtle: #f1f0fe;
+  --accent-line: #d8d6fc;
+  --link: #918df6;
+  --focus-ring: #918df6;
+  /* status: solid/text, subtle background, line — Mint / Amber / mapped danger+info */
+  --success: #33c758;
+  --success-subtle: #def6e4;
+  --success-line: #b8f0c4;
+  --warning: #ffa600;
+  --warning-subtle: #fff3d9;
+  --warning-line: #ffdf99;
+  --danger: #e5484d;
+  --danger-hover: #cd3838;
+  --danger-subtle: #feeceb;
+  --danger-line: #f9c6c6;
+  --info: #2c78fc;
+  --info-subtle: #e6f0fe;
+  --info-line: #b8d6fd;
+  /* radius — tags/buttons pill, cards 16px, inputs/images 8px, tables 24px */
+  --r-badge: 9999px;
+  --r-control: 8px;
+  --r-pill: 9999px;
   --r-media: 8px;
-  --r-panel: 12px;
-  /* elevation: borders carry structure; only floating layers get a shadow */
-  --elev-popover: 0 4px 16px -2px rgb(17 24 39 / 0.12), 0 0 0 1px rgb(17 24 39 / 0.06);
-  --elev-dialog: 0 16px 48px -8px rgb(17 24 39 / 0.25), 0 0 0 1px rgb(17 24 39 / 0.06);
+  --r-panel: 16px;
+  --r-table: 24px;
+  /* elevation: three-layer subtle stack, no dramatic drop shadows */
+  --elev-popover: 0 1px 1px 1px rgb(0 0 0 / 0.08), 0 0 0 0.5px rgb(0 0 0 / 0.06);
+  --elev-dialog: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 8px 16px 0 rgb(0 0 0 / 0.06), 0 0 0 1px rgb(0 0 0 / 0.02);
 }
 
 @theme inline {
@@ -97,30 +99,37 @@
 
   --radius-badge: var(--r-badge);
   --radius-control: var(--r-control);
+  --radius-pill: var(--r-pill);
   --radius-media: var(--r-media);
   --radius-panel: var(--r-panel);
+  --radius-table: var(--r-table);
 
   --shadow-popover: var(--elev-popover);
   --shadow-dialog: var(--elev-dialog);
 
-  /* type scale — size / line-height. Weight is applied separately (400/500/600). Nothing below 12px. */
-  --text-display: 2rem;
-  --text-display--line-height: 2.5rem;
-  --text-display--letter-spacing: -0.02em;
-  --text-h1: 1.5rem;
-  --text-h1--line-height: 2rem;
-  --text-h1--letter-spacing: -0.015em;
-  --text-h2: 1.25rem;
-  --text-h2--line-height: 1.75rem;
-  --text-h2--letter-spacing: -0.01em;
-  --text-h3: 1rem;
-  --text-h3--line-height: 1.5rem;
-  --text-body: 0.9375rem;
-  --text-body--line-height: 1.5rem;
-  --text-small: 0.8125rem;
-  --text-small--line-height: 1.25rem;
+  /* type scale — Visitors scale (OpenRunde/Inter), size / line-height / tracking, strictly descending
+     60 (display) > 48 (heading-lg) > 36 (heading) > 24 (heading-sm) > 16 (body) > 14 > 12 (caption). */
+  --text-display: 3.75rem;
+  --text-display--line-height: 1.13;
+  --text-display--letter-spacing: -0.05em;
+  --text-h1: 3rem;
+  --text-h1--line-height: 1;
+  --text-h1--letter-spacing: -0.007em;
+  --text-h2: 2.25rem;
+  --text-h2--line-height: 1.22;
+  --text-h2--letter-spacing: -0.017em;
+  --text-h3: 1.5rem;
+  --text-h3--line-height: 1.17;
+  --text-h3--letter-spacing: -0.013em;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+  --text-body--letter-spacing: -0.02em;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.33;
+  --text-small--letter-spacing: -0.023em;
   --text-micro: 0.75rem;
-  --text-micro--line-height: 1rem;
+  --text-micro--line-height: 1.33;
+  --text-micro--letter-spacing: -0.027em;
 }
 
 @layer base {
@@ -128,20 +137,20 @@
     scroll-behavior: smooth;
   }
   body {
-    background-color: #0f0e13;
+    background-color: var(--canvas);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
   ::selection {
-    background: #e0e7ff;
-    color: #312e81;
+    background: var(--accent-subtle);
+    color: var(--fg);
   }
 }
 
-/* ── Backdrop: a single directional field, not a radial-blob cluster ── */
+/* ── Backdrop: Visitors atmospheric hero band — sky→lavender oklab gradient ── */
 .bg-plasma {
-  background-color: #0f0e13;
-  background-image: linear-gradient(165deg, #171426 0%, #0f0e13 42%, #0f0e13 100%);
+  background-color: #ffffff;
+  background-image: linear-gradient(to right in oklab, #2c78fc 0%, #918df6 100%);
 }
 
 /* ── Fine grain, fixed layer only (never over scrolling content) ── */
@@ -150,17 +159,17 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.03;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ── Panel shadow: one light source, no glow halo ── */
+/* ── Panel shadow: Visitors three-layer subtle stack ── */
 .panel-shadow {
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.5),
-    0 1px 2px rgba(15, 14, 19, 0.04),
-    0 24px 48px -16px rgba(15, 14, 19, 0.35);
+    0 1px 3px 0 rgba(0, 0, 0, 0.06),
+    0 8px 16px 0 rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
 }
 
 /* ── Above-the-fold entrance: pure CSS, no JS/GSAP dependency, so it can

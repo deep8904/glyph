@@ -126,6 +126,17 @@ export function DashboardMain(d: DashboardData) {
         )}
       </Section>
 
+      {/* Your other projects are your own work, so they sit in the main operate column (not the
+          context rail, which is for other people's activity) — and they give the main column the
+          length to balance the rail at ≥1280. */}
+      {d.otherProjects.length > 0 && (
+        <Section id="other-projects" title="Other projects" count={d.otherProjects.length}>
+          <ul className="divide-y divide-line-subtle border-y border-line-subtle">
+            {d.otherProjects.map((p) => <li key={p.id}><ProjectRow project={p} username={d.username} variant="compact" /></li>)}
+          </ul>
+        </Section>
+      )}
+
       {/* The rail's secondary content, inline below the main column under xl (rail renders ≥ 1280). */}
       <div className="border-t border-line pt-6 xl:hidden"><DashboardRail {...d} /></div>
     </div>
@@ -170,15 +181,6 @@ export function DashboardRail(d: DashboardData) {
           <Link href="/collaborate" className="mt-1 inline-flex min-h-11 items-center gap-1 text-small font-medium text-link underline-offset-2 hover:underline">
             Browse opportunities <ArrowRight aria-hidden strokeWidth={1.75} className="size-3.5" />
           </Link>
-        </section>
-      )}
-
-      {d.otherProjects.length > 0 && (
-        <section aria-labelledby="d-other" className="border-t border-line-subtle pt-6">
-          <h2 id="d-other" className="mb-1 flex items-baseline gap-2 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Other projects <span>{d.otherProjects.length}</span></h2>
-          <ul className="divide-y divide-line-subtle border-t border-line-subtle">
-            {d.otherProjects.map((p) => <li key={p.id}><ProjectRow project={p} username={d.username} variant="compact" /></li>)}
-          </ul>
         </section>
       )}
     </div>

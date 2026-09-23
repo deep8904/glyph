@@ -160,6 +160,58 @@ export async function searchDevlogs(supabase: SupabaseClient, q: string, limit: 
   return toCounted<DevlogRowData & WithCount>(data as (DevlogRowData & WithCount)[] | null, error)
 }
 
+// Studios and Opportunities have no search_* RPC (no migration for this pass — backend frozen).
+// Plain PostgREST ilike over the same already-visibility-scoped tables/views the rest of the app
+// reads (studios, discoverable_collab_posts): no schema change, same rules everyone else gets.
+function orIlike(term: string, cols: string[]) {
+  // Commas and parens are PostgREST .or() filter syntax — strip them from the raw search term.
+  const safe = term.replace(/[,()]/g, ' ').trim()
+  return cols.map((c) => `${c}.ilike.%${safe}%`).join(',')
+}
+
+export type StudioRowData = { id: string; slug: string; name: string; description: string | null; logo_url: string | null; size: string; verified: boolean }
+
+export async function searchStudios(supabase: SupabaseClient, q: string, limit: number, offset: number): Promise<Counted<StudioRowData>> {
+  const { data, error, count } = await supabase
+    .from('studios')
+    .select('id, slug, name, description, logo_url, size, verified', { count: 'exact' })
+    .eq('status', 'active')
+    .or(orIlike(q, ['name', 'description']))
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+    .returns<StudioRowData[]>()
+  if (error) return { rows: [], total: 0, error: true }
+  return { rows: data ?? [], total: count ?? 0, error: false }
+}
+
+export type OpportunityRowData = {
+  id: string
+  post_type: string
+  role_needed: string | null
+  role_offered: string | null
+  contract_type: string
+  remote_allowed: boolean
+  location: string | null
+  description: string
+  created_at: string
+  project_title: string | null
+  project_slug: string | null
+  username: string
+  display_name: string | null
+}
+
+export async function searchOpportunities(supabase: SupabaseClient, q: string, limit: number, offset: number): Promise<Counted<OpportunityRowData>> {
+  const { data, error, count } = await supabase
+    .from('discoverable_collab_posts')
+    .select('id, post_type, role_needed, role_offered, contract_type, remote_allowed, location, description, created_at, project_title, project_slug, username, display_name', { count: 'exact' })
+    .or(orIlike(q, ['role_needed', 'role_offered', 'description', 'project_title']))
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+    .returns<OpportunityRowData[]>()
+  if (error) return { rows: [], total: 0, error: true }
+  return { rows: data ?? [], total: count ?? 0, error: false }
+}
+
 /** Which of these developers the viewer already follows — one query for a whole page. */
 export async function followedAmong(supabase: SupabaseClient, viewerId: string | null, developerIds: string[]): Promise<Set<string>> {
   if (!viewerId || developerIds.length === 0) return new Set()

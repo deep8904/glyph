@@ -1,5 +1,5 @@
 import { labelFor, ENGINES, PROJECT_STAGES } from '@/lib/supabase/types'
-import { isHttpsUrl } from '@/lib/utils'
+import { isHttpsUrl, initialsOf } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { tintFor } from '@/lib/tint'
 
@@ -24,6 +24,7 @@ export function ProjectMark({
   stage,
   ratio = 'video',
   eager = false,
+  compact = false,
   className,
 }: {
   title: string
@@ -35,6 +36,10 @@ export function ProjectMark({
   ratio?: 'video' | 'square'
   /** Eager-load above-the-fold covers (e.g. the Explore lead) so they don't delay LCP. */
   eager?: boolean
+  /** Row-thumbnail scale (e.g. a 64×48 search/list thumb): initials on the tint, like Avatar,
+   *  instead of the full title — at that size the title is already set as text right next to it,
+   *  and the full title-plate treatment clips. Same tint palette, so it still reads as one system. */
+  compact?: boolean
   className?: string
 }) {
   const cover = isHttpsUrl(coverUrl) ? coverUrl : null
@@ -62,6 +67,19 @@ export function ProjectMark({
   }
 
   const tint = tintFor(id || title)
+
+  if (compact) {
+    return (
+      <div
+        aria-hidden
+        className={cn('flex items-center justify-center overflow-hidden rounded-media border border-line font-display font-semibold', ratioClass, className)}
+        style={{ backgroundColor: tint.bg, color: tint.ink }}
+      >
+        {initialsOf(title)}
+      </div>
+    )
+  }
+
   // The title is the cover, so its size must track the plate's size: a container-relative clamp
   // scales it up in the wide Explore feature and down in a 160px dashboard thumbnail, instead of a
   // fixed size that looked lost in the big tile and clipped in the small one. Optically centred so

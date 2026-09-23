@@ -42,7 +42,7 @@ export function DeveloperRow(
       <Avatar name={name} src={d.avatar_url} size="lg" className="self-start" />
       <div className="min-w-0 flex-1">
         <h3 className="text-body font-medium text-fg [overflow-wrap:anywhere]">
-          <Link href={`/dev/${d.username}`} className="hover:text-link focus-visible:text-link">{name}</Link>
+          <Link href={`/dev/${d.username}`} data-result-link className="hover:text-link focus-visible:text-link">{name}</Link>
           <span className="font-normal text-fg-muted"> · @{d.username}</span>
         </h3>
         <p className="text-small text-fg-muted [overflow-wrap:anywhere]">

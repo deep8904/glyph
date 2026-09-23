@@ -96,7 +96,7 @@ export function DevlogRow(props: ListProps | TimelineProps | FeedProps | Listing
       return (
         <li className="py-4">
           <h3 className="text-body font-medium text-fg [overflow-wrap:anywhere]">
-            <Link href={devlogHref} className={`inline-flex min-h-11 items-center sm:min-h-0 ${link}`}>{d.title}</Link>
+            <Link href={devlogHref} data-result-link className={`inline-flex min-h-11 items-center sm:min-h-0 ${link}`}>{d.title}</Link>
           </h3>
           <p className="text-small text-fg-muted [overflow-wrap:anywhere]">
             <Link href={projectHref} className={`font-medium text-fg-secondary ${link}`}>{d.projectTitle}</Link>

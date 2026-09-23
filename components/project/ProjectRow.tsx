@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ENGINES, labelFor, PROJECT_STAGES } from '@/lib/supabase/types'
 import { isHttpsUrl, markdownExcerpt, relativeTime } from '@/lib/utils'
 import { MetadataBar } from '@/components/ui/MetadataBar'
+import { ProjectMark } from '@/components/project/ProjectMark'
 
 export type ProjectRowData = {
   id: string
@@ -34,23 +35,17 @@ export function ProjectRow({ project, username, variant = 'compact' }: { project
   const activity = project.last_activity_at ?? project.updated_at ?? ''
 
   if (variant === 'listing') {
-    const cover = [project.cover_url, project.cover_image_url].find(isHttpsUrl) ?? null
     const engine = project.engine ? labelFor(ENGINES, project.engine) ?? project.engine : null
     const maker = project.display_name || project.username || owner
     const pitch = project.short_description ? markdownExcerpt(project.short_description, 160) : ''
     return (
       <li className="flex gap-3 py-4">
-        {cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover} alt="" loading="lazy" className="h-12 w-16 shrink-0 rounded-media border border-line bg-surface-muted object-cover" />
-        ) : (
-          <span aria-hidden className="flex h-12 w-16 shrink-0 items-center justify-center rounded-media border border-line bg-surface-muted text-body font-medium text-fg-muted">
-            {project.title.charAt(0).toUpperCase()}
-          </span>
-        )}
+        <div className="w-16 shrink-0">
+          <ProjectMark title={project.title} id={project.id} coverUrl={project.cover_url ?? project.cover_image_url} ratio="square" compact className="!aspect-auto h-12" />
+        </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-body font-medium text-fg [overflow-wrap:anywhere]">
-            {href ? <Link href={href} className="inline-flex min-h-11 items-center hover:text-link focus-visible:text-link sm:min-h-0">{project.title}</Link> : project.title}
+            {href ? <Link href={href} data-result-link className="inline-flex min-h-11 items-center hover:text-link focus-visible:text-link sm:min-h-0">{project.title}</Link> : project.title}
           </h3>
           {pitch && <p className="line-clamp-2 text-small text-fg-secondary">{pitch}</p>}
           <p className="mt-1 text-small text-fg-muted [overflow-wrap:anywhere]">

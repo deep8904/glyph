@@ -70,7 +70,7 @@ export function CollaborationListing({
   return (
     <li className="py-4">
       <h3 className="flex flex-wrap items-center gap-2 text-h3 font-semibold text-fg [overflow-wrap:anywhere]">
-        <Link href={`/collaborate/${post.id}`} className="inline-flex min-h-11 items-center hover:text-link focus-visible:text-link sm:min-h-0">{roleOf(post)}</Link>
+        <Link href={`/collaborate/${post.id}`} data-result-link className="inline-flex min-h-11 items-center hover:text-link focus-visible:text-link sm:min-h-0">{roleOf(post)}</Link>
         <Badge tone={seeking ? 'accent' : 'neutral'}>{seeking ? 'Looking for' : 'Offering'}</Badge>
         {post.project_title && (
           projectHref ? <Link href={projectHref} className="text-body font-normal text-fg-secondary hover:text-link">{post.project_title}</Link> : <span className="text-body font-normal text-fg-secondary">{post.project_title}</span>

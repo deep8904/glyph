@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { Search } from 'lucide-react'
 import { getOptionalIdentity } from '@/lib/dashboard/identity'
-import { Input } from '@/components/ui/controls'
 import { ContextBar, type Crumb } from './ContextBar'
 import { BottomBar, Rail, type ShellUser } from './ShellNav'
+import { CommandPalette } from './CommandPalette'
+import { CommandTrigger } from './CommandTrigger'
 
 export type ShellProps = {
   children: React.ReactNode
@@ -15,6 +15,8 @@ export type ShellProps = {
   hideSearch?: boolean
   /** Canonical-object trail (e.g. owner → project → devlog). */
   breadcrumb?: Crumb[]
+  /** Optional right-hand context rail (Console framework) — shown ≥1280px beside the content. */
+  rail?: React.ReactNode
 }
 
 /**
@@ -31,35 +33,33 @@ export async function Shell(props: ShellProps) {
   return <ShellFrame user={user} {...props} />
 }
 
-export function ShellFrame({ user, children, headerLabel, headerAction, hideSearch = false, breadcrumb }: ShellProps & { user: ShellUser | null }) {
+export function ShellFrame({ user, children, headerLabel, headerAction, hideSearch = false, breadcrumb, rail }: ShellProps & { user: ShellUser | null }) {
   return (
     <div className="min-h-dvh bg-canvas font-sans text-fg md:flex">
+      <CommandPalette signedIn={!!user} username={user?.username} />
       <Rail user={user} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-surface px-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-surface/85 px-4 backdrop-blur-md sm:px-6 lg:px-8">
           <Link href={user ? '/feed' : '/'} className="inline-flex min-h-11 items-center text-h3 font-semibold tracking-tight text-fg md:hidden">
             Glyph<span className="text-accent">°</span>
           </Link>
           {headerLabel && <span className="hidden truncate text-small font-medium text-fg-secondary md:block">{headerLabel}</span>}
           <div className="ml-auto flex items-center gap-2">
-            {!hideSearch && (
-              <>
-                <form action="/search" method="get" role="search" className="relative hidden md:block">
-                  <Search aria-hidden strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted" />
-                  <Input type="search" name="q" aria-label="Search developers, projects and devlogs" placeholder="Search Glyph" maxLength={100} className="h-9 w-56 pl-9 lg:w-72" />
-                </form>
-                <Link href="/search" aria-label="Search" title="Search" className="inline-flex size-11 items-center justify-center rounded-control text-fg-secondary hover:bg-surface-muted hover:text-fg md:hidden">
-                  <Search aria-hidden strokeWidth={1.75} className="size-5" />
-                </Link>
-              </>
-            )}
+            {!hideSearch && <CommandTrigger />}
             {headerAction}
           </div>
         </header>
         <ContextBar breadcrumb={breadcrumb} flags={user?.nav} />
-        <main id="main-content" tabIndex={-1} className="flex-1 px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-6 focus:outline-none sm:px-6 md:pb-10 lg:px-8 lg:pt-8">
-          {children}
-        </main>
+        <div className="flex min-w-0 flex-1">
+          <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-6 focus:outline-none sm:px-6 md:pb-10 lg:px-8 lg:pt-8">
+            {children}
+          </main>
+          {rail && (
+            <aside aria-label="Context" className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[320px] shrink-0 overflow-y-auto border-l border-line px-5 py-6 xl:block">
+              {rail}
+            </aside>
+          )}
+        </div>
       </div>
       <BottomBar user={user} />
     </div>

@@ -100,7 +100,7 @@ export default async function ExplorePage() {
                 without one, the title-plate carries it. The CTA is an explicit link. */}
             {lead && (
               <section aria-labelledby="lead" className="group relative overflow-hidden rounded-panel" style={{ boxShadow: '0 1px 2px rgb(24 25 37 / 0.06), 0 30px 60px -30px rgb(24 25 37 / 0.30)' }}>
-                <ProjectMark title={lead.title} id={lead.id} coverUrl={lead.cover_url} engine={lead.engine} genre={lead.genre} stage={leadHasCover ? null : lead.stage} eager className={leadHasCover ? '!aspect-[21/9] [&>span]:!hidden' : '!aspect-[21/9]'} />
+                <ProjectMark title={lead.title} id={lead.id} coverUrl={lead.cover_url} engine={lead.engine} genre={lead.genre} stage={leadHasCover ? null : lead.stage} eager className="!aspect-[3/2] sm:!aspect-[2/1] lg:!aspect-[21/9]" />
                 {leadHasCover && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(10,10,12,.86) 0%, rgba(10,10,12,.55) 44%, rgba(10,10,12,0) 74%)' }} />}
                 <div className={`absolute inset-0 flex max-w-[620px] flex-col justify-center gap-3 p-6 sm:p-9 ${leadHasCover ? 'text-white' : ''}`}>
                   <p className="flex items-center gap-2 font-mono text-micro font-medium uppercase tracking-wide" style={leadHasCover ? { color: '#f4b48a' } : undefined}>

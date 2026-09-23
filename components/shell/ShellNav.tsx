@@ -43,9 +43,12 @@ function UnreadBadge({ count, className }: { count: number; className?: string }
 const railItem =
   'relative flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-small font-medium transition-colors duration-150 md:flex-col md:justify-center md:gap-0.5 md:px-1 md:py-1.5 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:py-0'
 const railLabel = 'md:text-micro lg:text-small'
-// One active language, shared with the mobile bar: a restrained accent icon plus a slightly
-// stronger surface. Not a filled block, not a pill, not both text and icon in accent.
-const stateClass = (active: boolean) => (active ? 'bg-surface-muted text-fg' : 'text-fg-secondary hover:bg-surface-muted hover:text-fg')
+// One active language, shared with the mobile bar: an elevated white pill (soft shadow, hairline
+// ring) plus a restrained accent icon — the Direction-A treatment. Not a filled accent block.
+const stateClass = (active: boolean) =>
+  active
+    ? 'bg-surface text-fg shadow-[0_1px_2px_rgb(24_25_37/0.06),0_0_0_1px_rgb(24_25_37/0.04)]'
+    : 'text-fg-secondary hover:bg-surface-muted hover:text-fg'
 const iconStateClass = (active: boolean) => (active ? 'text-accent' : '')
 
 function RailLink({ href, label, Icon, active, badge, ariaLabel }: { href: string; label: string; Icon: LucideIcon; active: boolean; badge?: number; ariaLabel?: string }) {
@@ -117,8 +120,8 @@ export function Rail({ user }: { user: ShellUser | null }) {
   const pathname = usePathname()
   const g: GlobalKey | null = activeGlobal(pathname, user?.username ?? '')
   return (
-    <aside className="sticky top-0 hidden h-dvh w-24 shrink-0 flex-col border-r border-line bg-surface md:flex lg:w-60">
-      <div className="flex h-14 items-center justify-center border-b border-line px-3 lg:justify-start lg:px-5">
+    <aside className="sticky top-0 hidden h-dvh w-24 shrink-0 flex-col border-r border-line bg-canvas md:flex lg:w-60">
+      <div className="flex h-14 items-center justify-center px-3 lg:justify-start lg:px-5">
         <Link href={user ? '/feed' : '/'} className="text-h3 font-semibold tracking-tight text-fg">{BRAND}</Link>
       </div>
       <nav aria-label="Primary" className="flex-1 space-y-1 overflow-y-auto p-2 lg:p-3">

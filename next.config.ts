@@ -31,6 +31,17 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The Supabase Vercel integration injects unprefixed vars (SUPABASE_URL,
+  // SUPABASE_PUBLISHABLE_KEY). The app reads NEXT_PUBLIC_* names (needed
+  // client-side), so alias them here for both server and browser bundles.
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL:
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+      process.env.SUPABASE_PUBLISHABLE_KEY ??
+      process.env.SUPABASE_ANON_KEY,
+  },
   async headers() {
     return [
       {

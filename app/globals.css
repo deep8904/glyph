@@ -175,6 +175,43 @@
   background-image: linear-gradient(to right in oklab, #2c78fc 0%, #918df6 100%);
 }
 
+/* ─────────────────────────────────────────────
+   Landing surface — warm editorial "paper" canvas + playful game-dev accents.
+   Scoped to the marketing page only; the app shell stays on the white --canvas.
+   ───────────────────────────────────────────── */
+.bg-paper {
+  background-color: #f4efe6;
+}
+/* Faint printed-dot grid, fixed so it reads as paper texture, never scrolls over content */
+.bg-dotgrid {
+  background-image: radial-gradient(rgb(24 25 37 / 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+/* Highlighter "sticker" behind hero words — the page's signature accent gesture */
+.mark-hl {
+  border-radius: 0.32em;
+  padding: 0 0.22em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+/* Pixel/8-bit micro-label treatment for kicker text */
+.pixel-kicker {
+  font-family: var(--font-mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+/* Marquee for the "platforms you juggle" strip */
+@keyframes glyph-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: glyph-marquee 32s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee { animation: none; }
+}
+
 /* ── Fine grain, fixed layer only (never over scrolling content) ── */
 .bg-grain::after {
   content: '';

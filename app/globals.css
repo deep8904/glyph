@@ -28,7 +28,10 @@
      deliberate structural-contrast secondary text color the brief asks for, not decoration */
   --fg: #181925;
   --fg-secondary: #53617a;
-  --fg-muted: #8a93a6;
+  /* Muted text: darkened from #8a93a6 (~3.1:1, failed AA) to ~4.7:1 on white — the a11y review
+     found the old value failing across every surface's metadata/timestamps. Still clearly a step
+     below fg-secondary, so the three-level text hierarchy holds. */
+  --fg-muted: #6b7280;
   --fg-on-accent: #181925;
   --fg-on-inverse: #ffffff;
   --fg-on-inverse-secondary: #c4c9d4;

@@ -32,10 +32,19 @@ Glyph is **media-poor**: 1 of 6 public projects has cover art, 0 have screenshot
 
 | Surface | Status | v1 avg | Notes |
 |---|---|---|---|
-| Explore | iterated v1→v2 | 7.0 (v1) | v2 addresses all v1 P0/P1; extending language to Project/Profile |
-| Profile | R3 (pre-cycle) | — | apply ProjectMark/tile language |
-| Project | R3 (pre-cycle) | — | apply ProjectMark cover/fallback |
-| Dashboard | R4 (pre-cycle) | — | later |
+| Explore | rebuilt (v2) | 7.0 (v1) | ground-up; v2 cleared all v1 P0/P1 |
+| Profile | ProjectMark applied | — | Current Work now shares the media primitive |
+| Dashboard | ProjectMark applied | — | CurrentWorkPanel shares the media primitive |
+| Search | assessed — kept | — | already correct retrieval-first; global contrast fix only |
+| Project | R3 (pre-cycle) | — | cover treatment revisit pending |
+
+## Discovery family — decisions
+
+- **Explore vs Search are deliberately different jobs** (the brief forbids "same page, different title"). Explore = full-width visual browse (feature lead + tile grid + identity rows + editorial rows). Search = reading-width, dense, retrieval-first (query box + typed tabs with counts + best-match ordering + stage filter + pagination). Search was already built this way and is *correct* — it was assessed and kept, not rebuilt. Redesigning it into a grid would have destroyed its scannability (Fitts/selective-attention).
+- **Global contrast fix:** the a11y review found `--fg-muted #8a93a6` failing AA (~3.1:1) *across every surface's* metadata/timestamps. Fixed at the token: `--fg-muted → #6b7280` (~4.7:1), so every muted-text instance app-wide now passes, while staying a clear step below `--fg-secondary`. Higher leverage than per-file edits.
+- **Deferred (real feature, not visual):** Search has no typeahead/instant results and covers 3 object types — a genuine enhancement, but it needs a debounced-search interaction (data-fetch behavior), out of scope for a visual pass.
+
+**Media primitive reach:** `ProjectMark` (cover-or-title-plate) now backs the current-project media on Explore tiles, Profile Current Work, and Dashboard CurrentWorkPanel — one consistent, media-poverty-proof identity everywhere the current project appears. (`ProjectRow`'s tiny listing thumbnail keeps a monogram — correct at 48px, where a title-plate can't fit.)
 
 Screenshots: `docs/design/screenshots/redesign/<surface>/<version>/`.
 

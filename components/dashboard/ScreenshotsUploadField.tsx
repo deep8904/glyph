@@ -20,12 +20,21 @@ type Pending = { id: string; name: string; status: 'uploading' | 'error'; error?
 export function ScreenshotsUploadField({
   id,
   value,
-  onChange,
+  onAdd,
+  onRemove,
+  onReorder,
   ensureProjectId,
 }: {
   id?: string
   value: string[]
-  onChange: (urls: string[]) => void
+  /** Called once per successful upload, in completion order. Never computes `[...value, url]`
+   *  itself and hands the whole array back — with several uploads in flight at once, two
+   *  completions reading the same stale `value` prop would silently drop one. The caller (which
+   *  owns the source of truth) is responsible for appending atomically — see ProjectForm's
+   *  ref-backed addScreenshot. */
+  onAdd: (url: string) => void
+  onRemove: (index: number) => void
+  onReorder: (urls: string[]) => void
   ensureProjectId: () => Promise<string>
 }) {
   const supabase = createClient()
@@ -53,7 +62,7 @@ export function ScreenshotsUploadField({
             setPending((p) => p.map((x) => (x.id === id ? { ...x, status: 'error', error: result.error } : x)))
             return
           }
-          onChange([...value, result.url])
+          onAdd(result.url)
           setPending((p) => p.filter((x) => x.id !== id))
         } catch {
           setPending((p) => p.map((x) => (x.id === id ? { ...x, status: 'error', error: 'Could not start this upload. Try again.' } : x)))
@@ -66,7 +75,7 @@ export function ScreenshotsUploadField({
 
   const remove = (i: number) => {
     const path = pathFromPublicUrl(value[i])
-    onChange(value.filter((_, idx) => idx !== i))
+    onRemove(i)
     if (path) removeProjectImage(supabase, path)
   }
 
@@ -75,7 +84,7 @@ export function ScreenshotsUploadField({
     if (j < 0 || j >= value.length) return
     const next = [...value]
     ;[next[i], next[j]] = [next[j], next[i]]
-    onChange(next)
+    onReorder(next)
   }
 
   return (

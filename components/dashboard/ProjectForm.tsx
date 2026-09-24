@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { slugify, stripDangerousUnicode, isHttpsUrl } from '@/lib/utils'
@@ -88,18 +88,62 @@ export function ProjectForm({
   // Starts as the prop (already-existing project) or undefined (new project, no row yet). A
   // media upload before the first Save lazily creates the row via ensureProjectId below — from
   // that point on this form is editing a real project, not batching everything into one insert.
-  const [liveProjectId, setLiveProjectId] = useState<string | undefined>(projectId)
+  // Mirrored in a ref (not just state) so handlers always read the freshest id even if invoked
+  // from a closure captured before the id existed — state alone can't guarantee that timing.
+  const [liveProjectId, setLiveProjectIdState] = useState<string | undefined>(projectId)
+  const liveProjectIdRef = useRef(liveProjectId)
+  const setLiveProjectId = (id: string) => { liveProjectIdRef.current = id; setLiveProjectIdState(id) }
   const isEdit = !!liveProjectId
+
+  // Same reasoning for screenshots: several uploads can complete close together, and each one's
+  // "append" must see every prior append, not a stale render's snapshot — a ref updated
+  // synchronously at call time (not through React's async state batching) is what makes that safe.
+  // Initialised from the initial form value; the handlers below are its only writers, and each
+  // updates the ref and the state together, so the two never diverge.
+  const screenshotsRef = useRef(form.screenshots)
 
   const set = (key: keyof Omit<ProjectFormData, 'screenshots'>, value: string) =>
     setForm((f) => ({ ...f, [key]: value }))
 
   const ensureProjectId = async (): Promise<string> => {
-    if (liveProjectId) return liveProjectId
+    if (liveProjectIdRef.current) return liveProjectIdRef.current
     const result = await createDraftProject(form.title)
     if ('error' in result) throw new Error(result.error)
     setLiveProjectId(result.id)
     return result.id
+  }
+
+  // Media autosaves the instant it's confirmed, independent of the form's own Save button — the
+  // most failure-prone part of authoring (a network hiccup, a closed tab) is exactly where losing
+  // work would hurt most. Text fields stay save-on-submit; this is deliberately scoped, not a
+  // general autosave system (a project's title/description are cheap to retype if a session is
+  // truly abandoned; a re-uploaded image is not).
+  const persistMedia = (patch: { cover_url?: string | null; screenshots?: string[] }) => {
+    const id = liveProjectIdRef.current
+    if (!id) return // Shouldn't happen — ensureProjectId always runs first — but never throw from here.
+    void supabase.from('projects').update(patch).eq('id', id).eq('owner_id', ownerId)
+  }
+
+  const setCoverUrl = (url: string) => {
+    setForm((f) => ({ ...f, cover_url: url }))
+    persistMedia({ cover_url: url || null })
+  }
+  const addScreenshot = (url: string) => {
+    const next = [...screenshotsRef.current, url]
+    screenshotsRef.current = next
+    setForm((f) => ({ ...f, screenshots: next }))
+    persistMedia({ screenshots: next })
+  }
+  const removeScreenshotAt = (i: number) => {
+    const next = screenshotsRef.current.filter((_, idx) => idx !== i)
+    screenshotsRef.current = next
+    setForm((f) => ({ ...f, screenshots: next }))
+    persistMedia({ screenshots: next })
+  }
+  const reorderScreenshots = (urls: string[]) => {
+    screenshotsRef.current = urls
+    setForm((f) => ({ ...f, screenshots: urls }))
+    persistMedia({ screenshots: urls })
   }
 
   // Slug follows the title until the user edits the slug themselves.
@@ -313,10 +357,10 @@ export function ProjectForm({
       <fieldset className="flex flex-col gap-4 rounded-panel border border-line p-5">
         <legend className="px-2 text-small font-semibold text-fg-secondary">Media &amp; links</legend>
         <Field label="Cover image">
-          {(p) => <CoverUploadField id={p.id} value={form.cover_url} onChange={(url) => set('cover_url', url)} ensureProjectId={ensureProjectId} />}
+          {(p) => <CoverUploadField id={p.id} value={form.cover_url} onChange={setCoverUrl} ensureProjectId={ensureProjectId} />}
         </Field>
         <Field label="Screenshots">
-          {(p) => <ScreenshotsUploadField id={p.id} value={form.screenshots} onChange={(urls) => setForm((f) => ({ ...f, screenshots: urls }))} ensureProjectId={ensureProjectId} />}
+          {(p) => <ScreenshotsUploadField id={p.id} value={form.screenshots} onAdd={addScreenshot} onRemove={removeScreenshotAt} onReorder={reorderScreenshots} ensureProjectId={ensureProjectId} />}
         </Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="GitHub">

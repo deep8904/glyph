@@ -327,3 +327,18 @@ inspection. Verified via the dev fixture (no events in this environment's seed d
 **FINAL STATUS: APPROVED.**
 
 **SCREENSHOTS:** `docs/design/screenshots/rebuild/events/rows-1440.png`.
+
+## 8. Publishers — APPROVED (no changes)
+
+**PROBLEM:** Directive explicitly warns against accidentally building CRM UI here.
+
+**COLD REVIEW:** Inspected the public directory, publisher detail page, and the publisher-tools
+dashboard live in browser rather than assuming pass. All three are already exactly what the
+directive asks for: identity-only listing (no invented metrics, no project grid on the public
+page), a plain "How publishers work with developers" explanation instead of a feature list, and
+the dashboard side (Find projects → Browse, Shortlists, Messages sent) reads as plain sections
+with counts — no data tables, no CRM dashboard feel, no metrics widgets. `PublisherRow` is
+correctly text-only (no bare-letter-box identity bug to fix, since it never attempts an image
+treatment for what is deliberately a formal/professional identity, unlike Games/Studios/People).
+
+**FINAL STATUS: APPROVED — no changes.** Confirmed live in browser, not inherited-assumed.

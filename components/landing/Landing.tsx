@@ -128,7 +128,7 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
       <main id="main-content">
         <div className="mx-auto max-w-6xl space-y-24 px-4 py-16 sm:px-6 sm:py-20 lg:space-y-32 lg:py-28">
           {/* Hero */}
-          <section className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+          <section className="grid items-start gap-12 lg:grid-cols-2 lg:gap-16">
             <div className="reveal-hero reveal-hero-2">
               <h1 className="text-display font-semibold tracking-[-0.02em] text-fg sm:text-[3.25rem] sm:leading-[1.05]">
                 The professional home for a game <span className="text-accent">while it&rsquo;s being built.</span>
@@ -214,12 +214,15 @@ export function Landing({ isAuthed }: { isAuthed: boolean }) {
             </div>
           </section>
 
-          {/* Who this is for */}
-          <section className="max-w-2xl">
-            <p className="text-h3 font-semibold text-fg text-balance">
-              Built for the developer who is still in the middle of it — the solo dev working nights and weekends, the team of two on their first project.
-            </p>
-            <p className="mt-3 text-body leading-relaxed text-fg-secondary">This isn&rsquo;t a platform for games that already shipped. It&rsquo;s for the work that&rsquo;s still happening.</p>
+          {/* Who this is for — same section pattern as "How it works": a kicker, then a lead
+              statement at the same weight as every other section head, so this reads as a closing
+              beat rather than an orphaned trailing paragraph. */}
+          <section className="max-w-2xl border-t border-line-subtle pt-16">
+            <p className="font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Who this is for</p>
+            <h2 className="mt-2 text-h1 font-semibold tracking-tight text-fg text-balance">
+              The developer who is still in the middle of it — the solo dev working nights and weekends, the team of two on their first project.
+            </h2>
+            <p className="mt-4 text-body leading-relaxed text-fg-secondary">This isn&rsquo;t a platform for games that already shipped. It&rsquo;s for the work that&rsquo;s still happening.</p>
           </section>
         </div>
 

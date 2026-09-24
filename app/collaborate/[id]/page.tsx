@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { MetadataBar } from '@/components/ui/MetadataBar'
 import { SectionHeader } from '@/components/ui/SectionHeader'
+import { ProjectMark } from '@/components/project/ProjectMark'
 import { CONTRACT_TYPES } from '@/lib/supabase/types'
 import { relativeTime } from '@/lib/utils'
 
@@ -100,24 +101,27 @@ export default async function CollabPostPage({ params }: { params: Promise<{ id:
         <article className="max-w-2xl">
           <Link href="/collaborate" className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← Collaborate</Link>
 
-          <header className="mt-1">
+          {/* The work this role is attached to, given real visual weight — not a text aside. */}
+          {post.projects && (
+            <Link
+              href={post.projects.slug ? `/p/${post.profiles.username}/${post.projects.slug}` : `/dev/${post.profiles.username}`}
+              className="group mt-4 flex items-center gap-3"
+            >
+              <ProjectMark title={post.projects.title} id={post.projects.slug ?? post.projects.title} ratio="square" compact className="!aspect-auto size-12" />
+              <span className="min-w-0">
+                <span className="block font-mono text-micro uppercase tracking-wide text-fg-muted">Role on</span>
+                <span className="block truncate text-body font-semibold text-fg group-hover:text-link">{post.projects.title}</span>
+              </span>
+            </Link>
+          )}
+
+          <header className="mt-5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className="text-display font-semibold text-fg [overflow-wrap:anywhere]">{roleTitle}</h1>
               <Badge tone={seeking ? 'accent' : 'neutral'}>{seeking ? 'Looking for' : 'Available to collaborate as'}</Badge>
               <StatusLabel label={stateLabel.label} tone={stateLabel.tone} />
             </div>
             <p className="mt-2 text-body text-fg-secondary [overflow-wrap:anywhere]">
-              {post.projects && (
-                <>
-                  For{' '}
-                  {post.projects.slug ? (
-                    <Link href={`/p/${post.profiles.username}/${post.projects.slug}`} className="font-medium text-link underline-offset-2 hover:underline">{post.projects.title}</Link>
-                  ) : (
-                    <span className="font-medium text-fg">{post.projects.title}</span>
-                  )}
-                  {' · '}
-                </>
-              )}
               Posted by{' '}
               <Link href={`/dev/${post.profiles.username}`} className="font-medium text-link underline-offset-2 hover:underline">{authorName}</Link>
               {post.profiles.primary_role && <span className="text-fg-muted"> ({post.profiles.primary_role.replace(/_/g, ' ')})</span>}

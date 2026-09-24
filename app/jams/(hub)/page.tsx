@@ -9,7 +9,7 @@ import { Section } from '@/components/ui/Section'
 
 export const metadata = { title: 'Game jams — Glyph' }
 
-const COLS = 'id, slug, title, description, theme, start_at, end_at, status, profiles!host_id(username, display_name)'
+const COLS = 'id, slug, title, description, theme, start_at, end_at, voting_end_at, status, profiles!host_id(username, display_name)'
 
 /**
  * Game jams: time-bounded contexts in which projects get made. The list is by phase — what is happening or

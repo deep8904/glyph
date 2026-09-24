@@ -27,7 +27,7 @@ const ahead = (d: number) => new Date(Date.now() + d * 86400000).toISOString()
 export default function GraphFixtures() {
   if (process.env.NODE_ENV === 'production') notFound()
   const user = { displayName: 'Fixture User', username: 'fixture-user', email: 'fixture@example.invalid', nav: { isAdmin: false, hasPublisherAccount: true, hasStudio: true, hasPublisherContacts: false, unreadNotifications: 0 } }
-  const jam = (status: string, id: string) => ({ id, slug: id, title: `Fixture Jam (${status})`, description: 'Make a small game about one room in three days.', theme: status === 'upcoming' ? null : 'One Room', start_at: ago(1), end_at: ahead(2), status, profiles: { username: 'host-a', display_name: 'Fixture Host' } })
+  const jam = (status: string, id: string) => ({ id, slug: id, title: `Fixture Jam (${status})`, description: 'Make a small game about one room in three days.', theme: status === 'upcoming' ? null : 'One Room', start_at: ago(1), end_at: ahead(2), voting_end_at: ahead(4), status, profiles: { username: 'host-a', display_name: 'Fixture Host' } })
   return (
     <ShellFrame user={user} headerLabel="Fixtures">
       <div className="max-w-3xl space-y-12">

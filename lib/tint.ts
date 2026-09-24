@@ -15,6 +15,12 @@ export const TINTS: Tint[] = [
   { bg: '#efecf7', ink: '#45397a' }, // iris
   { bg: '#f1ece2', ink: '#5f4f30' }, // sand
   { bg: '#e8eef3', ink: '#2f4a63' }, // steel
+  { bg: '#f7ecef', ink: '#7a3348' }, // rose
+  { bg: '#eef2e5', ink: '#4c5c26' }, // olive
+  { bg: '#ece9f6', ink: '#4a3d80' }, // violet
+  { bg: '#f5efe4', ink: '#7a5620' }, // amber
+  { bg: '#e6f0f0', ink: '#276160' }, // teal
+  { bg: '#f2ecf2', ink: '#6b3d6b' }, // plum
 ]
 
 export function tintFor(seed: string): Tint {

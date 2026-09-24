@@ -8,8 +8,8 @@ export default async function NewProjectPage() {
   return (
     <AppShell displayName={displayName} email={email} nav={nav} headerLabel="New Project">
       <div className="max-w-2xl">
-        <h1 className="text-2xl font-display font-medium tracking-tight text-gray-900 mb-1">New Project</h1>
-        <p className="text-sm text-gray-500 mb-8">Fill in the details — you can always edit later.</p>
+        <h1 className="mb-1 text-h1 font-semibold tracking-tight text-fg">New Project</h1>
+        <p className="mb-8 text-small text-fg-secondary">Fill in the details — you can always edit later. Save as a draft if you&rsquo;re not ready to publish yet.</p>
         <ProjectForm ownerId={user.id} />
       </div>
     </AppShell>

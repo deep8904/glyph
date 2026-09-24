@@ -34,10 +34,17 @@ export type Project = {
   screenshots: string[]
   external_links: Record<string, string>
   visibility: 'public' | 'unlisted' | 'private'
+  lifecycle: 'draft' | 'published' | 'archived'
   is_primary: boolean
   created_at: string
   updated_at: string
 }
+
+export const PROJECT_LIFECYCLE = [
+  { value: 'draft', label: 'Draft — only you can see it' },
+  { value: 'published', label: 'Published' },
+  { value: 'archived', label: 'Archived' },
+] as const
 
 export type DevlogPost = {
   id: string

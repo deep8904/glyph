@@ -148,12 +148,16 @@ export default function OnboardingPage() {
     }
 
     if (nn(data.project_title)) {
+      // No slug is collected here, so this can never be 'published' (slug_required_when_published
+      // constraint) — explicit, not relying on the column default, so this insert stays correct
+      // even if the schema's own default ever changes.
       await supabase.from('projects').insert({
         owner_id: user.id,
         title: data.project_title.trim(),
         short_description: nn(data.project_description),
         stage: nn(data.project_stage),
         is_primary: true,
+        lifecycle: 'draft',
       })
     }
 

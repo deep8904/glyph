@@ -19,13 +19,13 @@ export default async function ProjectsPage() {
 
   const { data: projects } = await supabase
     .from('projects')
-    .select('id, title, short_description, slug, stage, visibility, is_primary, created_at')
+    .select('id, title, short_description, slug, stage, visibility, is_primary, created_at, lifecycle')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
   const typedProjects = (projects ?? []) as Pick<
     Project,
-    'id' | 'title' | 'short_description' | 'slug' | 'stage' | 'visibility' | 'is_primary' | 'created_at'
+    'id' | 'title' | 'short_description' | 'slug' | 'stage' | 'visibility' | 'is_primary' | 'created_at' | 'lifecycle'
   >[]
 
   return (
@@ -56,6 +56,8 @@ export default async function ProjectsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-body font-medium text-fg [overflow-wrap:anywhere]">{project.title}</h3>
                     {project.is_primary && <Badge tone="accent">Primary</Badge>}
+                    {project.lifecycle === 'draft' && <Badge tone="neutral">Draft</Badge>}
+                    {project.lifecycle === 'archived' && <Badge tone="neutral">Archived</Badge>}
                   </div>
                   {project.short_description && <p className="mt-1 line-clamp-2 text-small text-fg-secondary">{project.short_description}</p>}
                   <p className="mt-2 flex flex-wrap items-center gap-1.5 text-small text-fg-muted">

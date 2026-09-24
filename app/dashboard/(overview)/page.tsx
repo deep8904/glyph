@@ -21,6 +21,7 @@ type ProjectRow = {
   cover_image_url: string | null
   updated_at: string
   is_primary: boolean
+  lifecycle: 'draft' | 'published' | 'archived'
 }
 
 export type NextAction =
@@ -88,15 +89,18 @@ export default async function DashboardPage() {
   // pagination rather than raise the cap silently).
   const { data: projectRows, error: projectsError } = await supabase
     .from('projects')
-    .select('id, title, slug, stage, cover_url, cover_image_url, updated_at, is_primary')
+    .select('id, title, slug, stage, cover_url, cover_image_url, updated_at, is_primary, lifecycle')
     .eq('owner_id', user.id)
     .order('is_primary', { ascending: false })
     .order('updated_at', { ascending: false })
     .limit(20)
 
   const projects = (projectRows ?? []) as ProjectRow[]
-  const currentProject = projects[0] ?? null
-  const otherProjects = projects.slice(1)
+  // "Currently building" never surfaces an archived project — that phrase is a lifecycle claim.
+  // Draft is fine here (the dashboard is always owner-only): a draft is exactly "what I'm
+  // currently building," maybe the most literal case of it.
+  const currentProject = projects.find((p) => p.lifecycle !== 'archived') ?? null
+  const otherProjects = projects.filter((p) => p.id !== currentProject?.id)
 
   const [
     { data: latestDevlog },

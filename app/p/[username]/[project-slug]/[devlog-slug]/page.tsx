@@ -45,15 +45,17 @@ export default async function DevlogPostPage({
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, title, slug, visibility, stage, cover_url, cover_image_url')
+    .select('id, title, slug, visibility, lifecycle, stage, cover_url, cover_image_url')
     .eq('owner_id', profile.id)
     .eq('slug', projectSlug)
-    .maybeSingle<Pick<Project, 'id' | 'title' | 'slug' | 'visibility' | 'stage' | 'cover_url' | 'cover_image_url'>>()
+    .maybeSingle<Pick<Project, 'id' | 'title' | 'slug' | 'visibility' | 'lifecycle' | 'stage' | 'cover_url' | 'cover_image_url'>>()
 
   if (!project) notFound()
 
   const isOwner = currentUser?.id === profile.id
-  if (project.visibility === 'private' && !isOwner) notFound()
+  // Draft gates viewing regardless of visibility — a devlog under a still-drafting project is
+  // owner-only, same rule as the project's own page.
+  if ((project.lifecycle === 'draft' || project.visibility === 'private') && !isOwner) notFound()
 
   const { data: post } = await supabase
     .from('devlog_posts')

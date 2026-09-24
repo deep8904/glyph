@@ -21,6 +21,7 @@ type ProjectFormData = {
   genre: string
   stage: string
   visibility: 'public' | 'unlisted' | 'private'
+  lifecycle: 'draft' | 'published'
   cover_url: string
   screenshots: string
   link_github: string
@@ -47,6 +48,10 @@ function toForm(p?: Partial<Project>): ProjectFormData {
     genre: p?.genre ?? '',
     stage: p?.stage ?? '',
     visibility: p?.visibility ?? 'private',
+    // Archived isn't a form choice (it's a separate, confirmed action on the edit page) — an
+    // archived project shown here defaults to 'published' so saving the form doesn't accidentally
+    // un-archive it via a stale radio value; the edit page's own Restore action is the real path.
+    lifecycle: p?.lifecycle === 'draft' ? 'draft' : 'published',
     cover_url: p?.cover_url ?? p?.cover_image_url ?? '',
     screenshots: ((p?.screenshots as string[] | undefined) ?? []).join('\n'),
     link_github: linkValue(p?.external_links, LINK_KEYS.github),
@@ -70,6 +75,9 @@ export function ProjectForm({
   const router = useRouter()
   const supabase = createClient()
   const isEdit = !!projectId
+  // Archiving is its own confirmed action, not a form field — never let a routine save of this
+  // form change an archived project's lifecycle as a side effect.
+  const isArchived = initial?.lifecycle === 'archived'
 
   const [form, setForm] = useState<ProjectFormData>(toForm(initial))
   const [slugManual, setSlugManual] = useState(!!initial?.slug)
@@ -164,6 +172,8 @@ export function ProjectForm({
       genre: s(form.genre) || null,
       stage: form.stage || null,
       visibility: form.visibility,
+      // Preserve 'archived' through an unrelated edit — see isArchived above.
+      lifecycle: isArchived ? 'archived' : form.lifecycle,
     }
 
     let dbError: { code?: string; message: string } | null = null
@@ -251,7 +261,7 @@ export function ProjectForm({
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Stage">
+        <Field label="Stage" hint="Where the game itself is — independent of whether the page is published.">
           {(p) => (
             <Select {...p} value={form.stage} onChange={(e) => set('stage', e.target.value)}>
               <option value="">Select…</option>
@@ -259,19 +269,29 @@ export function ProjectForm({
             </Select>
           )}
         </Field>
-        <Field label="Visibility">
+        <Field label="Status" hint={isArchived ? 'This project is archived. Restore it from the project page to change this.' : 'Draft is only visible to you, regardless of the Visibility setting below.'}>
           {(p) => (
-            <div>
-              <Select {...p} value={form.visibility} onChange={(e) => set('visibility', e.target.value as ProjectFormData['visibility'])}>
-                <option value="public">Public — visible to everyone</option>
-                <option value="unlisted">Unlisted — only via direct link</option>
-                <option value="private">Private — only you</option>
-              </Select>
-              {form.visibility === 'private' && <Badge tone="neutral" className="mt-2">Private by default</Badge>}
-            </div>
+            <Select {...p} value={isArchived ? 'archived' : form.lifecycle} disabled={isArchived} onChange={(e) => set('lifecycle', e.target.value as ProjectFormData['lifecycle'])}>
+              {isArchived && <option value="archived">Archived</option>}
+              <option value="draft">Draft — only you can see it</option>
+              <option value="published">Published</option>
+            </Select>
           )}
         </Field>
       </div>
+
+      <Field label="Visibility">
+        {(p) => (
+          <div>
+            <Select {...p} value={form.visibility} onChange={(e) => set('visibility', e.target.value as ProjectFormData['visibility'])}>
+              <option value="public">Public — visible to everyone</option>
+              <option value="unlisted">Unlisted — only via direct link</option>
+              <option value="private">Private — only you</option>
+            </Select>
+            {form.visibility === 'private' && <Badge tone="neutral" className="mt-2">Private by default</Badge>}
+          </div>
+        )}
+      </Field>
 
       <fieldset className="flex flex-col gap-4 rounded-panel border border-line p-5">
         <legend className="px-2 text-small font-semibold text-fg-secondary">Media &amp; links</legend>

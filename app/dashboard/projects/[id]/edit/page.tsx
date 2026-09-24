@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSidebarIdentity } from '@/lib/dashboard/identity'
 import { AppShell } from '@/components/dashboard/AppShell'
 import { ProjectForm } from '@/components/dashboard/ProjectForm'
+import { ArchiveProjectForm } from '@/components/dashboard/ArchiveProjectForm'
 import { DeleteProjectForm } from '@/components/dashboard/DeleteProjectForm'
 import type { Project } from '@/lib/supabase/types'
 
@@ -27,9 +28,10 @@ export default async function EditProjectPage({
   return (
     <AppShell displayName={displayName} email={email} nav={nav} headerLabel="Edit Project">
       <div className="max-w-2xl">
-        <h1 className="text-2xl font-display font-medium tracking-tight text-gray-900 mb-1">Edit Project</h1>
-        <p className="text-sm text-gray-500 mb-8 truncate">{project.title}</p>
+        <h1 className="mb-1 text-h1 font-semibold tracking-tight text-fg">Edit Project</h1>
+        <p className="mb-8 truncate text-small text-fg-secondary">{project.title}</p>
         <ProjectForm projectId={id} initial={project} ownerId={user.id} username={username} />
+        <ArchiveProjectForm projectId={id} lifecycle={project.lifecycle} title={project.title} />
         <DeleteProjectForm projectId={id} title={project.title} />
       </div>
     </AppShell>

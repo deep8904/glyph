@@ -25,7 +25,7 @@ export type CurrentWorkDevlog = { title: string; href: string; published_at: str
  * only ever has one Current Work, so it earns a distinct, larger composition instead of being
  * a bigger version of the compact row below it.
  */
-export function CurrentWork({ project, username, latestDevlog }: { project: CurrentWorkProject; username: string; latestDevlog?: CurrentWorkDevlog | null }) {
+export function CurrentWork({ project, username, latestDevlog, showDraftBadge = false }: { project: CurrentWorkProject; username: string; latestDevlog?: CurrentWorkDevlog | null; /** Owner-only: this is the one state a visitor can never see here (their query already excludes it). */ showDraftBadge?: boolean }) {
   const href = project.slug ? `/p/${username}/${project.slug}` : null
   const stage = project.stage ? labelFor(PROJECT_STAGES, project.stage) : null
 
@@ -43,6 +43,7 @@ export function CurrentWork({ project, username, latestDevlog }: { project: Curr
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           {stage && <Badge tone="accent">{stage}</Badge>}
+          {showDraftBadge && <Badge tone="neutral">Draft</Badge>}
         </div>
         <h3 className="mt-2 text-h1 font-semibold text-fg [overflow-wrap:anywhere]">
           {href ? <Link href={href} className="hover:text-link">{project.title}</Link> : project.title}

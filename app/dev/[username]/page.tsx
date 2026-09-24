@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { GitBranch, Gamepad2, X, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -37,6 +38,7 @@ type ProjectRow = {
   cover_image_url: string | null
   updated_at: string
   is_primary: boolean
+  lifecycle: 'draft' | 'published' | 'archived'
 }
 
 export default async function ProfilePage({
@@ -72,7 +74,7 @@ export default async function ProfilePage({
   ] = await Promise.all([
     supabase
       .from('projects')
-      .select('id, title, slug, stage, short_description, cover_url, cover_image_url, updated_at, is_primary')
+      .select('id, title, slug, stage, short_description, cover_url, cover_image_url, updated_at, is_primary, lifecycle')
       .eq('owner_id', profile.id)
       .order('is_primary', { ascending: false })
       .order('updated_at', { ascending: false })
@@ -107,8 +109,16 @@ export default async function ProfilePage({
     .filter((r) => r.studios && r.studios.status === 'active')
     .map((r) => ({ slug: r.studios!.slug, name: r.studios!.name, role: r.role }))
 
-  const projects = (projectRows ?? []) as ProjectRow[]
-  const currentProject = projects.find((p) => p.is_primary) ?? projects[0] ?? null
+  // A visitor never sees draft (RLS already stops that row coming back at all) or archived
+  // (app-level — archived is "not actively representing current work," the same reasoning that
+  // excludes it from Current Work and from discovery; design doc project-state-model.md §9/§17.3).
+  // The owner sees everything, including drafts and archived, so they can find and manage them.
+  const allProjects = (projectRows ?? []) as ProjectRow[]
+  const projects = isOwner ? allProjects : allProjects.filter((p) => p.lifecycle === 'published')
+  // Current Work never surfaces an archived project as "currently building," even for the owner —
+  // that phrase is a lifecycle claim.
+  const currentCandidates = projects.filter((p) => p.lifecycle !== 'archived')
+  const currentProject = currentCandidates.find((p) => p.is_primary) ?? currentCandidates[0] ?? null
   const otherProjects = projects.filter((p) => p.id !== currentProject?.id)
   const projectIds = projects.map((p) => p.id)
 
@@ -240,7 +250,7 @@ export default async function ProfilePage({
         {/* Current work — the one visually dominant object on the page */}
         <Section id="current-work" title="Current work">
           {currentProject ? (
-            <CurrentWork project={currentProject} username={profile.username} latestDevlog={currentWorkDevlog} />
+            <CurrentWork project={currentProject} username={profile.username} latestDevlog={currentWorkDevlog} showDraftBadge={isOwner && currentProject.lifecycle === 'draft'} />
           ) : (
             <EmptyState
               kind="first-use"
@@ -272,7 +282,14 @@ export default async function ProfilePage({
           <Section id="projects" title="Projects" count={otherProjects.length}>
             <ul className="divide-y divide-line-subtle">
               {otherProjects.map((p) => (
-                <li key={p.id}><ProjectRow project={p} username={profile.username} variant="compact" /></li>
+                <li key={p.id} className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1"><ProjectRow project={p} username={profile.username} variant="compact" /></div>
+                  {/* Owner-only — a visitor's list never contains a non-published row to begin
+                      with, so this label only ever needs to disambiguate for the owner. */}
+                  {isOwner && p.lifecycle !== 'published' && (
+                    <Badge tone="neutral" className="shrink-0">{p.lifecycle === 'draft' ? 'Draft' : 'Archived'}</Badge>
+                  )}
+                </li>
               ))}
             </ul>
           </Section>

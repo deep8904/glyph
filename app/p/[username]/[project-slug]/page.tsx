@@ -67,7 +67,10 @@ export default async function PublicProjectPage({
 
   const isOwner = currentUser?.id === profile.id
 
-  if (project.visibility === 'private' && !isOwner) notFound()
+  // Draft gates viewing regardless of visibility (mirrors devlog draft behaviour and the
+  // projects_read RLS policy from the B4 migration) — a private project is visibility-gated,
+  // a draft project is lifecycle-gated, and both apply.
+  if ((project.lifecycle === 'draft' || project.visibility === 'private') && !isOwner) notFound()
 
   const nowIso = new Date().toISOString()
 

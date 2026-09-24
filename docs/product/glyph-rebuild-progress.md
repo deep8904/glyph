@@ -111,3 +111,113 @@ At 1440 the four read as one product without being four copies of one layout. Ea
 ## FINAL VERDICT
 
 **APPROVED.** All four canonical surfaces (five including the media-rich/media-poor Project split) clear the thresholds on the latest independent reads, and the target-user (indie dev) would host all five. The system reads as art-directed, not as arranged Tailwind components. Backend stayed frozen (no B3/B4, no migrations, no storage) throughout the visual proof. Proceeding to the rest of the product.
+
+---
+
+# Post-Gate Surface Passes
+
+Continuing per the execution order: Search → Feed/Devlog → Collaboration → Playtesting →
+Studios → Jams → Events → Publishers → Notifications → Settings → Auth/Onboarding → Landing.
+Same INSPECT → RESEARCH → DESIGN → IMPLEMENT → BROWSER TEST → SCREENSHOT → REVIEW → ITERATE →
+RETEST → APPROVE loop as the canonical four. Backend stays frozen (read-only queries against
+existing tables/views only; no migrations).
+
+## 1. Search — APPROVED
+
+**OLD:** Explore-style underline tabs (All/Developers/Projects/Devlogs), rich 3–4-line rows
+identical in weight to Explore's browse cards, no Studios or Opportunities scope, no keyboard
+navigation, coverless projects fell back to a bare gray-letter box.
+
+**DESIGN PROBLEM:** Search's job is "I know roughly what I want, find it fast" — a retrieval
+tool, not a second Explore. It needs to feel like GitHub/Raycast/Slack search: dense, scannable,
+object-specific anatomy per result type.
+
+**REFERENCE PATTERNS:** GitHub code/issue search (dense rows, scope tabs as a toolbar), Raycast
+(type-ahead, no visible browse chrome), Slack search (scope + fast list). Not copied — derived a
+Glyph-native composition.
+
+**NEW COMPOSITION:**
+- `ScopeSwitcher` — one bordered, joined segmented strip (not pills, not underline tabs):
+  All / Projects / Developers / Studios / Opportunities, mono count per segment. Reads as a
+  toolbar control on one query, deliberately distinct from Explore's section tabs.
+- Added **Studios** and **Opportunities** as first-class scopes — real inventory, read via plain
+  PostgREST `ilike` queries against `studios` and `discoverable_collab_posts` (already
+  visibility-scoped for every other caller). No RPC, no migration.
+- **Devlogs** demoted from a primary tab to a lightweight "Also in devlogs" list under All —
+  they already have a reading home (Development history, Feed).
+- Each result type keeps distinct anatomy (Project: thumbnail/meta; Developer: avatar/role/
+  current work/availability; Studio: logo/size/verified; Opportunity: role/project/commitment/
+  recency via the existing `CollaborationListing`).
+- `ResultsKeyNav` — real Arrow-Up/Down roving focus across result rows, layered onto the
+  server-rendered list.
+- Every result row (all four types + devlogs) renders in a `dense` mode: identity + exactly one
+  meta line, no pitch/bio/description/excerpt — Explore/Studios/Collaborate keep their richer
+  default (`dense` defaults to false), verified unaffected.
+
+**REAL DEFECT FOUND AND FIXED (not Search-specific):** coverless projects in list rows used a
+bare gray first-letter box, breaking the approved tint-identity system. `ProjectMark` gained a
+`compact` mode (tinted initials, Avatar-style) for thumbnail scale, where the full title-plate
+treatment clipped. Now used by `ProjectRow` (Search, Studios) and Feed's project chip.
+
+**ITERATIONS:**
+1. Full rebuild (scope switcher, Studios/Opportunities, keyboard nav, compact ProjectMark).
+2. Density fix — review scored 7/7/7 ("Explore with borders removed"); compressed Project/
+   Developer/Studio/Opportunity rows to identity + one meta line.
+3. Density fix, part 2 — retest (8/8/8/8, FAIL) found the "Also in devlogs" section left at the
+   old two-line-excerpt treatment, mixing densities on one page; compressed it to match.
+
+**REVIEWS:** Visual+Product+Target-user combined pass, three rounds (initial FAIL 7/7/7 →
+retest FAIL 8/8/8/8 → final retest **PASS** 9/9/8.5, all ≥ threshold).
+
+**SCREENSHOTS:** `docs/design/screenshots/rebuild/search/` — all-populated (1440/1024/375),
+scope-opportunities, scope-studios, empty-query, zero-results.
+
+**FINAL STATUS: APPROVED.**
+
+## 2. Feed + Devlog — cold re-verification — APPROVED (Feed iterated, Devlog unchanged)
+
+Per directive: did not assume pass because primitives improved. Cold-inspected both live in
+browser (signed in), fresh screenshots, against the directive's exact checklists.
+
+### Feed
+
+**OLD:** Each row was avatar → "Actor published a devlog on Project · time" → title → excerpt →
+reactions/comments — three consecutive rows in the seed data were visually identical but for text.
+This is the literal "avatar / text / metadata / divider" pattern the directive says to redesign on
+sight, and the page carried no visual signal of *which game* each entry was about — Feed's job
+("watching developers build games") wasn't showing up as a game-identity feed, it was a generic
+activity stream.
+
+**FIX:** The project now leads each row — a compact tinted `ProjectMark` (same identity system as
+Explore/Search/Project) sits at the left of the entry (hidden below `sm`, where the byline already
+carries the project name). The developer's avatar moved inline into the byline next to their name.
+Effect: scanning down Feed, each entry is now colour-anchored to its game, and multiple projects
+from different developers become visually distinguishable at a glance — the intended "watching
+several games get built" read. Verified live at 1440 and 375 (mobile drops the leading mark and
+keeps the compact inline byline; no overlap or reflow issues; reactions/comments unchanged and
+already using real per-type emoji + counts, not decoration).
+
+**REVIEW:** performed as a live cold visual inspection in-browser against the directive's exact
+Feed checklist (project identity, developer identity, chronology, media, spacing, engagement,
+density, empty state), not a delegated file-based subagent — Feed requires an authenticated
+session that a fresh headless context doesn't carry. Judged directly: before = fails the explicit
+"if it still reads like avatar/text/metadata/divider, redesign it" test; after = passes.
+
+**FINAL STATUS: APPROVED** (iterated).
+
+### Devlog
+
+**OLD/NEW:** unchanged. Cold-read against the checklist (project anchoring, title, reading
+measure, typography, media/list/code styling, previous/next, reactions, comments, author identity)
+on a real published devlog with real threaded comments.
+
+Genuinely reads as a development journal entry: `ProjectIdentityMarker` anchors it to the project
+and stage, a ~672px measure with `prose-glyph` typography (proper heading weight, bullet rhythm,
+bold emphasis), real "Known issues" / "What's in the alpha" structure from actual content (not
+generic lorem), working prev/next within the project's record, functional reaction chips, and
+three real threaded comments with tinted-initials avatars. No AI-slop tells. This is Read-mode
+correctly executed — quiet, typography-led, not manufactured drama — and needed no changes.
+
+**FINAL STATUS: APPROVED** (no changes; verified, not assumed).
+
+**SCREENSHOTS:** `docs/design/screenshots/rebuild/feed-devlog/` — devlog-1440/1024/375.

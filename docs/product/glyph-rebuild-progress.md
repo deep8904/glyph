@@ -450,3 +450,52 @@ RPC, no schema change); two legitimate, additive-only backend blockers were docu
 worked around (Collaboration board's `compensation_range`/`time_commitment`, not exposed by
 `discoverable_collab_posts`; a per-event stored timezone, which doesn't exist in the `events`
 schema — mitigated with an honest, explicit UTC label instead of ambiguous local time).
+
+---
+
+# VISUAL BASELINE: LOCKED
+
+**Baseline commit:** `093012c` — "Document Landing pass; close out the post-gate execution order"
+(2026-09-24). Working tree was clean at lock time.
+
+**Scope of the freeze:** the entire visual/product-interface redesign — the canonical-four quality
+gate plus the full 12-item post-gate pass (Search → Feed/Devlog → Collaboration → Playtesting →
+Studios → Jams → Events → Publishers → Notifications → Settings → Auth/Onboarding → Landing) — is
+APPROVED and frozen as of this commit. No further redesign cycles on this baseline.
+
+**From here, visual changes are allowed only for:**
+- regressions caused by product/backend work (B4, B3, and everything after)
+- newly introduced states (a new lifecycle/visibility value, a new media state, etc.)
+- genuine UX defects found during end-to-end flow testing
+- accessibility problems
+
+Typography, shell composition, palette, Project presentation, Explore art direction, and the
+canonical page language do not get casually touched. A change to any of those needs one of the
+four reasons above, named explicitly.
+
+**Preserved evidence:** 61 screenshots across every surface, `docs/design/screenshots/rebuild/`
+(canonical-four, shell, project, profile, search, collaborate, playtests, studios, jams, events,
+feed-devlog, landing, directions). Design system reference: `docs/design/glyph-design-system.md`.
+Full surface-by-surface record: this file, above.
+
+## Visual-regression checklist
+
+Run this after any backend slice that touches these surfaces, before merging. Compare live
+render against the locked screenshots in `docs/design/screenshots/rebuild/`.
+
+| Surface | What to re-check | Locked reference |
+|---|---|---|
+| Shell | Left rail (signed-in + signed-out "Join Glyph" card), ⌘K palette, mobile bottom bar, header | `shell/` |
+| Explore | Feature hero, tile grid rhythm (featured 2-col lead), coverless tint plates, dev/devlog rows | `canonical-four/current/explore-*.png` |
+| Project (media-rich) | Cinematic cover hero, context rail, screenshot grid, devlog timeline | `project/`, `canonical-four/current/project-rich-*.png` |
+| Project (media-poor) | Tinted hero band + engine·genre, framed empty-devlog state, Get-involved rail | `canonical-four/current/project-poor-*.png` |
+| Profile | Current Work dominant, identity rail, follower counts hidden at 0/0 | `profile/`, `canonical-four/current/profile-*.png` |
+| Dashboard | Main/rail column balance, Currently-building panel, attention-item inbox glyph | `canonical-four/current/dashboard-*.png` |
+| Search | Segmented ScopeSwitcher (not tabs), dense result rows, all 5 scopes, keyboard nav | `search/` |
+| Collaboration | ProjectContextCard on detail, cover-shaped board tiles | `collaborate/` |
+| Playtesting | ProjectContextCard with hideTitle on detail, cover-shaped board tiles | `playtests/` |
+| Events | UTC-labelled time strings, cover thumbnail/banner when set | `events/` |
+| Landing | Flat canvas (no gradient blob), real ProjectMark/DevlogRow hero fragment, hero column alignment, editorial loop list | `landing/full-*.png` |
+
+A failed row is a **regression**, fixed under the "regressions caused by product/backend work"
+exception — not a new redesign.

@@ -540,3 +540,85 @@ green, Supabase security advisor shows zero new findings from this work, perform
 finding (per-row `auth.uid()` re-evaluation) fixed in the same session it was found.
 
 Proceeding to B3 media infrastructure.
+
+---
+
+# B3 — Media Infrastructure: Storage Design Note
+
+Scope: project cover + screenshots (first-class upload, replacing the current "paste an https://
+URL" fields). Devlog media deferred, per the directive.
+
+## Bucket strategy
+
+Single bucket `project-media`, **public = true**, 5MB file size limit, allowed mime types
+`image/png`, `image/jpeg`, `image/webp`, `image/gif`.
+
+**Path convention**: `{project_id}/cover/{uuid}.{ext}` and `{project_id}/screenshots/{uuid}.{ext}`
+— UUID v4 filenames (122 bits of entropy, not derived from anything guessable), nested under the
+project's own id.
+
+**Why public, not a private+RLS-gated bucket**: Supabase serves a public bucket's objects via a
+dedicated CDN-friendly path (`/storage/v1/object/public/...`) that bypasses `storage.objects` RLS
+entirely for GET — this is the mechanism that makes a "public" bucket public. The alternative
+(private bucket + real RLS-gated reads) would require every render site to resolve a fresh signed
+URL at read time instead of embedding a stable string, because a signed URL has a TTL and a
+stored, long-lived one is functionally identical to a public link anyway (same "bearer secret,
+unrevoked by a later visibility change" property) while being *more* invasive to build: every
+existing query that selects `cover_url`/`screenshots` — ProjectRow, ProjectMark, Explore, Search,
+Studios, Profile, Dashboard, the Collaboration/Playtest context cards, Feed — would need to route
+through a resolver, touching a large surface of already-approved, frozen visual components for no
+net security gain over the public-bucket approach.
+
+**What "public" does NOT mean here**: no SELECT/list RLS policy is granted to `anon` or
+`authenticated` on `storage.objects` for this bucket. Supabase's public-GET path bypasses RLS, but
+`list()` (bucket enumeration) still goes through RLS — granting nothing means the bucket cannot be
+enumerated by anyone but the owner (whose own INSERT/UPDATE/DELETE policies implicitly let them
+list their own rows). Combined with unguessable UUID paths, this means: **a media file is
+reachable only by someone who already has its exact URL** — not searchable, not listable, not
+brute-forceable.
+
+**Accepted, documented trade-off** (this is the one place B3 does not fully match B4's "storage
+must respect Project state" ideal, and it is named explicitly rather than silently accepted): a
+draft, private, or archived project's cover/screenshot URLs are not access-controlled beyond
+unguessability. If a URL is captured while a project was public and the project is later set to
+private, the image itself remains fetchable at that URL even though the project's page, title, and
+every other field are correctly re-gated. **This is the same trade-off `visibility = 'unlisted'`
+already makes for an entire project page** (reachable by link, not access-controlled) — B3 extends
+it specifically to media, for draft and private projects too, rather than introducing a new kind of
+exposure. A stricter guarantee (media access strictly following live project state, including
+retroactive revocation) would require the signed-URL-at-read-time architecture described above — a
+larger, separate change, not undertaken here per "don't overbuild a DAM."
+
+## Object path ownership (write RLS)
+
+```sql
+-- INSERT/UPDATE/DELETE: only the project's owner, verified via the path's project_id segment.
+(select auth.uid()) in (
+  select owner_id from public.projects where id = (storage.foldername(name))[1]::uuid
+)
+```
+
+No coupling to `lifecycle`/`visibility` on the write side — an owner can upload media to a draft
+project (in fact that's the primary case: assembling cover art before publishing).
+
+## Validation
+
+- Client-side: file type allow-list, 5MB cap, image dimension sanity check before upload starts
+  (reject absurdly small images — not a hard requirement, a UX nicety to catch obvious mistakes
+  early).
+- Server-side / bucket-level: `allowed_mime_types` and `file_size_limit` on the bucket itself are
+  enforced by Supabase Storage independent of the client, so a client-side bypass still gets
+  rejected server-side.
+- Screenshot count: max 6, enforced in the upload UI (matches the existing `MAX_SCREENSHOTS`
+  constant already in `ProjectForm`).
+
+## Upload UX (per the directive's explicit list)
+
+Real byte-level progress where the SDK provides it; otherwise an honest indeterminate "Uploading…"
+state — never a fabricated percentage. Retry on failure without losing the rest of the form.
+Remove and replace-cover as explicit actions. Reorder screenshots (drag or up/down controls),
+order persisted as array position in the existing `screenshots` jsonb column (no new column
+needed — order was already implicit in that array's element order, just never had a UI to change
+it). Navigating away mid-upload does not corrupt already-saved project data — uploads happen
+independently of the form's own save, each screenshot/cover commits to the DB the moment its
+upload finishes, not batched with the rest of the form.

@@ -399,3 +399,54 @@ optional and editable later.
 
 **FINAL STATUS: APPROVED — no changes.** Reviewed via source (semantic Tailwind classes map
 directly to the same design-system tokens verified visually everywhere else in this pass).
+
+## 12. Landing — APPROVED (rebuilt last, from the finished product)
+
+**PROBLEM:** The previous Landing predated this whole rebuild pass and violated nearly every
+explicit anti-pattern: a full-bleed gradient blob backdrop, a floating mega-radius card with fake
+macOS window-chrome dots around a hand-illustrated fake screenshot (invented "Hollow Tide" / "Mira
+Kasprzak"), a fabricated "7 platforms" stat, a 3-column bento feature grid with generic icon-bubble
+cards, and a blurred-glow CTA panel.
+
+**REBUILD:** Flat `bg-canvas`, the same header/type/token language as the signed-in app (sticky
+`bg-surface/85 backdrop-blur` header, `Button`/`Badge` primitives). The hero's product fragment is
+not a mockup — it renders the actual `ProjectMark` and `DevlogRow` components against the real demo
+project (Nova Calder / Emberfall Keep) used throughout this whole design pass, with real, working
+links. The core loop (Build → Document → Involve → Discover → Grow) is an editorial numbered list,
+not a bento grid. "Individual developers never pay" is a flat inverse panel, not a blurred-glow
+card. No invented metrics anywhere.
+
+**Real bug found and fixed while building it:** a hydration mismatch from computing devlog
+timestamps with `Date.now()` at module scope in a Client Component — the server-render and
+client-hydration evaluations landed a few milliseconds apart, so `DevlogRow`'s `<time dateTime>`
+attribute didn't match between server and client. Replaced with fixed ISO timestamps.
+
+**ITERATIONS:** 2. Round 1 (full rebuild) scored 8.5/8.5 Visual/Composition — FAIL — on two
+specific defects: the hero's two columns didn't share a top edge (`items-center` centered each
+column independently against differing content height), and the closing "who this is for"
+statement had no section treatment, reading as an orphaned trailing paragraph after an oversized
+gap. Fixed: hero grid to `items-start`; closing section given the same kicker + `text-h1` +
+top-rule pattern as "How it works."
+
+**REVIEWS:** Round 1 — FAIL (8.5/8.5, Identity 9, Typography 9, Anti-slop 9 — all banned patterns
+already avoided). Round 2 (retest) — **PASS, 9/9**, both defects confirmed resolved.
+
+**FINAL STATUS: APPROVED.**
+
+**SCREENSHOTS:** `docs/design/screenshots/rebuild/landing/full-1440.png`, `full-375.png`.
+
+---
+
+# Post-Gate Pass — Complete
+
+All 12 items in the execution order are now APPROVED: Search, Feed/Devlog, Collaboration,
+Playtesting, Studios, Jams, Events, Publishers, Notifications, Settings, Auth/Onboarding, Landing.
+Several (Publishers, Notifications, Settings, Auth, Onboarding) were cold-inspected and found to
+already meet the bar — documented as verified, not assumed, per the directive. The rest received
+real fixes, each driven by a specific, named defect from independent review or direct inspection —
+never a redesign for its own sake. Backend stayed frozen throughout: every fix reads existing
+tables/views (a few net-new plain-`ilike` queries for Search's Studios/Opportunities scopes, no
+RPC, no schema change); two legitimate, additive-only backend blockers were documented rather than
+worked around (Collaboration board's `compensation_range`/`time_commitment`, not exposed by
+`discoverable_collab_posts`; a per-event stored timezone, which doesn't exist in the `events`
+schema — mitigated with an honest, explicit UTC label instead of ambiguous local time).

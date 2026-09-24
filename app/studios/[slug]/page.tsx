@@ -7,6 +7,7 @@ import { ProjectRow } from '@/components/project/ProjectRow'
 import { DevlogRow, fromDiscoveryRow } from '@/components/devlog/DevlogRow'
 import { MemberRow, type Member } from '@/components/studios/MemberRow'
 import { ObjectHeader } from '@/components/object/ObjectHeader'
+import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -94,16 +95,7 @@ export default async function StudioPage({ params }: { params: Promise<{ slug: s
             <ObjectHeader
               title={studio.name}
               state={studio.verified ? <Badge tone="success">Verified studio</Badge> : undefined}
-              leading={
-                logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logo} alt="" className="size-16 shrink-0 rounded-media border border-line object-cover" />
-                ) : (
-                  <span aria-hidden className="flex size-16 shrink-0 items-center justify-center rounded-media border border-line bg-surface-muted text-h1 font-semibold text-fg-muted">
-                    {studio.name.charAt(0).toUpperCase()}
-                  </span>
-                )
-              }
+              leading={<Avatar name={studio.name} src={logo} size="xl" className="size-16 rounded-media text-h1" />}
             >
               <MetadataBar
                 items={[

@@ -58,7 +58,7 @@ export function PlaytestListing({
   const left = playtest.requested_testers != null && playtest.current_testers != null ? Math.max(playtest.requested_testers - playtest.current_testers, 0) : null
   const build = [playtest.build_type ? BUILD[playtest.build_type] ?? playtest.build_type : null, playtest.platforms?.length ? playtest.platforms.join(', ') : null].filter(Boolean).join(' · ')
   const projectHref = playtest.project_slug && playtest.username ? `/p/${playtest.username}/${playtest.project_slug}` : null
-  const mark = <ProjectMark title={playtest.project_title} id={playtest.project_slug ?? playtest.project_title} ratio="square" compact className="!aspect-auto size-14" />
+  const mark = <ProjectMark title={playtest.project_title} id={playtest.project_slug ?? playtest.project_title} ratio="video" compact className="!aspect-auto h-14 w-24" />
   return (
     <li className="flex gap-3 py-4">
       {/* The game leads — Playtesting is an emotional/identity-driven surface (per the art

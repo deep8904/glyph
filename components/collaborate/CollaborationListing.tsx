@@ -78,11 +78,11 @@ export function CollaborationListing({
       {!dense && post.project_title && (
         projectHref ? (
           <Link href={projectHref} className="hidden shrink-0 sm:block" aria-label={post.project_title}>
-            <ProjectMark title={post.project_title} id={post.project_slug ?? post.project_title} ratio="square" compact className="!aspect-auto size-14" />
+            <ProjectMark title={post.project_title} id={post.project_slug ?? post.project_title} ratio="video" compact className="!aspect-auto h-14 w-24" />
           </Link>
         ) : (
           <div className="hidden shrink-0 sm:block">
-            <ProjectMark title={post.project_title} id={post.project_title} ratio="square" compact className="!aspect-auto size-14" />
+            <ProjectMark title={post.project_title} id={post.project_title} ratio="video" compact className="!aspect-auto h-14 w-24" />
           </div>
         )
       )}

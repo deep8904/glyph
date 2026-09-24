@@ -376,3 +376,26 @@ the calmer default action beside it. No cinematic panels, no showcase layout —
 quietest surface in the product.
 
 **FINAL STATUS: APPROVED — no changes.** Verified live + via fixtures, not assumed.
+
+## 11. Auth + Onboarding — APPROVED (no changes)
+
+**COLD REVIEW:** Directive: Auth minimal/beautiful/fast/trustworthy, no giant gradient page;
+Onboarding progressive/purposeful/short, don't ask for what can be added later.
+
+**Auth (`AuthForm` + `FocusedShell`):** `FocusedShell`'s own doc comment states the intent
+directly — "Plain canvas — no decorative background... nothing to leave through by accident" (no
+nav, brand not even a link during onboarding). OAuth-first (real GitHub/Google marks, not generic
+icon bubbles) with email/password beneath a divider, password show/hide, a proper forgot-password
+sub-flow, and a real 6-digit email-OTP verify flow (mono, letter-spaced input) with a resend
+cooldown. Login errors are deliberately generic ("Invalid email or password") to avoid account
+enumeration; password-reset always returns the same message whether or not the address exists.
+Exactly the minimal, trustworthy bar asked for.
+
+**Onboarding:** four short steps (Identity → About you → Current project → Social links) with a
+progress bar, a "~2 min" estimate, and Skip on every step past the required first (username +
+display name only). Server-side length caps behind the client-side ones. Matches "identity → first
+project → enough context to begin" precisely, and correctly treats everything past identity as
+optional and editable later.
+
+**FINAL STATUS: APPROVED — no changes.** Reviewed via source (semantic Tailwind classes map
+directly to the same design-system tokens verified visually everywhere else in this pass).

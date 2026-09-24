@@ -499,3 +499,44 @@ render against the locked screenshots in `docs/design/screenshots/rebuild/`.
 
 A failed row is a **regression**, fixed under the "regressions caused by product/backend work"
 exception — not a new redesign.
+
+---
+
+# B4 — Project State Model: COMPLETE
+
+Design doc: `docs/product/project-state-model.md` (reviewed, §17 addendum). Applied directly to
+the live Supabase project (`adiovtzggkpzrfqmevyx`) via migrations `040_project_lifecycle_state.sql`
+and `041_project_lifecycle_rls_perf.sql`.
+
+**Shipped:** an explicit `lifecycle` axis (draft/published/archived) on `projects`, independent of
+`visibility` and `stage`. Discovery eligibility stays derived (view-layer), not a new mutable
+column. `projects_read` RLS now gates draft on direct viewing the same way devlog drafts already
+did. Backfill: 7 of 8 existing projects → published (visibility preserved exactly), 1 → draft (the
+one project with no slug — a code-verified fact, not a visibility heuristic).
+
+**Three real RLS gaps fixed** (found during design and implementation, same bug class as
+`023_fix_projects_visibility_rls.sql`): `discoverable_collab_posts`, `jam_entries_read`, and
+`discoverable_devlogs` did not couple to the linked project's visibility. All now require the
+linked project to be public + published.
+
+**Leakage tests** (design doc §13, run against live data as the `anon` role, before and after the
+performance follow-up): draft direct-select, draft in `discoverable_projects`, private
+direct-select, private in `discoverable_projects`, `search_projects` for both the draft and the
+private project's title — all return 0 rows, as required. No test failed; nothing stopped rollout.
+
+**App-level:** onboarding's project insert now explicitly sets `lifecycle: 'draft'` (closing the
+exact accidental-draft bug the design doc's inventory found); project/devlog detail pages gate on
+draft the same way they gate on private; Profile and Dashboard exclude non-published projects from
+visitor-facing surfaces and Current Work, with owner-only Draft/Archived badges; `ProjectForm`
+gained a Status field that can never silently un-archive a project; a new `ArchiveProjectForm`
+makes archive/restore its own confirmed, non-destructive action that force-closes open recruiting.
+
+**Visual baseline:** unaffected. Every UI addition here is new-state surface (a Status field, an
+Archive section, small owner-only badges) — none of it touches the frozen canonical page language,
+per the freeze's own "newly introduced states" exception.
+
+**Verification:** `tsc --noEmit` clean, `eslint` clean on every changed file, production build
+green, Supabase security advisor shows zero new findings from this work, performance advisor
+finding (per-row `auth.uid()` re-evaluation) fixed in the same session it was found.
+
+Proceeding to B3 media infrastructure.

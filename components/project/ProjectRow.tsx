@@ -28,7 +28,7 @@ export type ProjectRowData = {
  * `compact` is a list line; `listing` is a discovery/search result (thumbnail, title, pitch, one meta line).
  * Same object, same link target (the canonical project page). Renders inside a <ul> for compact/listing via <li>.
  */
-export function ProjectRow({ project, username, variant = 'compact' }: { project: ProjectRowData; username?: string; variant?: 'compact' | 'feature' | 'listing' }) {
+export function ProjectRow({ project, username, variant = 'compact', dense = false }: { project: ProjectRowData; username?: string; variant?: 'compact' | 'feature' | 'listing'; /** Search's fast-scan density: identity + one meta line, no pitch. Explore/Studios keep the richer default. */ dense?: boolean }) {
   const owner = project.username ?? username ?? ''
   const href = project.slug ? `/p/${owner}/${project.slug}` : null
   const stage = project.stage ? labelFor(PROJECT_STAGES, project.stage) : null
@@ -37,18 +37,18 @@ export function ProjectRow({ project, username, variant = 'compact' }: { project
   if (variant === 'listing') {
     const engine = project.engine ? labelFor(ENGINES, project.engine) ?? project.engine : null
     const maker = project.display_name || project.username || owner
-    const pitch = project.short_description ? markdownExcerpt(project.short_description, 160) : ''
+    const pitch = !dense && project.short_description ? markdownExcerpt(project.short_description, 160) : ''
     return (
-      <li className="flex gap-3 py-4">
+      <li className={`flex gap-3 ${dense ? 'py-2.5' : 'py-4'}`}>
         <div className="w-16 shrink-0">
-          <ProjectMark title={project.title} id={project.id} coverUrl={project.cover_url ?? project.cover_image_url} ratio="square" compact className="!aspect-auto h-12" />
+          <ProjectMark title={project.title} id={project.id} coverUrl={project.cover_url ?? project.cover_image_url} ratio="square" compact className={dense ? '!aspect-auto h-10' : '!aspect-auto h-12'} />
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-body font-medium text-fg [overflow-wrap:anywhere]">
             {href ? <Link href={href} data-result-link className="inline-flex min-h-11 items-center hover:text-link focus-visible:text-link sm:min-h-0">{project.title}</Link> : project.title}
           </h3>
           {pitch && <p className="line-clamp-2 text-small text-fg-secondary">{pitch}</p>}
-          <p className="mt-1 text-small text-fg-muted [overflow-wrap:anywhere]">
+          <p className={`${dense ? '' : 'mt-1'} text-small text-fg-muted [overflow-wrap:anywhere]`}>
             {owner && <Link href={`/dev/${owner}`} className="hover:text-link focus-visible:text-link">{maker}</Link>}
             {stage && <> · {stage}</>}
             {engine && <> · {engine}</>}

@@ -12,9 +12,9 @@ const SIZE_LABELS = Object.fromEntries(STUDIO_SIZES.map((s) => [s.value, s.label
  * project thumbnails here, that's the studio page's job. Same anatomy as the Studios directory row
  * so a studio looks like itself everywhere it appears.
  */
-export function StudioResultRow({ studio }: { studio: StudioRowData }) {
+export function StudioResultRow({ studio, dense = false }: { studio: StudioRowData; dense?: boolean }) {
   return (
-    <li className="flex items-center gap-3 py-4">
+    <li className={`flex items-center gap-3 ${dense ? 'py-2.5' : 'py-4'}`}>
       {isHttpsUrl(studio.logo_url) ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={studio.logo_url!} alt="" className="size-11 shrink-0 rounded-media border border-line bg-surface-muted object-cover" />
@@ -27,7 +27,7 @@ export function StudioResultRow({ studio }: { studio: StudioRowData }) {
           {studio.verified && <Badge tone="success">Verified</Badge>}
         </h3>
         <p className="text-small text-fg-muted">{SIZE_LABELS[studio.size] ?? studio.size}</p>
-        {studio.description && <p className="mt-0.5 line-clamp-1 text-small text-fg-secondary">{studio.description}</p>}
+        {!dense && studio.description && <p className="mt-0.5 line-clamp-1 text-small text-fg-secondary">{studio.description}</p>}
       </div>
     </li>
   )

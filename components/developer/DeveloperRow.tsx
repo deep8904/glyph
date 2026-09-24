@@ -11,10 +11,12 @@ const role = (r: string | null) => (r ? r.replace(/_/g, ' ') : null)
  * One developer, two densities. `listing` (Explore/Search): identity, role, current project, availability,
  * activity, one-line bio, real follow state. `compact` (suggestions): avatar, name, role, follow.
  * Renders an <li>. Follow shows only for a signed-in viewer who is not this developer.
+ * `dense` (Search): drops the bio line for fast scanning — identity + one meta line, matching the
+ * other result types' compression there. Explore keeps the richer default.
  */
 export function DeveloperRow(
   props:
-    | { variant?: 'listing'; developer: DeveloperRowData; viewerId: string | null; following: boolean }
+    | { variant?: 'listing'; developer: DeveloperRowData; viewerId: string | null; following: boolean; dense?: boolean }
     | { variant: 'compact'; developer: SuggestedDeveloper; viewerId: string | null; following?: boolean }
 ) {
   const dev = props.developer
@@ -37,8 +39,9 @@ export function DeveloperRow(
   }
 
   const d = props.developer
+  const dense = props.dense ?? false
   return (
-    <li className="flex items-center gap-3 py-4">
+    <li className={`flex items-center gap-3 ${dense ? 'py-2.5' : 'py-4'}`}>
       <Avatar name={name} src={d.avatar_url} size="lg" className="self-start" />
       <div className="min-w-0 flex-1">
         <h3 className="text-body font-medium text-fg [overflow-wrap:anywhere]">
@@ -56,7 +59,7 @@ export function DeveloperRow(
           {d.is_open_to_collab && <> · <span className="font-medium text-success">Open to collaborate</span></>}
           {d.last_activity_at && <> · active {relativeTime(d.last_activity_at)}</>}
         </p>
-        {d.bio && <p className="mt-0.5 line-clamp-1 text-small text-fg-secondary">{d.bio}</p>}
+        {!dense && d.bio && <p className="mt-0.5 line-clamp-1 text-small text-fg-secondary">{d.bio}</p>}
       </div>
       {showFollow && <FollowButton targetId={d.id} currentUserId={props.viewerId} initialFollowing={props.following ?? false} />}
     </li>

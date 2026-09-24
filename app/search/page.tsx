@@ -198,7 +198,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         <section aria-labelledby="res-proj">
                           <h2 id="res-proj" className={type === 'all' ? 'mb-1 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted' : 'sr-only'}>Projects <span>{counts.projects}</span></h2>
                           <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                            {projects.rows.map((p) => <ProjectRow key={p.id} variant="listing" project={p} />)}
+                            {projects.rows.map((p) => <ProjectRow key={p.id} variant="listing" project={p} dense />)}
                           </ul>
                           {type === 'all' && counts.projects > SEARCH_ALL_PREVIEW && (
                             <Link href={href({ type: 'projects' })} className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">See all {counts.projects} projects</Link>
@@ -209,7 +209,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         <section aria-labelledby="res-dev">
                           <h2 id="res-dev" className={type === 'all' ? 'mb-1 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted' : 'sr-only'}>Developers <span>{counts.profiles}</span></h2>
                           <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                            {devs.rows.map((d) => <DeveloperRow key={d.id} developer={d} viewerId={viewer?.id ?? null} following={following.has(d.id)} />)}
+                            {devs.rows.map((d) => <DeveloperRow key={d.id} developer={d} viewerId={viewer?.id ?? null} following={following.has(d.id)} dense />)}
                           </ul>
                           {type === 'all' && counts.profiles > SEARCH_ALL_PREVIEW && (
                             <Link href={href({ type: 'profiles' })} className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">See all {counts.profiles} developers</Link>
@@ -220,7 +220,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         <section aria-labelledby="res-studio">
                           <h2 id="res-studio" className={type === 'all' ? 'mb-1 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted' : 'sr-only'}>Studios <span>{counts.studios}</span></h2>
                           <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                            {studios.rows.map((s) => <StudioResultRow key={s.id} studio={s} />)}
+                            {studios.rows.map((s) => <StudioResultRow key={s.id} studio={s} dense />)}
                           </ul>
                           {type === 'all' && counts.studios > SEARCH_ALL_PREVIEW && (
                             <Link href={href({ type: 'studios' })} className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">See all {counts.studios} studios</Link>
@@ -231,7 +231,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         <section aria-labelledby="res-opp">
                           <h2 id="res-opp" className={type === 'all' ? 'mb-1 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted' : 'sr-only'}>Opportunities <span>{counts.opportunities}</span></h2>
                           <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                            {opportunities.rows.map((o) => <CollaborationListing key={o.id} post={o} />)}
+                            {opportunities.rows.map((o) => <CollaborationListing key={o.id} post={o} dense />)}
                           </ul>
                           {type === 'all' && counts.opportunities > SEARCH_ALL_PREVIEW && (
                             <Link href={href({ type: 'opportunities' })} className="inline-flex min-h-11 items-center text-small font-medium text-link underline-offset-2 hover:underline">See all {counts.opportunities} opportunities</Link>

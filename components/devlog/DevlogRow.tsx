@@ -4,6 +4,7 @@ import { markdownExcerpt, relativeTime } from '@/lib/utils'
 import { REACTION_TYPES } from '@/lib/supabase/types'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
+import { ProjectMark } from '@/components/project/ProjectMark'
 import type { DevlogRowData } from '@/lib/discovery/queries'
 import type { FeedEngagement, FeedRow } from '@/lib/feed/queries'
 

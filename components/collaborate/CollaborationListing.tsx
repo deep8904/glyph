@@ -36,6 +36,7 @@ export function CollaborationListing({
   variant = 'board',
   status,
   hint,
+  dense = false,
 }: {
   post: ListingPost
   variant?: 'board' | 'mine'
@@ -43,6 +44,8 @@ export function CollaborationListing({
   status?: { label: string; tone: 'neutral' | 'positive' | 'attention' | 'negative' }
   /** mine: the next step in one line (e.g. "2 to review", "Waiting for review") */
   hint?: string
+  /** Search's fast-scan density: no description, tighter padding. Collaborate keeps the richer default. */
+  dense?: boolean
 }) {
   const seeking = post.post_type === 'seeking_collaborator'
   const arrangement = [post.contract_type ? CONTRACT[post.contract_type] ?? post.contract_type : null, post.remote_allowed ? 'Remote OK' : null, post.location].filter(Boolean).join(' · ')
@@ -68,16 +71,16 @@ export function CollaborationListing({
   }
 
   return (
-    <li className="py-4">
-      <h3 className="flex flex-wrap items-center gap-2 text-h3 font-semibold text-fg [overflow-wrap:anywhere]">
+    <li className={dense ? 'py-2.5' : 'py-4'}>
+      <h3 className={`flex flex-wrap items-center gap-2 font-semibold text-fg [overflow-wrap:anywhere] ${dense ? 'text-body' : 'text-h3'}`}>
         <Link href={`/collaborate/${post.id}`} data-result-link className="inline-flex min-h-11 items-center hover:text-link focus-visible:text-link sm:min-h-0">{roleOf(post)}</Link>
         <Badge tone={seeking ? 'accent' : 'neutral'}>{seeking ? 'Looking for' : 'Offering'}</Badge>
         {post.project_title && (
           projectHref ? <Link href={projectHref} className="text-body font-normal text-fg-secondary hover:text-link">{post.project_title}</Link> : <span className="text-body font-normal text-fg-secondary">{post.project_title}</span>
         )}
       </h3>
-      {post.description && <p className="mt-1 line-clamp-2 max-w-prose text-body text-fg-secondary">{markdownExcerpt(post.description, 220)}</p>}
-      <p className="mt-2 text-small text-fg-muted [overflow-wrap:anywhere]">
+      {!dense && post.description && <p className="mt-1 line-clamp-2 max-w-prose text-body text-fg-secondary">{markdownExcerpt(post.description, 220)}</p>}
+      <p className={`${dense ? '' : 'mt-2'} text-small text-fg-muted [overflow-wrap:anywhere]`}>
         {arrangement && <span className="font-medium text-fg-secondary">{arrangement}</span>}
         {arrangement && ' · '}
         {post.username && <Link href={`/dev/${post.username}`} className="hover:text-link">{post.display_name ?? post.username}</Link>}

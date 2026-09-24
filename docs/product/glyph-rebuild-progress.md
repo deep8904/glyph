@@ -342,3 +342,37 @@ correctly text-only (no bare-letter-box identity bug to fix, since it never atte
 treatment for what is deliberately a formal/professional identity, unlike Games/Studios/People).
 
 **FINAL STATUS: APPROVED — no changes.** Confirmed live in browser, not inherited-assumed.
+
+## 9. Notifications — APPROVED (no changes)
+
+**COLD REVIEW:** Directive: "cold-review it... optimize for scan, reason, object, time, action.
+Almost no decoration... if current design already passes visually and functionally after
+inspection, leave it. That is allowed. But prove it first." Inspected the live page and the
+populated/unread/all-read/empty/failed fixture states.
+
+Already exactly right: actor → action → object → time reads instantly; unread state is a dot +
+heavier weight + a screen-reader "Unread." word (never colour alone); same-event actors merge
+("Jordan Fixture, Sam Fixture and 1 other commented..."); a notification whose object was deleted
+or hidden stays in the list and says so instead of linking to nothing; Today/Yesterday/Earlier
+grouping; an Unread filter; long display names wrap without breaking the row. Near-zero decoration,
+exactly the bar the directive describes.
+
+**FINAL STATUS: APPROVED — no changes.** Verified live + via fixtures, not assumed.
+
+## 10. Settings — APPROVED (no changes)
+
+**COLD REVIEW:** Directive: quiet, strong IA, predictable save behaviour, destructive-action
+isolation, no cinematic panels. Inspected the live Profile page and the full fixture set (Profile
+normal/incomplete, Account email/password/devices, Privacy with blocked/muted lists and a plain
+"what's public / what Glyph controls" breakdown, Notification preferences, Danger with three real
+account states).
+
+Already exactly right: a quiet left sub-nav (Profile/Account/Security/Privacy/Notifications) with
+Delete account visually separated below it; an incomplete-profile nudge stated plainly, not as a
+progress bar or badge; the Danger section previews the real, specific consequences of deletion
+(exact counts: "3 projects, 14 devlogs, 27 comments...", studio-ownership conflicts that block
+deletion until resolved) before a clearly isolated destructive button, with "Keep my account" as
+the calmer default action beside it. No cinematic panels, no showcase layout — correctly the
+quietest surface in the product.
+
+**FINAL STATUS: APPROVED — no changes.** Verified live + via fixtures, not assumed.

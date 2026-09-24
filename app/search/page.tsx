@@ -243,7 +243,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         <section aria-labelledby="res-log">
                           <h2 id="res-log" className="mb-1 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Also in devlogs <span>{counts.devlogs}</span></h2>
                           <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                            {devlogs.rows.map((d) => <DevlogRow key={d.id} variant="listing" devlog={fromDiscoveryRow(d as DevlogRowData)} />)}
+                            {devlogs.rows.map((d) => <DevlogRow key={d.id} variant="listing" devlog={fromDiscoveryRow(d as DevlogRowData)} dense />)}
                           </ul>
                         </section>
                       )}
@@ -251,7 +251,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         <section aria-labelledby="res-log">
                           <h2 id="res-log" className="sr-only">Devlogs <span>{counts.devlogs}</span></h2>
                           <ul className="divide-y divide-line-subtle border-y border-line-subtle">
-                            {devlogs.rows.map((d) => <DevlogRow key={d.id} variant="listing" devlog={fromDiscoveryRow(d as DevlogRowData)} />)}
+                            {devlogs.rows.map((d) => <DevlogRow key={d.id} variant="listing" devlog={fromDiscoveryRow(d as DevlogRowData)} dense />)}
                           </ul>
                         </section>
                       )}

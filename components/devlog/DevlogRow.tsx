@@ -43,7 +43,7 @@ type TimelineProps = {
   editHref?: string
 }
 type FeedProps = { variant: 'feed'; devlog: DevlogSummary; engagement?: FeedEngagement }
-type ListingProps = { variant: 'listing'; devlog: DevlogSummary }
+type ListingProps = { variant: 'listing'; devlog: DevlogSummary; /** Search's fast-scan density: no excerpt. Explore keeps the richer default. */ dense?: boolean }
 
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 const REACTION = Object.fromEntries(REACTION_TYPES.map((r) => [r.type, r])) as Record<string, (typeof REACTION_TYPES)[number]>
@@ -94,8 +94,9 @@ export function DevlogRow(props: ListProps | TimelineProps | FeedProps | Listing
     const preview = markdownExcerpt(d.preview, props.variant === 'feed' ? 220 : 200)
 
     if (props.variant === 'listing') {
+      const dense = props.dense ?? false
       return (
-        <li className="py-4">
+        <li className={dense ? 'py-2.5' : 'py-4'}>
           <h3 className="text-body font-medium text-fg [overflow-wrap:anywhere]">
             <Link href={devlogHref} data-result-link className={`inline-flex min-h-11 items-center sm:min-h-0 ${link}`}>{d.title}</Link>
           </h3>
@@ -106,7 +107,7 @@ export function DevlogRow(props: ListProps | TimelineProps | FeedProps | Listing
             {' · '}
             <time dateTime={d.publishedAt}>{relativeTime(d.publishedAt)}</time>
           </p>
-          {preview && <p className="mt-1 line-clamp-2 text-small text-fg-secondary">{preview}</p>}
+          {!dense && preview && <p className="mt-1 line-clamp-2 text-small text-fg-secondary">{preview}</p>}
         </li>
       )
     }
@@ -117,14 +118,21 @@ export function DevlogRow(props: ListProps | TimelineProps | FeedProps | Listing
     const reactionSummary = reactions.map((r) => `${r.count} ${REACTION[r.type]?.label.toLowerCase() ?? r.type}`).join(', ')
     return (
       <li>
-        <article className="flex gap-3 py-5">
-          <Avatar name={d.authorName} src={d.avatarUrl} size="lg" className="mt-0.5" />
+        <article className="flex gap-3.5 py-5 sm:gap-4">
+          {/* The game leads — Feed is watching developers build games, not a generic activity
+              stream, so each entry anchors on its project's own identity (cover or tint) first.
+              The developer is still present, just inline in the byline where a social feed
+              usually puts identity. */}
+          <Link href={projectHref} className="hidden shrink-0 sm:block" aria-label={d.projectTitle}>
+            <ProjectMark title={d.projectTitle} id={d.projectSlug} ratio="square" compact className="!aspect-auto size-14 text-h3" />
+          </Link>
           <div className="min-w-0 flex-1">
-            <p className="text-small text-fg-secondary [overflow-wrap:anywhere]">
-              <Link href={`/dev/${d.username}`} className={`font-semibold text-fg ${link}`}>{d.authorName}</Link>{' '}
-              published a devlog on{' '}
+            <p className="flex items-center gap-1.5 text-small text-fg-secondary [overflow-wrap:anywhere]">
+              <Avatar name={d.authorName} src={d.avatarUrl} size="sm" />
+              <Link href={`/dev/${d.username}`} className={`font-semibold text-fg ${link}`}>{d.authorName}</Link>
+              <span className="hidden sm:inline">on</span>
               <Link href={projectHref} className={`font-medium ${link}`}>{d.projectTitle}</Link>
-              <span aria-hidden> · </span>
+              <span aria-hidden>·</span>
               <time dateTime={d.publishedAt} title={fullTime(d.publishedAt)} className="whitespace-nowrap text-fg-muted">{relativeTime(d.publishedAt)}</time>
             </p>
             <h2 className="mt-1 text-h3 font-semibold text-fg [overflow-wrap:anywhere]">

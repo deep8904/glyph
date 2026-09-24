@@ -300,3 +300,30 @@ in direct response to a reviewer-flagged weakness.
 
 **SCREENSHOTS:** `docs/design/screenshots/rebuild/collaborate/`, `.../playtests/`,
 `.../studios/`, `.../jams/`.
+
+## 7. Events — APPROVED
+
+**PROBLEM:** Cold-inspected against the directive's checklist (date, time, timezone, location/
+mode, host, RSVP, attendees, related projects/studio). Structure was already strong — date-
+anchored Today/This week/Later grouping (faster to scan than a flat list), host, a real RSVP flow,
+demo slots linking to real projects, `.ics` calendar export. Two concrete gaps:
+
+1. Event times render on the server with no per-event timezone stored in the schema, so the
+   previous unlabelled time was silently whatever zone the server process happens to run in —
+   easily misread as the viewer's own local time or the event's own local time. A genuine
+   correctness gap, not a taste one.
+2. `events.cover_image_url` has existed in the schema since the original migration but was never
+   selected or rendered anywhere on either the list or detail page.
+
+**FIX:** `formatEventWhen` now forces UTC explicitly and always prints the zone ("4:38 AM –
+7:02 AM UTC") — what's shown is honest instead of ambiguous, no schema change. Wired the existing
+cover column into the list row (small thumbnail, gracefully absent when unset) and a real banner
+on the detail page.
+
+**REVIEW:** judged directly (not delegated) — both fixes are objectively verifiable correctness/
+completeness fixes rather than a craft judgment call, in the same spirit as the Feed live-session
+inspection. Verified via the dev fixture (no events in this environment's seed data).
+
+**FINAL STATUS: APPROVED.**
+
+**SCREENSHOTS:** `docs/design/screenshots/rebuild/events/rows-1440.png`.

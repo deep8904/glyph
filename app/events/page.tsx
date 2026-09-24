@@ -45,7 +45,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
 
   let query = supabase
     .from('events')
-    .select('id, title, description, city, country, start_at, end_at, capacity, type, rsvp_count')
+    .select('id, title, description, city, country, start_at, end_at, capacity, type, rsvp_count, cover_image_url')
     .eq('status', 'published')
     .gte('end_at', new Date().toISOString())
     .order('start_at', { ascending: true })

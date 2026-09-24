@@ -14,7 +14,7 @@ export default async function CityEventsPage({ params }: { params: Promise<{ cit
 
   const { data, error } = await supabase
     .from('events')
-    .select('id, title, description, start_at, end_at, city, country, capacity, type, rsvp_count')
+    .select('id, title, description, start_at, end_at, city, country, capacity, type, rsvp_count, cover_image_url')
     .eq('status', 'published')
     .ilike('city', `%${city}%`)
     .gte('end_at', new Date().toISOString())

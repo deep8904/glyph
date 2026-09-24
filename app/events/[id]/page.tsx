@@ -12,6 +12,7 @@ import { MetadataBar } from '@/components/ui/MetadataBar'
 import { Section } from '@/components/ui/Section'
 import { StatusText } from '@/components/workflow/StatusLabel'
 import { EVENT_TYPES } from '@/lib/supabase/types'
+import { isHttpsUrl } from '@/lib/utils'
 
 const TYPE_LABELS = Object.fromEntries(EVENT_TYPES.map((t) => [t.value, t.label])) as Record<string, string>
 
@@ -56,7 +57,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         <article className="max-w-3xl">
           <Link href="/events" className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← Events</Link>
 
+          {isHttpsUrl(e.cover_image_url) && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={e.cover_image_url} alt="" className="mt-4 aspect-[21/9] w-full rounded-panel border border-line object-cover" />
+          )}
+
           <ObjectHeader
+            className={isHttpsUrl(e.cover_image_url) ? 'mt-5' : 'mt-1'}
             title={e.title}
             state={
               <>

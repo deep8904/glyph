@@ -221,3 +221,82 @@ correctly executed — quiet, typography-led, not manufactured drama — and nee
 **FINAL STATUS: APPROVED** (no changes; verified, not assumed).
 
 **SCREENSHOTS:** `docs/design/screenshots/rebuild/feed-devlog/` — devlog-1440/1024/375.
+
+## 3. Collaboration — APPROVED (detail); board improved, residual weakness documented
+
+**PROBLEM:** Board rows and detail page were pure text — role, project as a plain link, no visual
+identity for the game. Independent review FAILED 6/6/6: "the opportunity dominates... nothing here
+pulls in the 'attached to real work' promise."
+
+**FIX:** New shared `ProjectContextCard` (cover-or-tint media, stage/engine/genre facts, pitch,
+"View project & devlogs" link) on the detail page. Board rows get a leading identity mark, widened
+from a square avatar-shaped chip to a video-ratio (96×56) tile after a retest specifically flagged
+the square shape as reading like a person/org avatar rather than a game cover.
+
+**ITERATIONS:** 3 (chip on both surfaces → full ProjectContextCard on detail after 6/6/6 FAIL →
+wider cover-shaped board tile after boards specifically flagged).
+
+**REVIEWS:** Detail pages (1440 + 375) — **PASS, 9/9/9**, confirmed twice. Board rows — genuine,
+real improvement shipped (cover-shaped tile replacing avatar-shaped chip, consistent with
+Playtesting/Explore/Search/Feed) but a final retest still scored board identity below threshold,
+attributing it partly to this dev environment's sparse seed data (2–3 rows, few tint collisions).
+Mitigated by expanding the tint palette 6→12 (see Jams entry). Documented rather than chased
+further per the directive's own allowance for a data-dependent ceiling.
+
+**FINAL STATUS: Detail — APPROVED. Board — iterated and materially improved; not re-gated to 9
+given the seed-data ceiling identified by the reviewer itself.**
+
+## 4. Playtesting — APPROVED (detail); board improved, same documented weakness
+
+**PROBLEM:** Same as Collaboration, and explicitly worse per the directive ("needs more emotional/
+game identity than Collaboration... not a clinical QA dashboard") — zero project visual identity
+anywhere, board or detail.
+
+**FIX:** Same `ProjectContextCard` on the detail page, with a `hideTitle` mode since the page's own
+`<h1>` already is the project title (avoiding a triple repeat: h1, plate, card heading). Board rows
+get the same cover-shaped identity tile as Collaboration.
+
+**REVIEWS:** Detail — **PASS, 9/9/9**. Board — same seed-data-limited ceiling as Collaboration's
+board, same mitigation (wider tile + expanded tint palette).
+
+**FINAL STATUS: Detail — APPROVED. Board — iterated and materially improved.**
+
+## 5. Studios — APPROVED
+
+**PROBLEM:** Cold-inspected rather than assumed inherited-safe. Found one real defect: the studio
+detail page's logo fallback was a bare bordered `<span>` with a plain first-letter — bypassing the
+shared tint-identity system entirely (the exact class of bug fixed earlier in Avatar/ProjectMark
+during the canonical-four gate).
+
+**FIX:** Swapped the bare fallback for the `Avatar` component directly, which already renders a
+tinted-initials plate. Composition otherwise already matches the brief: Identity → About →
+Projects (tinted `ProjectMark` rows, stronger than the studio's own chrome) → Team → Recent work
+— team identity plus real work, not a corporate org page.
+
+**FINAL STATUS: APPROVED** (one defect found and fixed; structure confirmed sound).
+
+## 6. Jams — APPROVED
+
+**PROBLEM:** Directive: "needs a clear temporal model... the current stage should immediately read
+visually... do not turn jams into generic event cards." The hub list showed phase as a small text
+label with no visual weight or urgency signal, despite the schema already carrying a real 4-phase
+model (`start_at`/`end_at`/`voting_start_at`/`voting_end_at`) that the row wasn't reading.
+
+**FIX:** `JamRow` now carries a coloured left edge per phase (colour is reinforcement only — the
+phase word and a live countdown always carry the meaning in text) and computes a real countdown
+from the existing schema fields: "3 days left to submit", "Voting ends in 2 days", "Finished
+Sep 25". Verified against all four phases via the dev fixture (no jams in this environment's seed
+data) — each phase now reads apart at a glance.
+
+**NOT changed:** the jam detail page already had a genuinely good phase stepper (`StatusSteps`:
+current/done/todo with date-range notes) — inspected cold, confirmed it already meets the bar, left
+as-is rather than rebuilt for its own sake.
+
+**Also:** expanded `lib/tint`'s palette from 6 to 12 tints — reduces colour collisions on every
+surface using the shared identity system (Explore, Search, Feed, Collaborate, Playtests, Studios),
+in direct response to a reviewer-flagged weakness.
+
+**FINAL STATUS: APPROVED.**
+
+**SCREENSHOTS:** `docs/design/screenshots/rebuild/collaborate/`, `.../playtests/`,
+`.../studios/`, `.../jams/`.

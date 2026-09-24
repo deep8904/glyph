@@ -1,6 +1,8 @@
 # Project State Model — Design Document (B4)
 
-Status: **draft, pending internal review**. No migration is written until this document is
+Status: **reviewed — see §17 Review Addendum below. Approved to proceed to migration.**
+
+Original status before review: draft, pending internal review. No migration is written until this document is
 reviewed and the actor matrix (below) is checked against every route listed in "Impact analysis."
 
 This document separates four axes that the current schema conflates into one (`visibility`), per
@@ -269,9 +271,13 @@ own profile should see their own private/draft projects; RLS already handles tha
   "currently building" — that phrase is a lifecycle claim. Add `lifecycle != 'archived'` to the
   current-project selection query (currently orders by `is_primary desc, updated_at desc` with no
   lifecycle filter).
-- **Projects list** (the "Projects" section below Current Work): a **visitor** (non-owner) should
-  only ever see `published` projects there, never `draft` — RLS alone doesn't distinguish this
-  (RLS is visibility-only, by design, per §6), so this becomes an **app-level** filter,
+- **Projects list** (the "Projects" section below Current Work): a **visitor** (non-owner) sees
+  only `lifecycle = 'published'` projects there — **explicit decision, made during review (§17.3):
+  this excludes both `draft` and `archived`**, not just draft. Archived is deliberately excluded
+  from the visitor-facing list for the same reason it's excluded from Current Work and discovery:
+  it is a "not actively representing what I'm building" state, and a visitor's Projects list is
+  exactly the "what is this person building" surface. RLS alone doesn't distinguish any of this
+  (RLS is visibility-only, by design, per §6), so it becomes an **app-level** filter,
   `.eq('lifecycle', 'published')`, added only when `!isOwner`. The **owner** viewing their own
   profile continues to see everything, including drafts and archived, so they can find and manage
   them — but the UI should label a draft or archived row so the owner doesn't mistake it for what
@@ -392,6 +398,10 @@ codebase), while published/archived continue to be gated by visibility alone, ex
    condition).
 9. Media (cover/screenshots) on a draft or private project — not fetchable by URL guessing once
    B3 (storage) exists; deferred to that work, flagged here so it isn't forgotten.
+10. **Jam entry on a private or draft project** — anon SELECT on `jam_entries` (joined to its
+    project) still returns the entry row → must return 0 rows for the *project-identifying* fields
+    once fixed (found in review, §17.1 — same bug class as #7, a different table entirely, missed
+    in the original inventory).
 
 Any failure among 1–8 **stops rollout** per the directive.
 
@@ -411,24 +421,30 @@ Additive, staged, reversible at every step — no single opaque migration.
 3. **Constraint**: `alter table public.projects add constraint slug_required_when_published check
    (lifecycle = 'draft' or slug is not null);` — makes the discovery view's `slug is not null`
    condition structurally guaranteed for every non-draft row, not just conventionally true.
-4. **Views**: update `discoverable_projects` (add `lifecycle = 'published'`), `discoverable_playtests`
+4. **RLS** (moved ahead of views — see §17.2): replace `projects_read` with the corrected policy
+   from §13. This closes draft-project direct-viewability *before* anything downstream is touched,
+   so there is no deploy window where a draft `visibility='public'` project is viewable by RLS
+   while only the view layer has caught up.
+5. **Views**: update `discoverable_projects` (add `lifecycle = 'published'`), `discoverable_playtests`
    (add `pj.lifecycle = 'published'` to the join condition), `discoverable_collab_posts` (change
    `left join` to `join ... and pj.visibility = 'public' and (pj.lifecycle = 'published' or
    pj.project_id is null)` — a collaboration post with no linked project at all stays visible,
    since it was never gated on project state to begin with; the fix only applies when a project
-   *is* linked), `feed_items` (add `p.lifecycle = 'published'`).
-5. **RLS**: replace `projects_read` with the corrected policy from §13.
-6. **Server queries**: Profile's owner-vs-visitor Projects-list filter (§9), Current Work's
-   `lifecycle != 'archived'` filter (§9).
+   *is* linked), `feed_items` (add `p.lifecycle = 'published'`), and `jam_entries_read` (see
+   §17.1 — couple it to the linked project's visibility, the same bug class as
+   `discoverable_collab_posts`, found in review).
+6. **Server queries**: Profile's owner-vs-visitor Projects-list filter — now `lifecycle =
+   'published'` exactly (excludes both draft and archived for a visitor; see §17.3), Current
+   Work's `lifecycle != 'archived'` filter (§9).
 7. **Creation/edit UI**: `ProjectForm` gains a lifecycle control (draft/published toggle, plus an
    "Archive this project" action on the edit page, separate from the form — archiving is a state
    transition with its own confirmation, not a form field to save accidentally). Onboarding's
    direct insert (`app/onboarding/page.tsx:150-157`) gets `lifecycle: 'draft'` explicitly — it
    should never again produce a project the schema calls "published" by accident.
-8. **Test all actors** (§13's 9-point leakage list, plus the existing regression test suite if
-   one exists — verify with `npm run build` + `tsc --noEmit` + a manual RLS check via the anon
-   key, matching the method 023's own audit used).
-9. **Verify no accidental visibility change**: run the 9-point list against a snapshot of
+8. **Test all actors** (§13's leakage list, extended in §17.1, plus the existing regression test
+   suite if one exists — verify with `npm run build` + `tsc --noEmit` + a manual RLS check via
+   the anon key, matching the method 023's own audit used).
+9. **Verify no accidental visibility change**: run the leakage list against a snapshot of
    pre-migration data (every existing project, before and after, same visibility, same
    reachability at its direct URL) — the migration must not change what any existing project's
    *direct link* shows, only what's newly true about discovery.
@@ -489,3 +505,61 @@ Every step in §14 is reversible independently:
 3. The `cover_url` / `cover_image_url` duplicate-column situation (noted in §1) is pre-existing
    and unrelated to state — flagged for whoever picks up B3 media infrastructure, not for this
    migration to fix.
+
+---
+
+## 17. REVIEW ADDENDUM
+
+An adversarial review (verifying every claim against the actual source, not the document's
+paraphrasing) checked: the collab-posts bug's root cause and its "not a full leak" explanation,
+all 9 lifecycle×visibility rows in the actor matrix against the exact proposed SQL, the backfill
+rule's safety, migration-ordering for a mid-rollout security window, the CHECK constraint's
+correctness given the backfill, missed surfaces, derived-discovery performance, and internal
+consistency. Verdict: **no blockers**. Three should-fix items, all resolved in this revision;
+one accepted tradeoff, documented rather than silently left implicit.
+
+**17.1 — Missed surface: `jam_entries` has the same bug class as the collab-posts leak.**
+`jam_entries_read` (011_game_jams.sql:84) is `for select using (true)` — fully public, no
+visibility or lifecycle coupling to the linked project at all. A jam entry's `project_id`,
+`team_lead_id`, `submission_url`, and `submission_notes` are readable regardless of the project's
+state. Same mechanism as `discoverable_collab_posts` (§1): the *project's own* title/slug would
+come back null through any RLS-respecting join, but the entry row itself, and its submission
+details, do not depend on that. **Added to scope**: `jam_entries_read` gets the same fix as
+`discoverable_collab_posts` — couple it to `exists (select 1 from projects p where p.id =
+jam_entries.project_id and p.visibility = 'public' and p.lifecycle = 'published')`. This was not
+part of B4's original inventory (Jams wasn't on the axis-conflation list because it doesn't have
+its own state model to redesign) but the leak itself belongs to the same rollout, since it's the
+identical root cause found while doing this work. Added to §13's leakage-test list as test 10,
+and to §14's migration plan step 5 (views).
+
+**17.2 — Migration-ordering window, closed.** Original plan updated views (step 4) before RLS
+(step 5), leaving a deploy window where a `draft` + `visibility='public'` project would be
+directly viewable (old RLS, no lifecycle check yet) even though it had already stopped appearing
+in Explore (new view, lifecycle check already live). Not a leak beyond what RLS already allowed
+pre-migration, but a real, avoidable regression window. **Fixed**: RLS now moves to step 4, views
+to step 5 — the direct-view gate closes before anything downstream is touched, so there is no
+window, however brief, where a draft project is more viewable than the target model intends.
+
+**17.3 — Archived visibility to profile visitors, made explicit.** The original §9 said a visitor
+sees only `published` projects "never draft," without stating whether `archived` also falls out of
+that filter. The proposed code (`.eq('lifecycle', 'published')`) already excluded archived too —
+correctly, by construction — but the document's *prose* didn't say so, leaving it an implicit side
+effect rather than a stated decision. **Fixed**: §9 now states explicitly that a visitor's
+Projects list excludes both draft and archived, and why (archived is a "not actively representing
+current work" state, consistent with its exclusion from Current Work and discovery).
+
+**17.4 — Backfill accepted tradeoff, now stated.** The backfill (§15) never makes an existing
+project less visible than before (visibility is untouched) — that direction was already verified
+safe. The review surfaced the converse, previously implicit: a `visibility='public'`,
+`slug`-having project that was, in practice, an abandoned or half-finished draft the owner never
+meant to actively promote (old model had no way to express that intent at all) will backfill to
+`lifecycle='published'` and become first-class discoverable-eligible, where before it was only
+*technically* reachable by direct link and never listed anywhere. This is not new *reachability*
+(the link already worked) but it is new *listing exposure*, and it is not something this migration
+can distinguish from a genuinely-intended-to-be-public project — the old schema simply never
+captured that distinction. **Accepted, not fixed**: per the directive's own instruction ("preserve
+existing meaning... public stays public... do not use unreliable heuristics"), there is no safe
+signal to do otherwise, and the alternative (silently draft-ing old public projects) would be a
+worse, undiscussed behavior change for owners who *did* intend their project to be public. Any
+owner who does not want a stale project newly appearing in Explore can archive or unpublish it
+after the fact — a one-click, fully reversible action this migration adds for exactly that case.

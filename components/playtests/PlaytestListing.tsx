@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { BUILD_TYPES } from '@/lib/supabase/types'
 import { markdownExcerpt, relativeTime } from '@/lib/utils'
 import { StatusText } from '@/components/workflow/StatusLabel'
+import { ProjectMark } from '@/components/project/ProjectMark'
 
 const BUILD = Object.fromEntries(BUILD_TYPES.map((b) => [b.value, b.label])) as Record<string, string>
 
@@ -57,26 +58,35 @@ export function PlaytestListing({
   const left = playtest.requested_testers != null && playtest.current_testers != null ? Math.max(playtest.requested_testers - playtest.current_testers, 0) : null
   const build = [playtest.build_type ? BUILD[playtest.build_type] ?? playtest.build_type : null, playtest.platforms?.length ? playtest.platforms.join(', ') : null].filter(Boolean).join(' · ')
   const projectHref = playtest.project_slug && playtest.username ? `/p/${playtest.username}/${playtest.project_slug}` : null
+  const mark = <ProjectMark title={playtest.project_title} id={playtest.project_slug ?? playtest.project_title} ratio="square" compact className="!aspect-auto size-14" />
   return (
-    <li className="py-4">
-      <h3 className="text-h3 font-semibold text-fg [overflow-wrap:anywhere]">
-        <Link href={`/playtests/${playtest.id}`} className="inline-flex min-h-11 items-center hover:text-link focus-visible:text-link sm:min-h-0">{playtest.project_title}</Link>
-      </h3>
-      <p className="text-small text-fg-muted">
-        {playtest.username && <>by <Link href={`/dev/${playtest.username}`} className="hover:text-link">{playtest.display_name ?? playtest.username}</Link></>}
-        {playtest.created_at && <> · {relativeTime(playtest.created_at)}</>}
-        {projectHref && <> · <Link href={projectHref} className="hover:text-link">Project page</Link></>}
-      </p>
-      {playtest.description && (
-        <p className="mt-1 line-clamp-2 max-w-prose text-body text-fg-secondary">
-          <span className="font-medium text-fg">To test: </span>{markdownExcerpt(playtest.description, 200)}
-        </p>
+    <li className="flex gap-3 py-4">
+      {/* The game leads — Playtesting is an emotional/identity-driven surface (per the art
+          direction), not a QA ticket queue, so every row carries the project's own identity. */}
+      {projectHref ? (
+        <Link href={projectHref} className="hidden shrink-0 sm:block" aria-label={playtest.project_title}>{mark}</Link>
+      ) : (
+        <div className="hidden shrink-0 sm:block">{mark}</div>
       )}
-      <p className="mt-2 text-small text-fg-muted [overflow-wrap:anywhere]">
-        {build && <span className="font-medium text-fg-secondary">{build}</span>}
-        {left != null && <>{build && ' · '}{left === 0 ? 'No places left' : `${left} ${left === 1 ? 'place' : 'places'} left`}</>}
-        {playtest.focus_areas && playtest.focus_areas.length > 0 && <> · Focus: {playtest.focus_areas.join(', ')}</>}
-      </p>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-h3 font-semibold text-fg [overflow-wrap:anywhere]">
+          <Link href={`/playtests/${playtest.id}`} className="inline-flex min-h-11 items-center hover:text-link focus-visible:text-link sm:min-h-0">{playtest.project_title}</Link>
+        </h3>
+        <p className="text-small text-fg-muted">
+          {playtest.username && <>by <Link href={`/dev/${playtest.username}`} className="hover:text-link">{playtest.display_name ?? playtest.username}</Link></>}
+          {playtest.created_at && <> · {relativeTime(playtest.created_at)}</>}
+        </p>
+        {playtest.description && (
+          <p className="mt-1 line-clamp-2 max-w-prose text-body text-fg-secondary">
+            <span className="font-medium text-fg">To test: </span>{markdownExcerpt(playtest.description, 200)}
+          </p>
+        )}
+        <p className="mt-2 text-small text-fg-muted [overflow-wrap:anywhere]">
+          {build && <span className="font-medium text-fg-secondary">{build}</span>}
+          {left != null && <>{build && ' · '}{left === 0 ? 'No places left' : `${left} ${left === 1 ? 'place' : 'places'} left`}</>}
+          {playtest.focus_areas && playtest.focus_areas.length > 0 && <> · Focus: {playtest.focus_areas.join(', ')}</>}
+        </p>
+      </div>
     </li>
   )
 }

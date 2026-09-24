@@ -6,6 +6,7 @@ import { TesterPanel } from '@/components/playtests/TesterPanel'
 import { PlaytestStatusControl } from '@/components/playtests/PlaytestStatusControl'
 import { PLAYTEST_STATUS, StatusLabel } from '@/components/workflow/StatusLabel'
 import { MetadataBar } from '@/components/ui/MetadataBar'
+import { ProjectContextCard } from '@/components/project/ProjectContextCard'
 import { BUILD_TYPES } from '@/lib/supabase/types'
 import { relativeTime } from '@/lib/utils'
 
@@ -21,7 +22,7 @@ type RequestRow = {
   current_testers: number
   status: 'open' | 'full' | 'closed'
   created_at: string
-  projects: { title: string; slug: string | null; short_description: string | null } | null
+  projects: { id: string; title: string; slug: string | null; short_description: string | null; cover_url: string | null; cover_image_url: string | null; stage: string | null; engine: string | null; genre: string | null } | null
   profiles: { username: string; display_name: string | null }
 }
 
@@ -37,7 +38,7 @@ export default async function PlaytestPage({ params }: { params: Promise<{ id: s
   // developer and any tester with a sign-up see it in every state.
   const { data: req } = await supabase
     .from('playtest_requests')
-    .select('id, project_id, author_id, build_type, platforms, description, focus_areas, requested_testers, current_testers, status, created_at, projects!project_id(title, slug, short_description), profiles!author_id(username, display_name)')
+    .select('id, project_id, author_id, build_type, platforms, description, focus_areas, requested_testers, current_testers, status, created_at, projects!project_id(id, title, slug, short_description, cover_url, cover_image_url, stage, engine, genre), profiles!author_id(username, display_name)')
     .eq('id', id)
     .maybeSingle<RequestRow>()
   if (!req) notFound()
@@ -61,7 +62,6 @@ export default async function PlaytestPage({ params }: { params: Promise<{ id: s
   }
 
   const st = PLAYTEST_STATUS[req.status]
-  const projectHref = req.projects?.slug ? `/p/${req.profiles.username}/${req.projects.slug}` : null
   const left = Math.max(req.requested_testers - req.current_testers, 0)
 
   return (
@@ -76,10 +76,29 @@ export default async function PlaytestPage({ params }: { params: Promise<{ id: s
               <StatusLabel label={st.label} tone={st.tone} />
             </div>
             <p className="mt-2 text-body text-fg-secondary">
-              {projectHref && <><Link href={projectHref} className="font-medium text-link underline-offset-2 hover:underline">View project</Link> · </>}
               by <Link href={`/dev/${req.profiles.username}`} className="font-medium text-link underline-offset-2 hover:underline">{authorName}</Link> · {relativeTime(req.created_at)}
             </p>
           </header>
+
+          {/* The game itself, given real weight — Playtesting needs more emotional/game identity
+              than a clinical QA ticket: cover, pitch, and the way to a testers' actual history. */}
+          {req.projects && (
+            <div className="mt-4">
+              <ProjectContextCard
+                kicker="Playtesting"
+                hideTitle
+                title={req.projects.title}
+                id={req.projects.id}
+                username={req.profiles.username}
+                slug={req.projects.slug}
+                coverUrl={req.projects.cover_url ?? req.projects.cover_image_url}
+                shortDescription={req.projects.short_description}
+                stage={req.projects.stage}
+                engine={req.projects.engine}
+                genre={req.projects.genre}
+              />
+            </div>
+          )}
 
           <MetadataBar
             className="mt-5 border-y border-line-subtle py-4"

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { MetadataBar } from '@/components/ui/MetadataBar'
 import { SectionHeader } from '@/components/ui/SectionHeader'
-import { ProjectMark } from '@/components/project/ProjectMark'
+import { ProjectContextCard } from '@/components/project/ProjectContextCard'
 import { CONTRACT_TYPES } from '@/lib/supabase/types'
 import { relativeTime } from '@/lib/utils'
 
@@ -33,7 +33,7 @@ type PostRow = {
   status: 'open' | 'filled' | 'closed'
   expires_at: string
   created_at: string
-  projects: { title: string; slug: string | null } | null
+  projects: { id: string; title: string; slug: string | null; short_description: string | null; cover_url: string | null; cover_image_url: string | null; stage: string | null; engine: string | null; genre: string | null } | null
   profiles: { username: string; display_name: string | null; primary_role: string | null }
 }
 
@@ -54,7 +54,7 @@ export default async function CollabPostPage({ params }: { params: Promise<{ id:
   // its applicants once it is closed; nobody else (they get a 404).
   const { data: post } = await supabase
     .from('collaboration_posts')
-    .select('*, projects!project_id(title, slug), profiles!author_id(username, display_name, primary_role)')
+    .select('*, projects!project_id(id, title, slug, short_description, cover_url, cover_image_url, stage, engine, genre), profiles!author_id(username, display_name, primary_role)')
     .eq('id', id)
     .maybeSingle<PostRow>()
   if (!post) notFound()
@@ -101,18 +101,24 @@ export default async function CollabPostPage({ params }: { params: Promise<{ id:
         <article className="max-w-2xl">
           <Link href="/collaborate" className="inline-flex min-h-11 items-center text-small text-fg-secondary hover:text-fg">← Collaborate</Link>
 
-          {/* The work this role is attached to, given real visual weight — not a text aside. */}
+          {/* The work this role is attached to: a real project card (cover, pitch, a way through to
+              its devlogs), not a small identity chip — so an applicant evaluates the game before
+              the role, matching how Playtesting's detail page treats the same relationship. */}
           {post.projects && (
-            <Link
-              href={post.projects.slug ? `/p/${post.profiles.username}/${post.projects.slug}` : `/dev/${post.profiles.username}`}
-              className="group mt-4 flex items-center gap-3"
-            >
-              <ProjectMark title={post.projects.title} id={post.projects.slug ?? post.projects.title} ratio="square" compact className="!aspect-auto size-12" />
-              <span className="min-w-0">
-                <span className="block font-mono text-micro uppercase tracking-wide text-fg-muted">Role on</span>
-                <span className="block truncate text-body font-semibold text-fg group-hover:text-link">{post.projects.title}</span>
-              </span>
-            </Link>
+            <div className="mt-4">
+              <ProjectContextCard
+                kicker="Role on"
+                title={post.projects.title}
+                id={post.projects.id}
+                username={post.profiles.username}
+                slug={post.projects.slug}
+                coverUrl={post.projects.cover_url ?? post.projects.cover_image_url}
+                shortDescription={post.projects.short_description}
+                stage={post.projects.stage}
+                engine={post.projects.engine}
+                genre={post.projects.genre}
+              />
+            </div>
           )}
 
           <header className="mt-5">

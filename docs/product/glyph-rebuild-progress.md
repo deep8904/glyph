@@ -622,3 +622,48 @@ needed — order was already implicit in that array's element order, just never 
 it). Navigating away mid-upload does not corrupt already-saved project data — uploads happen
 independently of the form's own save, each screenshot/cover commits to the DB the moment its
 upload finishes, not batched with the rest of the form.
+
+---
+
+# B3 — Media Infrastructure: COMPLETE
+
+Storage: `project-media` bucket + RLS applied to the live Supabase project via
+`042_project_media_storage.sql` (bucket strategy documented above). Verified directly against
+live data: owner-write policy evaluates true for the project's real owner, false for an unrelated
+authenticated user; anon sees 0 rows when querying `storage.objects` for the bucket (no
+enumeration possible), matching the design note's "unguessable path, no listing" property.
+
+**Real sequencing problem found and solved while implementing**: the write RLS policy needs an
+existing `projects` row to authorize against, but a brand-new project has no id until the form is
+submitted — so uploading a cover *before* the first Save was structurally impossible with the
+original "fill in everything, one INSERT at the end" flow. Fixed by creating the project row
+lazily, on first upload attempt (not on page load, so merely visiting "New project" never leaves
+an abandoned empty draft) — `createDraftProject()` inserts a minimal `lifecycle: 'draft'` row and
+the form adopts its id for the rest of the session, switching its own Save from INSERT to UPDATE
+automatically. This also happens to be real, free progress toward the later "authoring recovery"
+work item: a project with an uploaded cover but abandoned before Save is now a legitimate,
+resumable draft (visible in "Your projects" with the Draft badge already built for B4), not lost
+work.
+
+**Upload UX**: `CoverUploadField` (select/replace/remove, single image) and
+`ScreenshotsUploadField` (up to 6, independent per-file status so one failure never blocks or
+loses the others, remove, reorder via up/down — not drag-and-drop, fully keyboard/screen-reader
+operable without a drag library). No fake progress — the installed `@supabase/storage-js` version
+has no byte-level upload progress callback (verified by reading its source), so uploading shows an
+honest indeterminate spinner, never a fabricated percentage. Client-side validation (type, 5MB
+size) fails fast with a specific message; the bucket's own `file_size_limit`/`allowed_mime_types`
+enforce the same limits server-side independent of the client. Replaces the previous "paste an
+https:// URL" text fields entirely — this is now real upload, not link-pasting.
+
+**Not built, and why**: responsive/transformed image delivery (Supabase Storage supports on-the-fly
+resize/format transforms as URL query params) is available but plan-tier-dependent and not
+verified enabled on this project — documented as a safe, additive, no-schema-change future
+enhancement (append transform params to the existing stored URL) rather than built speculatively.
+Devlog media stays out of scope, per the directive.
+
+**Verification**: `tsc --noEmit` clean, `eslint` clean on every new/changed file, production build
+green, storage RLS logic verified against live data as both the real project owner and an
+unrelated authenticated user. Live browser upload-flow verification (actual file bytes through the
+signed-in UI) is a recommended manual follow-up — this session's browser session was signed out
+partway through (see the Search/Notifications-era notes above) and re-authenticating as the real
+user wasn't something this session should do unprompted.

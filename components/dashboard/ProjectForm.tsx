@@ -6,10 +6,13 @@ import { createClient } from '@/lib/supabase/client'
 import { slugify, stripDangerousUnicode, isHttpsUrl } from '@/lib/utils'
 import { ENGINES, PROJECT_STAGES } from '@/lib/supabase/types'
 import type { Project } from '@/lib/supabase/types'
+import { createDraftProject } from '@/app/actions/projects'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input, Select, Textarea } from '@/components/ui/controls'
+import { CoverUploadField } from '@/components/dashboard/CoverUploadField'
+import { ScreenshotsUploadField } from '@/components/dashboard/ScreenshotsUploadField'
 
 type ProjectFormData = {
   title: string
@@ -23,7 +26,7 @@ type ProjectFormData = {
   visibility: 'public' | 'unlisted' | 'private'
   lifecycle: 'draft' | 'published'
   cover_url: string
-  screenshots: string
+  screenshots: string[]
   link_github: string
   link_itch: string
   link_website: string
@@ -53,7 +56,7 @@ function toForm(p?: Partial<Project>): ProjectFormData {
     // un-archive it via a stale radio value; the edit page's own Restore action is the real path.
     lifecycle: p?.lifecycle === 'draft' ? 'draft' : 'published',
     cover_url: p?.cover_url ?? p?.cover_image_url ?? '',
-    screenshots: ((p?.screenshots as string[] | undefined) ?? []).join('\n'),
+    screenshots: (p?.screenshots as string[] | undefined) ?? [],
     link_github: linkValue(p?.external_links, LINK_KEYS.github),
     link_itch: linkValue(p?.external_links, LINK_KEYS.itch),
     link_website: linkValue(p?.external_links, LINK_KEYS.website),
@@ -74,7 +77,6 @@ export function ProjectForm({
 }) {
   const router = useRouter()
   const supabase = createClient()
-  const isEdit = !!projectId
   // Archiving is its own confirmed action, not a form field — never let a routine save of this
   // form change an archived project's lifecycle as a side effect.
   const isArchived = initial?.lifecycle === 'archived'
@@ -83,9 +85,22 @@ export function ProjectForm({
   const [slugManual, setSlugManual] = useState(!!initial?.slug)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Starts as the prop (already-existing project) or undefined (new project, no row yet). A
+  // media upload before the first Save lazily creates the row via ensureProjectId below — from
+  // that point on this form is editing a real project, not batching everything into one insert.
+  const [liveProjectId, setLiveProjectId] = useState<string | undefined>(projectId)
+  const isEdit = !!liveProjectId
 
-  const set = (key: keyof ProjectFormData, value: string) =>
+  const set = (key: keyof Omit<ProjectFormData, 'screenshots'>, value: string) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  const ensureProjectId = async (): Promise<string> => {
+    if (liveProjectId) return liveProjectId
+    const result = await createDraftProject(form.title)
+    if ('error' in result) throw new Error(result.error)
+    setLiveProjectId(result.id)
+    return result.id
+  }
 
   // Slug follows the title until the user edits the slug themselves.
   const setTitle = (value: string) =>
@@ -125,7 +140,7 @@ export function ProjectForm({
     }
 
     const coverUrl = form.cover_url.trim()
-    const screenshotUrls = form.screenshots.split('\n').map((l) => l.trim()).filter(Boolean)
+    const screenshotUrls = form.screenshots
     const linkEntries: [string, string][] = [
       [LINK_KEYS.github, form.link_github.trim()],
       [LINK_KEYS.itch, form.link_itch.trim()],
@@ -142,7 +157,9 @@ export function ProjectForm({
       return
     }
     if (screenshotUrls.some((u) => !isHttpsUrl(u))) {
-      setError('Every screenshot must be a full https:// URL, one per line.')
+      // Should be unreachable through normal use — every URL here came from a successful
+      // upload — but kept as a defensive check against state corruption.
+      setError('Something went wrong with a screenshot. Remove and re-add it.')
       setLoading(false)
       return
     }
@@ -178,11 +195,11 @@ export function ProjectForm({
 
     let dbError: { code?: string; message: string } | null = null
 
-    if (isEdit) {
+    if (isEdit && liveProjectId) {
       const { error: e } = await supabase
         .from('projects')
         .update(payload)
-        .eq('id', projectId)
+        .eq('id', liveProjectId)
         .eq('owner_id', ownerId)
       dbError = e
     } else {
@@ -295,11 +312,11 @@ export function ProjectForm({
 
       <fieldset className="flex flex-col gap-4 rounded-panel border border-line p-5">
         <legend className="px-2 text-small font-semibold text-fg-secondary">Media &amp; links</legend>
-        <Field label="Cover image URL">
-          {(p) => <Input {...p} value={form.cover_url} onChange={(e) => set('cover_url', e.target.value)} placeholder="https://…/cover.png" maxLength={500} />}
+        <Field label="Cover image">
+          {(p) => <CoverUploadField id={p.id} value={form.cover_url} onChange={(url) => set('cover_url', url)} ensureProjectId={ensureProjectId} />}
         </Field>
-        <Field label="Screenshot URLs" hint="One per line, max 6.">
-          {(p) => <Textarea {...p} className="font-mono text-small" rows={4} value={form.screenshots} onChange={(e) => set('screenshots', e.target.value)} placeholder={'https://…/shot-1.png\nhttps://…/shot-2.png'} />}
+        <Field label="Screenshots">
+          {(p) => <ScreenshotsUploadField id={p.id} value={form.screenshots} onChange={(urls) => setForm((f) => ({ ...f, screenshots: urls }))} ensureProjectId={ensureProjectId} />}
         </Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="GitHub">

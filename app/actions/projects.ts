@@ -5,6 +5,29 @@ import { createClient } from '@/lib/supabase/server'
 
 type ActionResult = { error: string } | { success: true }
 
+/**
+ * Uploading media requires a real project row to own the storage path (write RLS checks
+ * project_id -> owner_id). A brand-new project doesn't have an id yet — this creates the row on
+ * first upload attempt, not on page load, so merely visiting "New project" never leaves an
+ * abandoned empty draft behind. The row this creates is a real, resumable draft from that point
+ * on (visible in "Your projects" with a Draft badge) — that's a feature, not a rough edge: it's
+ * the same persistence the later "authoring recovery" work needs, arrived at for free here.
+ */
+export async function createDraftProject(title: string): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data, error } = await supabase
+    .from('projects')
+    .insert({ owner_id: user.id, title: title.trim() || 'Untitled project', lifecycle: 'draft', is_primary: false })
+    .select('id')
+    .single()
+
+  if (error || !data) return { error: 'Could not start this project. Try again.' }
+  return { id: data.id }
+}
+
 export async function deleteProject(projectId: string, confirmTitle: string): Promise<ActionResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

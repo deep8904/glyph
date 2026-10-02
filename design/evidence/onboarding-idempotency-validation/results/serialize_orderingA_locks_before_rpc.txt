@@ -1,0 +1,11 @@
+== pg_locks mid-hold, Ordering A (session 1 — the ordinary insert — should hold, session 2 should be waiting once launched) ==
+ locktype |     mode     | granted |        query        | state  
+----------+--------------+---------+---------------------+--------
+ relation | RowShareLock | t       | select pg_sleep(2); | active
+(1 row)
+
+== pg_locks while session 2 (the RPC call) is waiting on session 1's lock ==
+ locktype | mode | granted | query | state 
+----------+------+---------+-------+-------
+(0 rows)
+

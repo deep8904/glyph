@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
-import { labelFor, PROJECT_STAGES } from '@/lib/supabase/types'
-import { relativeTime } from '@/lib/utils'
+import { relativeTime, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { ProjectMark } from '@/components/project/ProjectMark'
@@ -27,7 +26,6 @@ export type CurrentWorkDevlog = { title: string; href: string; published_at: str
  */
 export function CurrentWork({ project, username, latestDevlog, showDraftBadge = false }: { project: CurrentWorkProject; username: string; latestDevlog?: CurrentWorkDevlog | null; /** Owner-only: this is the one state a visitor can never see here (their query already excludes it). */ showDraftBadge?: boolean }) {
   const href = project.slug ? `/p/${username}/${project.slug}` : null
-  const stage = project.stage ? labelFor(PROJECT_STAGES, project.stage) : null
 
   return (
     <div className="group flex flex-col gap-5 sm:flex-row">
@@ -41,11 +39,12 @@ export function CurrentWork({ project, username, latestDevlog, showDraftBadge = 
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          {stage && <Badge tone="accent">{stage}</Badge>}
-          {showDraftBadge && <Badge tone="neutral">Draft</Badge>}
-        </div>
-        <h3 className="mt-2 text-h1 font-semibold text-fg [overflow-wrap:anywhere]">
+        {showDraftBadge && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="neutral">Draft</Badge>
+          </div>
+        )}
+        <h3 className={cn('text-h1 font-semibold text-fg [overflow-wrap:anywhere]', showDraftBadge && 'mt-2')}>
           {href ? <Link href={href} className="hover:text-link">{project.title}</Link> : project.title}
         </h3>
         {project.short_description && <p className="mt-1 max-w-prose text-body text-fg-secondary">{project.short_description}</p>}

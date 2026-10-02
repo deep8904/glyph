@@ -1,0 +1,25 @@
+== ACL immediately after migration (before rollback) ==
+                                relacl                                 
+-----------------------------------------------------------------------
+ {postgres=arwdDxt/postgres,authenticated=rd/postgres,anon=r/postgres}
+(1 row)
+
+      attname      |           attacl            
+-------------------+-----------------------------
+ cover_url         | {authenticated=aw/postgres}
+ engine            | {authenticated=aw/postgres}
+ external_links    | {authenticated=aw/postgres}
+ genre             | {authenticated=aw/postgres}
+ is_primary        | {authenticated=a/postgres}
+ lifecycle         | {authenticated=aw/postgres}
+ long_description  | {authenticated=aw/postgres}
+ owner_id          | {authenticated=a/postgres}
+ screenshots       | {authenticated=aw/postgres}
+ short_description | {authenticated=aw/postgres}
+ slug              | {authenticated=aw/postgres}
+ stage             | {authenticated=aw/postgres}
+ tags              | {authenticated=aw/postgres}
+ title             | {authenticated=aw/postgres}
+ visibility        | {authenticated=aw/postgres}
+(15 rows)
+

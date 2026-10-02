@@ -1,36 +1,33 @@
+import { cache } from 'react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { Avatar } from '@/components/ui/Avatar'
-import { Button } from '@/components/ui/Button'
-import { SectionHeader } from '@/components/ui/SectionHeader'
-import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
-import { ReactionsBar } from '@/components/devlog/ReactionsBar'
-import { CommentThread } from '@/components/devlog/CommentThread'
-import { ProjectIdentityMarker } from '@/components/project/ProjectIdentityMarker'
+import { GlyphShell } from '@/components/glyph/shell/GlyphShell'
+import { GlyphRichText } from '@/components/glyph/project/GlyphRichText'
+import { GlyphDevlogHeader, type DevlogProject } from '@/components/glyph/devlog/GlyphDevlogHeader'
+import { GlyphDraftNotice } from '@/components/glyph/devlog/GlyphDraftNotice'
+import { GlyphDevlogNav } from '@/components/glyph/devlog/GlyphDevlogNav'
+import { GlyphReactionsBar } from '@/components/glyph/devlog/GlyphReactionsBar'
+import { GlyphCommentThread, type CommentData } from '@/components/glyph/devlog/GlyphCommentThread'
+import { toPlainText } from '@/lib/glyph/text'
+import { isUnpublished, findSiblings } from '@/lib/glyph/devlogNav'
+import { gatedInteractionUserId } from '@/lib/glyph/devlogAuth'
 import { REACTION_TYPES } from '@/lib/supabase/types'
 import type { Profile, Project, DevlogPost } from '@/lib/supabase/types'
-import type { CommentData } from '@/components/devlog/CommentThread'
-import { Shell } from '@/components/shell/Shell'
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
+type RouteParams = { username: string; 'project-slug': string; 'devlog-slug': string }
 
-export default async function DevlogPostPage({
-  params,
-}: {
-  params: Promise<{ username: string; 'project-slug': string; 'devlog-slug': string }>
-}) {
-  const { username, 'project-slug': projectSlug, 'devlog-slug': devlogSlug } = await params
+type ProjectCols = Pick<Project, 'id' | 'title' | 'slug' | 'visibility' | 'lifecycle' | 'stage' | 'cover_url' | 'cover_image_url'>
+
+/**
+ * Shared identity + visibility lookup for this route, memoized per request so `generateMetadata`
+ * and the page component read profile/project/post once — same pattern as the Project and Profile
+ * routes. Owner-only gates (draft project, draft/scheduled post) are resolved here so both callers
+ * agree on what "inaccessible" means.
+ */
+const loadDevlogIdentity = cache(async (username: string, projectSlug: string, devlogSlug: string) => {
   const supabase = await createClient()
-
   const {
     data: { user: currentUser },
   } = await supabase.auth.getUser()
@@ -41,21 +38,20 @@ export default async function DevlogPostPage({
     .eq('username', username)
     .maybeSingle<Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>>()
 
-  if (!profile) notFound()
+  if (!profile) return { profile: null, project: null, post: null, isOwner: false, isDraft: false, currentUserId: currentUser?.id ?? null }
 
   const { data: project } = await supabase
     .from('projects')
     .select('id, title, slug, visibility, lifecycle, stage, cover_url, cover_image_url')
     .eq('owner_id', profile.id)
     .eq('slug', projectSlug)
-    .maybeSingle<Pick<Project, 'id' | 'title' | 'slug' | 'visibility' | 'lifecycle' | 'stage' | 'cover_url' | 'cover_image_url'>>()
-
-  if (!project) notFound()
+    .maybeSingle<ProjectCols>()
 
   const isOwner = currentUser?.id === profile.id
-  // Draft gates viewing regardless of visibility — a devlog under a still-drafting project is
-  // owner-only, same rule as the project's own page.
-  if ((project.lifecycle === 'draft' || project.visibility === 'private') && !isOwner) notFound()
+
+  if (!project || ((project.lifecycle === 'draft' || project.visibility === 'private') && !isOwner)) {
+    return { profile, project: null, post: null, isOwner, isDraft: false, currentUserId: currentUser?.id ?? null }
+  }
 
   const { data: post } = await supabase
     .from('devlog_posts')
@@ -64,32 +60,43 @@ export default async function DevlogPostPage({
     .eq('slug', devlogSlug)
     .maybeSingle<DevlogPost>()
 
-  if (!post) notFound()
+  const isDraft = !post || isUnpublished(post.published_at)
+  if (!post || (isDraft && !isOwner)) {
+    return { profile, project, post: null, isOwner, isDraft: false, currentUserId: currentUser?.id ?? null }
+  }
 
-  const isDraft = !post.published_at || new Date(post.published_at) > new Date()
-  if (isDraft && !isOwner) notFound()
+  return { profile, project, post, isOwner, isDraft, currentUserId: currentUser?.id ?? null }
+})
 
-  // Fetch reactions, comments, and current user's profile in parallel
-  const [
-    { data: allReactions },
-    { data: rawComments, error: commentsError },
-    { data: currentProfile },
-    { data: siblings },
-  ] = await Promise.all([
-    supabase
-      .from('reactions')
-      .select('id, user_id, reaction_type')
-      .eq('devlog_post_id', post.id),
+const SAFE_METADATA: Metadata = { title: 'Glyph', description: "The professional home for a game while it's being built." }
+
+export async function generateMetadata({ params }: { params: Promise<RouteParams> }): Promise<Metadata> {
+  const { username, 'project-slug': projectSlug, 'devlog-slug': devlogSlug } = await params
+  const { post } = await loadDevlogIdentity(username, projectSlug, devlogSlug)
+  if (!post) return SAFE_METADATA
+  return {
+    title: `${post.title} — Glyph`,
+    description: toPlainText(post.content, 160) || SAFE_METADATA.description,
+  }
+}
+
+export default async function DevlogPostPage({ params }: { params: Promise<RouteParams> }) {
+  const { username, 'project-slug': projectSlug, 'devlog-slug': devlogSlug } = await params
+  const { profile, project, post, isOwner, isDraft, currentUserId } = await loadDevlogIdentity(username, projectSlug, devlogSlug)
+
+  if (!profile || !project || !post) notFound()
+
+  const supabase = await createClient()
+
+  const [{ data: allReactions }, { data: rawComments, error: commentsError }, { data: siblings }, { data: currentProfile }] = await Promise.all([
+    supabase.from('reactions').select('id, user_id, reaction_type').eq('devlog_post_id', post.id),
     supabase
       .from('comments')
       .select('id, author_id, parent_comment_id, content, created_at, profiles!author_id(id, username, display_name, avatar_url)')
       .eq('devlog_post_id', post.id)
       .order('created_at', { ascending: true }),
-    currentUser
-      ? supabase.from('profiles').select('id').eq('id', currentUser.id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    // Published siblings in publish order, for previous/next. Drafts never
-    // appear here, so neither visitors nor the owner can step into a draft.
+    // Published siblings in publish order, for previous/next. Drafts never appear here, so neither
+    // visitors nor the owner can step into a draft from this nav.
     supabase
       .from('devlog_posts')
       .select('slug, title, published_at')
@@ -98,33 +105,29 @@ export default async function DevlogPostPage({
       .lte('published_at', new Date().toISOString())
       .order('published_at', { ascending: true })
       .limit(200),
+    // Confirms the signed-in Auth user actually has a `profiles` row before handing out mutation
+    // controls — reactions/comments carry a foreign key to `profiles`, not to `auth.users`, so an
+    // account mid-onboarding must see the same read-only surface as a signed-out visitor.
+    currentUserId ? supabase.from('profiles').select('id').eq('id', currentUserId).maybeSingle() : Promise.resolve({ data: null }),
   ])
 
-  const timeline = siblings ?? []
-  const idx = isDraft ? -1 : timeline.findIndex((d) => d.slug === post.slug)
-  const prevPost = idx > 0 ? timeline[idx - 1] : null
-  const nextPost = idx >= 0 && idx < timeline.length - 1 ? timeline[idx + 1] : null
+  const interactionUserId = gatedInteractionUserId(currentUserId, !!currentProfile)
+
+  // A draft never appears in the published-only timeline, so findSiblings naturally returns no
+  // navigation for it — no separate isDraft branch needed here.
+  const { prev: prevPost, next: nextPost } = findSiblings(post.slug, siblings ?? [])
   const editHref = `/dashboard/projects/${project.id}/devlogs/${post.id}/edit`
 
-  // Build reaction counts
   const reactionCounts = REACTION_TYPES.map(({ type }) => ({
     type,
     count: (allReactions ?? []).filter((r) => r.reaction_type === type).length,
-    reacted: currentUser
-      ? (allReactions ?? []).some((r) => r.reaction_type === type && r.user_id === currentUser.id)
-      : false,
+    reacted: currentUserId ? (allReactions ?? []).some((r) => r.reaction_type === type && r.user_id === currentUserId) : false,
   }))
 
-  // Build comment tree (one level deep)
   type RawComment = {
-    id: string
-    author_id: string
-    parent_comment_id: string | null
-    content: string
-    created_at: string
+    id: string; author_id: string; parent_comment_id: string | null; content: string; created_at: string
     profiles: { id: string; username: string; display_name: string | null; avatar_url: string | null }
   }
-
   const rawList = (rawComments ?? []) as unknown as RawComment[]
   const topLevel: CommentData[] = rawList
     .filter((c) => !c.parent_comment_id)
@@ -135,88 +138,53 @@ export default async function DevlogPostPage({
       content: c.content,
       created_at: c.created_at,
       author: c.profiles,
-      replies: rawList
-        .filter((r) => r.parent_comment_id === c.id)
-        .map((r) => ({
-          id: r.id,
-          author_id: r.author_id,
-          parent_comment_id: r.parent_comment_id,
-          content: r.content,
-          created_at: r.created_at,
-          author: r.profiles,
-        })),
+      replies: rawList.filter((r) => r.parent_comment_id === c.id).map((r) => ({
+        id: r.id, author_id: r.author_id, parent_comment_id: r.parent_comment_id, content: r.content, created_at: r.created_at, author: r.profiles,
+      })),
     }))
 
   const ownerName = profile.display_name || profile.username
-  const currentUserId = currentProfile ? currentUser?.id ?? null : null
 
   return (
-    <Shell breadcrumb={[{ label: ownerName, href: `/dev/${username}` }, { label: project.title, href: `/p/${username}/${projectSlug}` }, { label: post.title }]}>
-      <article className="mx-auto w-full max-w-2xl">
-        {isDraft && (
-          <div role="note" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-media border border-warning-line bg-warning-subtle px-4 py-3 text-small text-warning">
-            <span className="font-medium">Draft — only you can see this post.</span>
-            <Button asChild variant="secondary" size="sm"><Link href={editHref}>Continue editing</Link></Button>
-          </div>
-        )}
+    <GlyphShell>
+      <article className="mx-auto w-full max-w-[680px]">
+        {isDraft && <GlyphDraftNotice publishedAt={post.published_at} editHref={editHref} />}
 
-        {/* Record header: project identity, title, author, date */}
-        <header className="mb-8">
-          <div className="mb-4">
-            <ProjectIdentityMarker project={{ title: project.title, slug: project.slug, stage: project.stage, cover_url: project.cover_url, cover_image_url: project.cover_image_url, username }} />
-          </div>
-          <h1 className="text-display font-semibold text-fg [overflow-wrap:anywhere]">{post.title}</h1>
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-small text-fg-secondary">
-            <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center gap-2 font-medium text-fg hover:text-link">
-              <Avatar name={ownerName} src={profile.avatar_url} size="sm" />
-              {ownerName}
-            </Link>
-            {post.published_at && <time dateTime={post.published_at}>{formatDate(post.published_at)}</time>}
-            {isOwner && !isDraft && (
-              <Button asChild variant="ghost" size="sm"><Link href={editHref}><Pencil aria-hidden strokeWidth={1.75} className="size-3.5" /> Edit devlog</Link></Button>
-            )}
-          </div>
-        </header>
+        <GlyphDevlogHeader
+          project={project as DevlogProject}
+          username={username}
+          title={post.title}
+          publishedAt={post.published_at}
+          authorName={ownerName}
+          authorUsername={profile.username}
+          authorAvatarUrl={profile.avatar_url}
+          isOwner={isOwner}
+          editHref={editHref}
+        />
 
-        {/* Body */}
-        <MarkdownRenderer content={post.content} />
+        <div className="mt-8 border-t border-hair pt-8">
+          <GlyphRichText content={post.content} />
+        </div>
 
-        {/* Earlier / later in this project's record */}
-        {(prevPost || nextPost) && (
-          <nav aria-label="Devlog navigation" className="mt-12 grid gap-6 border-t border-line pt-6 sm:grid-cols-2">
-            {prevPost ? (
-              <Link href={`/p/${username}/${projectSlug}/${prevPost.slug}`} className="group block min-h-11">
-                <span className="flex items-center gap-1 text-small text-fg-muted"><ArrowLeft aria-hidden strokeWidth={1.75} className="size-3.5" /> Earlier</span>
-                <span className="mt-1 line-clamp-2 block text-body font-medium text-fg group-hover:text-link">{prevPost.title}</span>
-              </Link>
-            ) : <span className="hidden sm:block" />}
-            {nextPost && (
-              <Link href={`/p/${username}/${projectSlug}/${nextPost.slug}`} className="group block min-h-11 sm:text-right">
-                <span className="flex items-center gap-1 text-small text-fg-muted sm:justify-end">Later <ArrowRight aria-hidden strokeWidth={1.75} className="size-3.5" /></span>
-                <span className="mt-1 line-clamp-2 block text-body font-medium text-fg group-hover:text-link">{nextPost.title}</span>
-              </Link>
-            )}
-          </nav>
-        )}
+        <GlyphDevlogNav prev={prevPost} next={nextPost} username={username} projectSlug={projectSlug} />
 
-        {/* Reactions */}
-        <section aria-labelledby="reactions-heading" className="mt-10 border-t border-line pt-6">
-          <h2 id="reactions-heading" className="mb-3 text-h3 font-semibold text-fg">Reactions</h2>
-          <ReactionsBar devlogPostId={post.id} devlogAuthorId={profile.id} currentUserId={currentUserId} initialCounts={reactionCounts} />
+        <section aria-labelledby="reactions-heading" className="mt-10 border-t border-hair pt-6">
+          <h2 id="reactions-heading" className="mb-3 text-h3 font-semibold text-ink">Reactions</h2>
+          <GlyphReactionsBar devlogPostId={post.id} devlogAuthorId={profile.id} currentUserId={interactionUserId} initialCounts={reactionCounts} />
         </section>
 
-        {/* Feedback */}
-        <section id="comments" aria-labelledby="comments-heading" className="mt-10 scroll-mt-20 border-t border-line pt-6">
-          <SectionHeader id="comments-heading" title="Feedback" count={rawList.length > 0 ? rawList.length : undefined} className="mb-4" />
-          <CommentThread devlogPostId={post.id} devlogAuthorId={profile.id} currentUserId={currentUserId} comments={topLevel} loadFailed={!!commentsError} />
+        <section id="comments" aria-labelledby="comments-heading" className="mt-10 scroll-mt-20 border-t border-hair pt-6">
+          <h2 id="comments-heading" className="mb-4 text-h3 font-semibold text-ink">
+            Feedback{rawList.length > 0 && <span className="ml-1.5 font-mono text-small font-normal text-ink-3">{rawList.length}</span>}
+          </h2>
+          <GlyphCommentThread devlogPostId={post.id} devlogAuthorId={profile.id} currentUserId={interactionUserId} comments={topLevel} loadFailed={!!commentsError} />
         </section>
 
-        {/* Related context */}
-        <footer className="mt-12 flex flex-col gap-1 border-t border-line pt-6 text-small text-fg-secondary sm:flex-row sm:items-center sm:justify-between">
-          <Link href={`/p/${username}/${projectSlug}`} className="inline-flex min-h-11 items-center font-medium text-link underline-offset-2 hover:underline">More from {project.title}</Link>
-          <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center hover:text-fg hover:underline underline-offset-2">{ownerName}&apos;s profile</Link>
+        <footer className="mt-12 flex flex-col gap-2 border-t border-hair pt-6 text-small text-ink-3 sm:flex-row sm:items-center sm:justify-between">
+          <Link href={`/p/${username}/${projectSlug}`} className="inline-flex min-h-11 items-center font-medium text-ember-ink underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ember sm:min-h-0">More from {project.title}</Link>
+          <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center outline-none hover:text-ink-2 hover:underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ember sm:min-h-0">{ownerName}&apos;s profile</Link>
         </footer>
       </article>
-    </Shell>
+    </GlyphShell>
   )
 }

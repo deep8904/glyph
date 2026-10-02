@@ -27,7 +27,11 @@ export type RawNotification = {
 }
 
 /** What the notification points at, resolved from real rows. `gone` = the object no longer exists / is not visible. */
-export type ObjectInfo = { title: string | null; role?: string | null; slug?: string | null; extra?: string | null; href?: string | null; gone?: boolean }
+/** `gone` = the object was resolved and genuinely doesn't exist / isn't visible to this viewer.
+ * `unknown` = the query that would have resolved it failed — a different, weaker claim: the event
+ * still happened, but the page couldn't check whether the object is actually gone or just
+ * temporarily unreachable. These must never be reported with the same wording. */
+export type ObjectInfo = { title: string | null; role?: string | null; slug?: string | null; extra?: string | null; href?: string | null; gone?: boolean; unknown?: boolean }
 
 export type PresentedRow = {
   key: string
@@ -43,6 +47,9 @@ export type PresentedRow = {
   href: string | null
   /** The object exists no more, or the viewer can no longer see it. The event still happened, so the row stays, but it does not link. */
   unavailable: boolean
+  /** The lookup for this object failed — distinct from `unavailable`. The row still doesn't link
+   * (safe default), but the caption says "we couldn't check", never "deleted or unavailable". */
+  resolutionUnknown: boolean
 }
 
 const MERGE_TYPES = new Set(['follow', 'comment', 'reaction'])
@@ -84,11 +91,13 @@ function action(type: string, obj: ObjectInfo | undefined): string {
   }
 }
 
-/** Where a notification leads. null = no destination (the object is gone). */
+/** Where a notification leads. null = no destination — either the object is genuinely gone, or its
+ * resolution query failed and linking to it can't be trusted as safe (same conservative outcome,
+ * different reason — see `unavailable` vs `resolutionUnknown` on the presented row). */
 export function hrefFor(n: RawNotification, obj: ObjectInfo | undefined, actorUsername: string | null): string | null {
   if (n.type === 'follow') return actorUsername ? `/dev/${actorUsername}` : null
   if (!n.entity_id) return null
-  if (obj?.gone) return null
+  if (obj?.gone || obj?.unknown) return null
   switch (n.entity_type) {
     case 'devlog_post': return obj?.href ? (n.type === 'reaction' ? obj.href : `${obj.href}#comments`) : null
     case 'collaboration_post': return `/collaborate/${n.entity_id}`
@@ -129,6 +138,7 @@ export function presentNotifications(
       action: action(first.type, obj),
       href: hrefFor(first, obj, first.actor_id ? actorUsernames.get(first.actor_id) ?? null : null),
       unavailable: !!obj?.gone,
+      resolutionUnknown: !!obj?.unknown,
     }
   })
 }

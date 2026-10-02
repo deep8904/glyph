@@ -1,0 +1,10 @@
+== ACL after rollback ==
+                                 relacl                                  
+-------------------------------------------------------------------------
+ {postgres=arwdDxt/postgres,authenticated=arwd/postgres,anon=r/postgres}
+(1 row)
+
+ attname | attacl 
+---------+--------
+(0 rows)
+

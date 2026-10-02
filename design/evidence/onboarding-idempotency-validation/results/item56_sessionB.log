@@ -1,0 +1,17 @@
+BEGIN
+ is_onboarded 
+--------------
+ f
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/31_old_trigger_deadlock_session_b_operator.sql:11: ERROR:  deadlock detected
+DETAIL:  Process 38746 waits for ShareLock on transaction 1081; blocked by process 38748.
+Process 38748 waits for ShareLock on transaction 1080; blocked by process 38746.
+HINT:  See server log for query details.
+CONTEXT:  while locking tuple (0,1) in relation "projects"
+ROLLBACK

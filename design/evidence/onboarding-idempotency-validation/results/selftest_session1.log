@@ -1,0 +1,15 @@
+SET
+SET
+BEGIN
+                  id                  
+--------------------------------------
+ fca8d137-48fe-40b5-a873-8784d08aedc4
+(1 row)
+
+INSERT 0 1
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT

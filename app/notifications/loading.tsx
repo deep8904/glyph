@@ -1,24 +1,32 @@
-import { AppShell } from '@/components/dashboard/AppShell'
-import { LoadingRegion, Skeleton } from '@/components/ui/Skeleton'
+import { GlyphShell } from '@/components/glyph/shell/GlyphShell'
 
-// Same shape as a notification row (dot, one sentence, time) so the list does not jump.
+/** /notifications has no shared chrome layout, so this renders GlyphShell itself. Same shape as
+ * GlyphNotificationRow (avatar, one line, time) so the list doesn't jump when data arrives. The
+ * skeleton bars are purely decorative (aria-hidden); the single `role="status"` region is what
+ * actually gets announced, once, not once per row. Their pulse is suppressed under reduced motion
+ * by the global `* { animation-duration: 0.01ms !important; ... }` rule in
+ * app/globals.css (@media (prefers-reduced-motion: reduce)). */
+function Bar({ className }: { className?: string }) {
+  return <div className={`animate-pulse rounded-[8px] bg-sunken ${className}`} />
+}
+
 export default function NotificationsLoading() {
   return (
-    <AppShell headerLabel="Notifications">
-      <div className="mx-auto w-full max-w-2xl">
-        <LoadingRegion label="Loading notifications">
-          <Skeleton className="mb-6 h-7 w-44" />
-          <div className="divide-y divide-line-subtle border-y border-line-subtle">
+    <GlyphShell>
+      <div role="status" aria-live="polite" aria-label="Loading notifications" className="mx-auto w-full max-w-2xl">
+        <div aria-hidden="true">
+          <Bar className="h-9 w-48" />
+          <div className="mt-6 space-y-4 border-t border-hair pt-4">
             {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-start gap-3 py-3">
-                <Skeleton className="mt-2 size-2 shrink-0 rounded-full" />
-                <Skeleton className="h-4 flex-1" />
-                <Skeleton className="h-3 w-10" />
+              <div key={i} className="flex items-start gap-3">
+                <Bar className="size-10 shrink-0 rounded-full" />
+                <Bar className="h-4 flex-1" />
+                <Bar className="h-3 w-10 shrink-0" />
               </div>
             ))}
           </div>
-        </LoadingRegion>
+        </div>
       </div>
-    </AppShell>
+    </GlyphShell>
   )
 }

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120" role="img" aria-labelledby="title desc">
+  <title id="title">Glyph UI/UX transformed reference moodboard</title>
+  <desc id="desc">Eight analytical cards summarize the user's preferred references with palettes, composition traits, borrow notes, and cautions. Original third-party artwork is not reproduced.</desc>
+  <style>
+    .bg{fill:#ede9e1}.ink{fill:#151512}.muted{fill:#66645f}.card{fill:#f8f6f1;stroke:#cbc6bc;stroke-width:1}.dark{fill:#181917}.title{font:700 34px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.sub{font:500 16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.08em}.h{font:650 21px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.body{font:400 15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.small{font:500 12px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em}.rule{stroke:#cbc6bc}.white{fill:#f8f6f1}.light{fill:#c9c7bf}.orange{fill:#c75c2b}.green{fill:#667151}.blue{fill:#2946d8}.olive{fill:#8d9850}.rust{fill:#873414}.cream{fill:#efe9d8}.gray{fill:#70747a}
+  </style>
+  <rect class="bg" width="1600" height="1120"/>
+  <text x="72" y="78" class="title ink">Glyph UI/UX reference synthesis</text>
+  <text x="72" y="110" class="sub muted">TRANSFORMED STUDY — SOURCE ARTWORK NOT REPRODUCED</text>
+  <line x1="72" y1="138" x2="1528" y2="138" class="rule"/>
+
+  <g transform="translate(72 178)">
+    <rect class="card" width="346" height="390" rx="10"/>
+    <rect class="dark" x="24" y="24" width="96" height="116" rx="4"/><rect class="orange" x="132" y="24" width="58" height="116" rx="4"/><rect class="green" x="202" y="24" width="120" height="54" rx="4"/><rect fill="#d59e6a" x="202" y="86" width="120" height="54" rx="4"/>
+    <text x="24" y="180" class="small muted">01 / DESIGNITY</text><text x="24" y="214" class="h ink">Warm editorial community</text>
+    <text x="24" y="246" class="body ink">Borrow: asymmetric rhythm, people,</text><text x="24" y="268" class="body ink">creative work, confident typography.</text>
+    <text x="24" y="308" class="body muted">Avoid: cloning portrait treatment,</text><text x="24" y="330" class="body muted">gradients, or modular card wallpaper.</text>
+    <text x="24" y="365" class="small muted">dribbble.com/shots/26617849…</text>
+  </g>
+
+  <g transform="translate(442 178)">
+    <rect class="card" width="346" height="390" rx="10"/>
+    <rect fill="#030303" x="24" y="24" width="298" height="116" rx="4"/><rect fill="#f0f1f5" x="48" y="48" width="122" height="68" rx="3"/><line x1="188" y1="56" x2="294" y2="56" stroke="#9ea0a6"/><line x1="188" y1="78" x2="276" y2="78" stroke="#9ea0a6"/><line x1="188" y1="100" x2="288" y2="100" stroke="#57585c"/>
+    <text x="24" y="180" class="small muted">02 / ATTIO DEVELOPER</text><text x="24" y="214" class="h ink">Precise technical proof</text>
+    <text x="24" y="246" class="body ink">Borrow: quiet hierarchy, numbered</text><text x="24" y="268" class="body ink">modules, real interface evidence.</text>
+    <text x="24" y="308" class="body muted">Avoid: monochrome brand cloning or</text><text x="24" y="330" class="body muted">abstract developer-tool anonymity.</text>
+    <text x="24" y="365" class="small muted">dribbble.com/shots/26762768…</text>
+  </g>
+
+  <g transform="translate(812 178)">
+    <rect class="card" width="346" height="390" rx="10"/>
+    <rect fill="#030303" x="24" y="24" width="298" height="116" rx="4"/><rect class="blue" x="42" y="44" width="72" height="76" rx="4"/><line x1="134" y1="48" x2="298" y2="48" stroke="#f3f7fb"/><line x1="134" y1="72" x2="270" y2="72" stroke="#7b84af"/><line x1="134" y1="96" x2="288" y2="96" stroke="#9fa7b9"/>
+    <text x="24" y="180" class="small muted">03 / API AS A SERVICE</text><text x="24" y="214" class="h ink">Documentation-led clarity</text>
+    <text x="24" y="246" class="body ink">Borrow: technical sequence, trust,</text><text x="24" y="268" class="body ink">scannable product/document flow.</text>
+    <text x="24" y="308" class="body muted">Avoid: blue-on-black cliché and</text><text x="24" y="330" class="body muted">pseudo-code used as decoration.</text>
+    <text x="24" y="365" class="small muted">dribbble.com/shots/26636553…</text>
+  </g>
+
+  <g transform="translate(1182 178)">
+    <rect class="card" width="346" height="390" rx="10"/>
+    <rect fill="#020202" x="24" y="24" width="298" height="116" rx="4"/><circle class="orange" cx="62" cy="62" r="18"/><rect fill="#353f3b" x="94" y="44" width="206" height="18" rx="3"/><rect fill="#1d2fd8" x="94" y="72" width="96" height="18" rx="3"/><rect fill="#a0dcb2" x="200" y="72" width="100" height="18" rx="3"/><rect fill="#9c9c9c" x="94" y="100" width="166" height="10" rx="2"/>
+    <text x="24" y="180" class="small muted">04 / NOTIFYHUB</text><text x="24" y="214" class="h ink">Calm operational structure</text>
+    <text x="24" y="246" class="body ink">Borrow: state clarity, grouping,</text><text x="24" y="268" class="body ink">logs and settings as one story.</text>
+    <text x="24" y="308" class="body muted">Avoid: making all of Glyph a comms</text><text x="24" y="330" class="body muted">dashboard or using every accent.</text>
+    <text x="24" y="365" class="small muted">dribbble.com/shots/25897849…</text>
+  </g>
+
+  <g transform="translate(72 592)">
+    <rect class="card" width="346" height="390" rx="10"/>
+    <rect fill="#252525" x="24" y="24" width="298" height="116" rx="4"/><text x="44" y="72" class="small white">UNVERIFIED SOURCE PAGE</text><line x1="44" y1="92" x2="292" y2="92" stroke="#70747a"/><text x="44" y="116" class="small light">VISUAL REVIEW REQUIRED</text>
+    <text x="24" y="180" class="small muted">05 / AI DEVELOPER PLATFORM</text><text x="24" y="214" class="h ink">User-selected direction</text>
+    <text x="24" y="246" class="body ink">Inspect manually before extracting</text><text x="24" y="268" class="body ink">layout, color, or motion details.</text>
+    <text x="24" y="308" class="body muted">Avoid: inventing traits or drifting</text><text x="24" y="330" class="body muted">into generic AI gradient styling.</text>
+    <text x="24" y="365" class="small muted">dribbble.com/shots/27457391…</text>
+  </g>
+
+  <g transform="translate(442 592)">
+    <rect class="card" width="346" height="390" rx="10"/>
+    <rect class="cream" x="24" y="24" width="298" height="116" rx="4"/><circle class="olive" cx="94" cy="82" r="34"/><rect fill="#0a160a" x="146" y="46" width="142" height="16" rx="3"/><rect fill="#526640" x="146" y="74" width="112" height="12" rx="3"/><rect fill="#975e29" x="146" y="100" width="82" height="12" rx="3"/>
+    <text x="24" y="180" class="small muted">06 / AI CLINIC</text><text x="24" y="214" class="h ink">Signature workflow motion</text>
+    <text x="24" y="246" class="body ink">Borrow: one custom visual metaphor</text><text x="24" y="268" class="body ink">that explains the product loop.</text>
+    <text x="24" y="308" class="body muted">Avoid: isometric machinery, cinematic</text><text x="24" y="330" class="body muted">scrolling, or delayed comprehension.</text>
+    <text x="24" y="365" class="small muted">dribbble.com/shots/27399872…</text>
+  </g>
+
+  <g transform="translate(812 592)">
+    <rect class="card" width="346" height="390" rx="10"/>
+    <rect fill="#ece9df" x="24" y="24" width="298" height="116" rx="4"/><rect fill="#ffffff" stroke="#c8c3b9" x="40" y="40" width="184" height="84" rx="4"/><rect fill="#64735a" x="54" y="54" width="82" height="12" rx="2"/><line x1="54" y1="78" x2="206" y2="78" stroke="#a9aaa4"/><line x1="54" y1="98" x2="188" y2="98" stroke="#a9aaa4"/><rect fill="#29322a" x="238" y="40" width="68" height="84" rx="4"/>
+    <text x="24" y="180" class="small muted">07 / CLAUSEOS</text><text x="24" y="214" class="h ink">Status and chronology</text>
+    <text x="24" y="246" class="body ink">Borrow: deadlines, activity, owner,</text><text x="24" y="268" class="body ink">and next action in one hierarchy.</text>
+    <text x="24" y="308" class="body muted">Avoid: KPI wallpaper, compliance</text><text x="24" y="330" class="body muted">language, and unsupported metrics.</text>
+    <text x="24" y="365" class="small muted">dribbble.com/shots/27166432…</text>
+  </g>
+
+  <g transform="translate(1182 592)">
+    <rect class="card" width="346" height="390" rx="10"/>
+    <rect fill="#1a1c1d" x="24" y="24" width="298" height="116" rx="4"/><circle fill="none" stroke="#a1ae8d" stroke-width="3" cx="88" cy="82" r="36"/><circle class="rust" cx="88" cy="82" r="8"/><line x1="146" y1="48" x2="298" y2="48" stroke="#a1ae8d"/><line x1="146" y1="74" x2="276" y2="74" stroke="#3b3e41" stroke-width="8"/><line x1="146" y1="100" x2="258" y2="100" stroke="#873414" stroke-width="8"/>
+    <text x="24" y="180" class="small muted">08 / RAKTOR</text><text x="24" y="214" class="h ink">Prioritized operational signal</text>
+    <text x="24" y="246" class="body ink">Borrow: unified context, restrained</text><text x="24" y="268" class="body ink">status color, clear control priority.</text>
+    <text x="24" y="308" class="body muted">Avoid: mission-control tone, HUD</text><text x="24" y="330" class="body muted">chrome, telemetry without a task.</text>
+    <text x="24" y="365" class="small muted">dribbble.com/shots/26864675…</text>
+  </g>
+
+  <line x1="72" y1="1020" x2="1528" y2="1020" class="rule"/>
+  <text x="72" y="1056" class="h ink">Synthesis: editorial creative proof + calm developer-grade structure + purposeful causal motion</text>
+  <text x="72" y="1084" class="body muted">Real game work supplies color. Glyph chrome supplies hierarchy, action, state, and accessibility.</text>
+</svg>

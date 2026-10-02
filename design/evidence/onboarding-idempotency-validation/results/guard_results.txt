@@ -1,0 +1,96 @@
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+G3 RPC result: c3000000-0000-0000-0000-000000000001
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ f2bb5469-3c09-4bc1-8a50-0270fa93087a | t
+(1 row)
+
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+G3 RPC result: c3000000-0000-0000-0000-000000000001
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ 11006f8e-51d6-433e-88b6-a90d16dc1a82 | t
+(1 row)
+
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+G3 RPC result: c3000000-0000-0000-0000-000000000001
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ 2649e2c3-4161-4939-984b-3cb7b64b0c0a | t
+(1 row)
+
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+G3 RPC result: c3000000-0000-0000-0000-000000000001
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ c5284a8d-3c01-46b1-a006-26210986bc55 | t
+(1 row)
+
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+G3 RPC result: c3000000-0000-0000-0000-000000000001
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ b6ff05ca-24e5-4573-9601-a2dbe5797446 | t
+(1 row)
+
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+G3 RPC result: c3000000-0000-0000-0000-000000000001
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ c465072a-79a4-419b-b1c3-65a119ab479d | t
+(1 row)
+

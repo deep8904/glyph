@@ -1,0 +1,22 @@
+SET
+SET
+ERROR:  clearing a project slug back to null is not supported
+CONTEXT:  PL/pgSQL function public.reject_slug_removal_update() line 4 at RAISE
+SET
+SET
+ERROR:  clearing a project slug back to null is not supported
+CONTEXT:  PL/pgSQL function public.reject_slug_removal_update() line 4 at RAISE
+SET
+SET
+UPDATE 1
+SET
+SET
+ERROR:  clearing a project slug back to null is not supported
+CONTEXT:  PL/pgSQL function public.reject_slug_removal_update() line 4 at RAISE
+SET
+SET
+ERROR:  clearing a project slug back to null is not supported
+CONTEXT:  PL/pgSQL function public.reject_slug_removal_update() line 4 at RAISE
+SET
+SET
+UPDATE 1

@@ -1,0 +1,12 @@
+== raw ACL after rollback (edge-case db): PUBLIC, grant option, mixed-case role, downstream grantor must all be restored exactly ==
+                                                                                     relacl                                                                                      
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {postgres=arwdDxt/postgres,authenticated=arwd/postgres,anon=r/postgres,test_grantor_g=a*/postgres,"\"Weird Role Name\"=a/postgres",test_grantee_h=a/test_grantor_g,=a/postgres}
+(1 row)
+
+ attname |                            attacl                            
+---------+--------------------------------------------------------------
+ slug    | {=w/postgres}
+ title   | {test_grantee_h=a/postgres,"\"Weird Role Name\"=w/postgres"}
+(2 rows)
+

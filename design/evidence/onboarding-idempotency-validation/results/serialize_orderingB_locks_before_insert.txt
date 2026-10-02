@@ -1,0 +1,6 @@
+== pg_locks mid-hold, Ordering B (session 1 — the RPC's pre-lock — should hold) ==
+ locktype |     mode     | granted |        query        | state  
+----------+--------------+---------+---------------------+--------
+ relation | RowShareLock | t       | select pg_sleep(2); | active
+(1 row)
+

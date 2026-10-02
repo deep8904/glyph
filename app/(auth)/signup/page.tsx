@@ -1,10 +1,12 @@
-import { Suspense } from 'react'
-import AuthForm from '@/components/auth/AuthForm'
+import { GAuthShell } from '@/components/glyph/auth/GAuthShell'
+import { GlyphSignupForm } from '@/components/glyph/auth/GlyphSignupForm'
+
+export const metadata = { title: 'Sign up — Glyph' }
 
 export default function SignupPage() {
   return (
-    <Suspense>
-      <AuthForm mode="signup" />
-    </Suspense>
+    <GAuthShell>
+      <GlyphSignupForm />
+    </GAuthShell>
   )
 }

@@ -34,7 +34,7 @@ Core product is permanently free in V1 — no payments/paywalls despite Stripe b
 
 ## Brand Commitments
 
-Name "Glyph°" (with the degree-mark glyph) is the existing wordmark. Confirmed 2026-09-16: the current visual direction is kept, not replaced — user explicitly rejected a proposed visual-world redesign ("the current look is good but need refinement"). This is a refinement engagement: preserve the incumbent look, layout language, and content; improve craft, polish, and execution quality rather than introducing a new visual system.
+Name "Glyph°" (with the degree-mark glyph) is the existing wordmark, retained. **Superseded 2026-09-25:** the user reversed the earlier "keep the current look" position and commissioned a full ground-up redesign. This is now a **redesign** engagement, not a refinement — the incumbent UI is functional reference only; its layouts, visual hierarchy, card design, navigation appearance, and any Auralis-influenced visual language are replaced. The new visual world is `DESIGN.md` ("Glyph — the living build record"), grounded in the Codex research kit at `design/research/glyph-ui-inspiration/`. Preserve backend/data/routes/auth/RLS/business logic; replace the interface.
 
 ## Evidence on Hand
 

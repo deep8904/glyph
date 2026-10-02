@@ -1,34 +1,57 @@
+import { cache } from 'react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { GitBranch, Gamepad2, X, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { ErrorState } from '@/components/ui/ErrorState'
-import { MetadataBar } from '@/components/ui/MetadataBar'
-import { Section } from '@/components/ui/Section'
-import { ProfileHeader } from '@/components/profile/ProfileHeader'
-import { FeaturedToggleButton } from '@/components/profile/FeaturedToggleButton'
-import { CurrentWork } from '@/components/profile/CurrentWork'
-import { ProjectRow } from '@/components/project/ProjectRow'
-import { DevlogRow } from '@/components/devlog/DevlogRow'
-import { CollaborationCard } from '@/components/profile/CollaborationCard'
-import { relativeTime, isHttpsUrl } from '@/lib/utils'
-import { Shell } from '@/components/shell/Shell'
-import {
-  labelFor,
-  ROLES,
-  ENGINES,
-  EXPERIENCE_LEVELS,
-  type Profile,
-} from '@/lib/supabase/types'
+import { GlyphShell } from '@/components/glyph/shell/GlyphShell'
+import { GButton } from '@/components/glyph/ui/primitives'
+import { GEmptyState, GErrorState } from '@/components/glyph/ui/States'
+import { GlyphProfileHeader, type SocialLink, type StudioAffiliation } from '@/components/glyph/profile/GlyphProfileHeader'
+import { GlyphBuildSnapshot, type SnapshotProject } from '@/components/glyph/profile/GlyphBuildSnapshot'
+import { GlyphWorkTimeline } from '@/components/glyph/profile/GlyphWorkTimeline'
+import { GlyphEcosystemPanel, hasEcosystemContent } from '@/components/glyph/profile/GlyphEcosystemPanel'
+import type { OtherProjectData } from '@/components/glyph/profile/GlyphOtherProjectRow'
+import { isHttpsUrl } from '@/lib/utils'
+import { labelFor, ROLES, ENGINES, EXPERIENCE_LEVELS, type Profile } from '@/lib/supabase/types'
+
+type RouteParams = { username: string }
 
 function memberSince(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
-type ProjectRow = {
+/** Shared identity lookup, memoized per request so `generateMetadata` and the page read the
+ * profile once, matching the Project route's pattern. */
+const loadProfileIdentity = cache(async (username: string) => {
+  const supabase = await createClient()
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('username', username)
+    .maybeSingle<Profile>()
+
+  return { profile, currentUserId: currentUser?.id ?? null }
+})
+
+const SAFE_METADATA: Metadata = { title: 'Glyph', description: "The professional home for a game while it's being built." }
+
+export async function generateMetadata({ params }: { params: Promise<RouteParams> }): Promise<Metadata> {
+  const { username } = await params
+  const { profile } = await loadProfileIdentity(username)
+  if (!profile) return SAFE_METADATA
+  const name = profile.display_name || profile.username
+  return {
+    title: `${name} (@${profile.username}) — Glyph`,
+    description: profile.bio || SAFE_METADATA.description,
+  }
+}
+
+type ProjectQueryRow = {
   id: string
   title: string
   slug: string | null
@@ -41,27 +64,14 @@ type ProjectRow = {
   lifecycle: 'draft' | 'published' | 'archived'
 }
 
-export default async function ProfilePage({
-  params,
-}: {
-  params: Promise<{ username: string }>
-}) {
+export default async function ProfilePage({ params }: { params: Promise<RouteParams> }) {
   const { username } = await params
-  const supabase = await createClient()
-
-  const {
-    data: { user: currentUser },
-  } = await supabase.auth.getUser()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('username', username)
-    .maybeSingle<Profile>()
+  const { profile, currentUserId } = await loadProfileIdentity(username)
 
   if (!profile) notFound()
 
-  const isOwner = currentUser?.id === profile.id
+  const isOwner = currentUserId === profile.id
+  const supabase = await createClient()
 
   const [
     { data: projectRows, error: projectsError },
@@ -81,14 +91,14 @@ export default async function ProfilePage({
       .limit(10),
     supabase.from('follows').select('*', { count: 'exact', head: true }).eq('followed_id', profile.id),
     supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id),
-    currentUser
-      ? supabase.from('follows').select('follower_id').eq('follower_id', currentUser.id).eq('followed_id', profile.id).maybeSingle()
+    currentUserId
+      ? supabase.from('follows').select('follower_id').eq('follower_id', currentUserId).eq('followed_id', profile.id).maybeSingle()
       : Promise.resolve({ data: null }),
-    currentUser
-      ? supabase.from('user_blocks').select('blocker_id').eq('blocker_id', currentUser.id).eq('blocked_id', profile.id).maybeSingle()
+    currentUserId
+      ? supabase.from('user_blocks').select('blocker_id').eq('blocker_id', currentUserId).eq('blocked_id', profile.id).maybeSingle()
       : Promise.resolve({ data: null }),
-    currentUser
-      ? supabase.from('user_mutes').select('muter_id').eq('muter_id', currentUser.id).eq('muted_id', profile.id).maybeSingle()
+    currentUserId
+      ? supabase.from('user_mutes').select('muter_id').eq('muter_id', currentUserId).eq('muted_id', profile.id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase
       .from('collaboration_posts')
@@ -105,20 +115,18 @@ export default async function ProfilePage({
     .select('role, studios!studio_id(slug, name, status)')
     .eq('user_id', profile.id)
     .returns<{ role: string; studios: { slug: string; name: string; status: string } | null }[]>()
-  const studioAffiliations = (studioRows ?? [])
+  const studioAffiliations: StudioAffiliation[] = (studioRows ?? [])
     .filter((r) => r.studios && r.studios.status === 'active')
     .map((r) => ({ slug: r.studios!.slug, name: r.studios!.name, role: r.role }))
 
-  // A visitor never sees draft (RLS already stops that row coming back at all) or archived
-  // (app-level — archived is "not actively representing current work," the same reasoning that
-  // excludes it from Current Work and from discovery; design doc project-state-model.md §9/§17.3).
-  // The owner sees everything, including drafts and archived, so they can find and manage them.
-  const allProjects = (projectRows ?? []) as ProjectRow[]
+  // A visitor never sees draft (RLS already stops that row) or archived (app-level — archived is
+  // "not actively representing current work"). The owner sees everything, including drafts and
+  // archived, so they can find and manage them.
+  const allProjects = (projectRows ?? []) as ProjectQueryRow[]
   const projects = isOwner ? allProjects : allProjects.filter((p) => p.lifecycle === 'published')
-  // Current Work never surfaces an archived project as "currently building," even for the owner —
-  // that phrase is a lifecycle claim.
+  // Current work never surfaces an archived project as "currently building," even for the owner.
   const currentCandidates = projects.filter((p) => p.lifecycle !== 'archived')
-  const currentProject = currentCandidates.find((p) => p.is_primary) ?? currentCandidates[0] ?? null
+  const currentProject: ProjectQueryRow | null = currentCandidates.find((p) => p.is_primary) ?? currentCandidates[0] ?? null
   const otherProjects = projects.filter((p) => p.id !== currentProject?.id)
   const projectIds = projects.map((p) => p.id)
 
@@ -126,7 +134,7 @@ export default async function ProfilePage({
     projectIds.length
       ? supabase
           .from('devlog_posts')
-          .select('id, title, slug, published_at, is_featured, project_id, projects!inner(title, slug)')
+          .select('id, title, content, slug, published_at, is_featured, project_id, projects!inner(title, slug)')
           .in('project_id', projectIds)
           .eq('is_featured', true)
           .not('published_at', 'is', null)
@@ -137,7 +145,7 @@ export default async function ProfilePage({
     projectIds.length
       ? supabase
           .from('devlog_posts')
-          .select('id, title, slug, published_at, is_featured, project_id, projects!inner(title, slug)')
+          .select('id, title, content, slug, published_at, is_featured, project_id, projects!inner(title, slug)')
           .in('project_id', projectIds)
           .eq('is_featured', false)
           .not('published_at', 'is', null)
@@ -147,10 +155,11 @@ export default async function ProfilePage({
       : Promise.resolve({ data: [] }),
   ])
 
-  type RawDevlogRow = { id: string; title: string; slug: string; published_at: string; is_featured: boolean; project_id: string; projects: { title: string; slug: string | null } }
+  type RawDevlogRow = { id: string; title: string; content: string | null; slug: string; published_at: string; is_featured: boolean; project_id: string; projects: { title: string; slug: string | null } }
   const toDevlog = (d: RawDevlogRow) => ({
     id: d.id,
     title: d.title,
+    body: d.content,
     slug: d.slug,
     published_at: d.published_at,
     is_featured: d.is_featured,
@@ -161,162 +170,121 @@ export default async function ProfilePage({
 
   const featuredDevlogs = ((featuredRows ?? []) as unknown as RawDevlogRow[]).map(toDevlog)
   const recentDevlogs = ((recentRows ?? []) as unknown as RawDevlogRow[]).map(toDevlog)
-  const allDevlogs = [...featuredDevlogs, ...recentDevlogs].sort(
+  // One chronological record, newest first. Curated (featured) entries keep their own visual
+  // marker (see GlyphProfileDevlogRow) instead of being pulled into a separate stacked section.
+  const workRecord = [...featuredDevlogs, ...recentDevlogs].sort(
     (a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
   )
-  const mostRecentDevlog = allDevlogs[0]
-  const currentWorkDevlog = currentProject ? allDevlogs.find((d) => d.projectId === currentProject.id) ?? null : null
+  const currentProjectDevlogsDesc = currentProject
+    ? workRecord.filter((d) => d.projectId === currentProject.id).map((d) => ({ title: d.title, body: d.body, published_at: d.published_at }))
+    : []
 
   const name = profile.display_name || profile.username
   const role = labelFor(ROLES, profile.primary_role)
   const engine = labelFor(ENGINES, profile.primary_engine)
   const experience = labelFor(EXPERIENCE_LEVELS, profile.experience_level)
-  const isOpen = profile.collaboration_status === 'open'
+  const isOpenToCollab = profile.collaboration_status === 'open'
+  const projectsFailed = !!projectsError
 
-  const socials = [
+  const socials: SocialLink[] = [
     { url: profile.github_url, label: 'GitHub', Icon: GitBranch },
     { url: profile.itchio_url, label: 'itch.io', Icon: Gamepad2 },
     { url: profile.twitter_url, label: 'Twitter / X', Icon: X },
     { url: profile.website_url, label: 'Website', Icon: Globe },
-  ].filter((s) => isHttpsUrl(s.url))
+  ]
+    .filter((s) => isHttpsUrl(s.url))
+    .map((s) => ({ ...s, url: s.url as string }))
 
   const facts = [role, engine, experience].filter((v): v is string => !!v)
-  const projectsFailed = !!projectsError
 
-  // Supporting identity — who, availability, links, activity — lives in the context rail on
-  // desktop so Current Work and progress own the main column. A person page, not a portfolio grid.
-  const railContent = (
-    <div className="space-y-7">
-      {profile.bio && (
-        <div>
-          <h2 className="mb-1.5 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">About</h2>
-          <p className="whitespace-pre-line text-small leading-relaxed text-fg-secondary [overflow-wrap:anywhere]">{profile.bio}</p>
-        </div>
-      )}
-      {(collabPosts ?? []).length > 0 && (
-        <div className="border-t border-line-subtle pt-5">
-          <CollaborationCard isOpenToCollab={isOpen} posts={collabPosts ?? []} name={name} />
-        </div>
-      )}
-      <div className="border-t border-line-subtle pt-5">
-        <h2 className="mb-2 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Activity</h2>
-        <MetadataBar layout="stacked" items={[
-          { label: 'Last devlog', value: mostRecentDevlog ? <><Link href={mostRecentDevlog.href} className="text-link underline-offset-2 hover:underline">{mostRecentDevlog.title}</Link> <span className="text-fg-muted">· {relativeTime(mostRecentDevlog.published_at)}</span></> : null },
-          { label: 'Project updated', value: currentProject ? relativeTime(currentProject.updated_at) : null },
-          { label: 'On Glyph since', value: memberSince(profile.created_at) },
-        ]} />
-      </div>
-      {socials.length > 0 && (
-        <div className="border-t border-line-subtle pt-5">
-          <h2 className="mb-1.5 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Links</h2>
-          <ul>
-            {socials.map(({ url, label, Icon }) => (
-              <li key={label}>
-                <a href={url as string} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-small font-medium text-link underline-offset-2 hover:underline lg:min-h-0 lg:py-1">
-                  <Icon aria-hidden strokeWidth={1.75} className="size-4" /> {label}<span className="sr-only"> (opens in a new tab)</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  )
+  const showEcosystem = hasEcosystemContent({
+    otherProjects,
+    collabPosts: collabPosts ?? [],
+    followerCount: followerCount ?? 0,
+    followingCount: followingCount ?? 0,
+    isOwner,
+  })
 
   return (
-    <Shell headerLabel="Developer profile" rail={railContent}>
-      <div className="w-full max-w-3xl space-y-10">
-        {/* Identity */}
-        <ProfileHeader
-          name={name}
-          username={profile.username}
-          avatarUrl={profile.avatar_url}
-          location={profile.location}
-          facts={facts}
-          isOpenToCollab={isOpen}
-          followerCount={followerCount ?? 0}
-          followingCount={followingCount ?? 0}
-          isOwner={isOwner}
-          currentUserId={currentUser?.id ?? null}
-          targetId={profile.id}
-          isFollowing={!!followRow}
-          isBlocked={!!blockRow}
-          isMuted={!!muteRow}
-          studios={studioAffiliations}
-        />
+    <GlyphShell>
+      <div className="mx-auto w-full max-w-[1180px]">
+        <div className="max-w-[640px]">
+          <GlyphProfileHeader
+            name={name}
+            username={profile.username}
+            avatarUrl={profile.avatar_url}
+            location={profile.location}
+            facts={facts}
+            bio={profile.bio}
+            isOpenToCollab={isOpenToCollab}
+            isOwner={isOwner}
+            currentUserId={currentUserId}
+            targetId={profile.id}
+            isFollowing={!!followRow}
+            isBlocked={!!blockRow}
+            isMuted={!!muteRow}
+            studios={studioAffiliations}
+            socials={socials}
+          />
+        </div>
 
-        {projectsFailed && <ErrorState inline title="We couldn't load this developer's projects" description="This may be temporary. Reload the page to try again." />}
-
-        {/* Current work — the one visually dominant object on the page */}
-        <Section id="current-work" title="Current work">
+        <div className="mt-8">
           {currentProject ? (
-            <CurrentWork project={currentProject} username={profile.username} latestDevlog={currentWorkDevlog} showDraftBadge={isOwner && currentProject.lifecycle === 'draft'} />
+            <GlyphBuildSnapshot
+              project={currentProject as SnapshotProject}
+              username={profile.username}
+              projectDevlogsDesc={currentProjectDevlogsDesc}
+              isOwner={isOwner}
+            />
           ) : (
-            <EmptyState
-              kind="first-use"
-              className="border-y-0 py-2"
+            <GEmptyState
               title={isOwner ? 'No project yet' : `${name} has no public project yet`}
               description={isOwner ? 'A project is the work your devlogs belong to.' : undefined}
-              action={isOwner ? <Button asChild variant="primary" size="sm"><Link href="/dashboard/projects/new">Create your first project</Link></Button> : undefined}
+              action={isOwner ? <GButton asChild variant="ember" size="sm"><Link href="/dashboard/projects/new">Create your first project</Link></GButton> : undefined}
             />
           )}
-        </Section>
+        </div>
 
-        {/* Featured — curated, distinct from the chronological list below */}
-        {(featuredDevlogs.length > 0 || isOwner) && (
-          <Section id="featured" title="Featured" count={featuredDevlogs.length || undefined}>
-            {featuredDevlogs.length > 0 ? (
-              <ul className="divide-y divide-line-subtle">
-                {featuredDevlogs.map((d) => (
-                  <DevlogRow key={d.id} devlog={d} action={isOwner ? <FeaturedToggleButton devlogId={d.id} featured={d.is_featured} /> : undefined} />
-                ))}
-              </ul>
-            ) : (
-              <p className="text-small text-fg-secondary">Star a devlog below to feature your best work here.</p>
-            )}
-          </Section>
+        {projectsFailed && (
+          <div className="mt-6">
+            <GErrorState title="We couldn't load this developer's projects" description="This may be temporary. Reload the page to try again." />
+          </div>
         )}
 
-        {/* Projects — only when there is more than the current one */}
-        {otherProjects.length > 0 && (
-          <Section id="projects" title="Projects" count={otherProjects.length}>
-            <ul className="divide-y divide-line-subtle">
-              {otherProjects.map((p) => (
-                <li key={p.id} className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1"><ProjectRow project={p} username={profile.username} variant="compact" /></div>
-                  {/* Owner-only — a visitor's list never contains a non-published row to begin
-                      with, so this label only ever needs to disambiguate for the owner. */}
-                  {isOwner && p.lifecycle !== 'published' && (
-                    <Badge tone="neutral" className="shrink-0">{p.lifecycle === 'draft' ? 'Draft' : 'Archived'}</Badge>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
+        <div className={showEcosystem ? 'mt-12 grid gap-10 lg:grid-cols-[1fr_300px] lg:items-start' : 'mt-12'}>
+          <section aria-labelledby="work-record-heading">
+            <h2 id="work-record-heading" className="text-h2 font-semibold tracking-[-0.01em] text-ink">Work record</h2>
+            <div className="mt-5">
+              <GlyphWorkTimeline
+                devlogs={workRecord}
+                isOwner={isOwner}
+                emptyTitle={isOwner ? "You haven't posted a devlog yet" : `${name} hasn't posted a devlog yet`}
+                emptyDescription={isOwner ? 'Devlogs are the dated record of what you build.' : undefined}
+                emptyAction={isOwner && currentProject ? <GButton asChild variant="ember" size="sm"><Link href={`/dashboard/projects/${currentProject.id}/devlogs/new`}>Write a devlog</Link></GButton> : undefined}
+              />
+            </div>
+          </section>
 
-        {/* Recent devlogs — chronological */}
-        <Section id="devlogs" title="Recent devlogs">
-          {recentDevlogs.length > 0 ? (
-            <ul className="divide-y divide-line-subtle">
-              {recentDevlogs.map((d) => (
-                <DevlogRow key={d.id} devlog={d} action={isOwner ? <FeaturedToggleButton devlogId={d.id} featured={d.is_featured} /> : undefined} />
-              ))}
-            </ul>
-          ) : (
-            <EmptyState
-              kind="first-use"
-              className="border-y-0 py-2"
-              title={isOwner ? "You haven't posted a devlog yet" : `${name} hasn't posted a devlog yet`}
-              description={isOwner ? 'Devlogs are the dated record of what you build.' : undefined}
-              action={isOwner && currentProject ? <Button asChild variant="primary" size="sm"><Link href={`/dashboard/projects/${currentProject.id}/devlogs/new`}>Write a devlog</Link></Button> : undefined}
-            />
+          {showEcosystem && (
+            <aside aria-labelledby="ecosystem-heading">
+              <h2 id="ecosystem-heading" className="text-h2 font-semibold tracking-[-0.01em] text-ink">Ecosystem</h2>
+              <div className="mt-5">
+                <GlyphEcosystemPanel
+                  otherProjects={otherProjects as OtherProjectData[]}
+                  username={profile.username}
+                  isOwner={isOwner}
+                  isOpenToCollab={isOpenToCollab}
+                  collabPosts={collabPosts ?? []}
+                  name={name}
+                  followerCount={followerCount ?? 0}
+                  followingCount={followingCount ?? 0}
+                  memberSince={memberSince(profile.created_at)}
+                />
+              </div>
+            </aside>
           )}
-        </Section>
-
-        {/* Supporting identity inline below the main column on < xl (rail only renders ≥ 1280). */}
-        <div className="border-t border-line pt-6 xl:hidden">{railContent}</div>
+        </div>
       </div>
-    </Shell>
+    </GlyphShell>
   )
 }

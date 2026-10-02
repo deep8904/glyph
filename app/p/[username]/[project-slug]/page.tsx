@@ -1,21 +1,69 @@
+import { cache } from 'react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Globe, GitBranch, Joystick, Pencil, PenLine, Building2, Trophy } from 'lucide-react'
+import { Globe, GitBranch, Joystick, Pencil, PenLine, Building2, Trophy, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { Badge } from '@/components/ui/Badge'
-import { DevlogRow } from '@/components/devlog/DevlogRow'
-import { Avatar } from '@/components/ui/Avatar'
-import { Button } from '@/components/ui/Button'
-import { ErrorState } from '@/components/ui/ErrorState'
-import { MetadataBar } from '@/components/ui/MetadataBar'
-import { MarkdownRenderer } from '@/components/devlog/MarkdownRenderer'
-import { OpportunitySummary } from '@/components/project/OpportunitySummary'
-import { AddToShortlistButton } from '@/components/publisher/AddToShortlistButton'
+import { GlyphShell } from '@/components/glyph/shell/GlyphShell'
+import { GAvatar, GButton } from '@/components/glyph/ui/primitives'
+import { GEmptyState, GErrorState } from '@/components/glyph/ui/States'
+import { GlyphRichText } from '@/components/glyph/project/GlyphRichText'
+import { GlyphProjectDevlogRow } from '@/components/glyph/project/GlyphProjectDevlogRow'
+import { GlyphShortlistButton } from '@/components/glyph/project/GlyphShortlistButton'
+import { GlyphCoverMedia, GlyphScreenshotGallery } from '@/components/glyph/project/GlyphMedia'
 import { labelFor, ENGINES, PROJECT_STAGES, CONTRACT_TYPES } from '@/lib/supabase/types'
 import { isHttpsUrl, relativeTime } from '@/lib/utils'
-import { tintFor } from '@/lib/tint'
 import type { Profile, Project } from '@/lib/supabase/types'
-import { Shell } from '@/components/shell/Shell'
+
+type RouteParams = { username: string; 'project-slug': string }
+
+/**
+ * Shared identity + visibility lookup for this route, memoized per request (React `cache`) so
+ * `generateMetadata` and the page component read the profile/project once, not twice. Only the
+ * minimal columns/queries needed to decide visibility and title — the heavier parallel fetch
+ * (devlogs, playtest, publisher, studios, collab, jams) stays in the page below.
+ */
+const loadProjectIdentity = cache(async (username: string, projectSlug: string) => {
+  const supabase = await createClient()
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, username, display_name, avatar_url')
+    .eq('username', username)
+    .maybeSingle<Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>>()
+
+  if (!profile) return { profile: null, project: null, isOwner: false, currentUserId: currentUser?.id ?? null }
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('owner_id', profile.id)
+    .eq('slug', projectSlug)
+    .maybeSingle<Project>()
+
+  const isOwner = currentUser?.id === profile.id
+  return { profile, project, isOwner, currentUserId: currentUser?.id ?? null }
+})
+
+/** True when this viewer is not allowed to see the project at all (same rule the page enforces). */
+function isInaccessible(project: Project | null, isOwner: boolean) {
+  return !project || ((project.lifecycle === 'draft' || project.visibility === 'private') && !isOwner)
+}
+
+const SAFE_METADATA: Metadata = { title: 'Glyph', description: "The professional home for a game while it's being built." }
+
+export async function generateMetadata({ params }: { params: Promise<RouteParams> }): Promise<Metadata> {
+  const { username, 'project-slug': projectSlug } = await params
+  const { profile, project, isOwner } = await loadProjectIdentity(username, projectSlug)
+  if (!profile || isInaccessible(project, isOwner)) return SAFE_METADATA
+  return {
+    title: `${project!.title} — Glyph`,
+    description: project!.short_description || SAFE_METADATA.description,
+  }
+}
 
 type PlaytestRequest = {
   id: string
@@ -31,47 +79,33 @@ type StudioLink = { studios: { slug: string; name: string; status: string } | nu
 type CollabPost = { id: string; post_type: string; role_needed: string | null; role_offered: string | null; contract_type: string }
 
 const CONTRACT_LABELS = Object.fromEntries(CONTRACT_TYPES.map((c) => [c.value, c.label])) as Record<string, string>
+const monogram = (title: string) => title.replace(/[^\p{L}\p{N} ]/gu, '').split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '·'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
+/** Quiet section heading — no mono costume, no eyebrow above it. */
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-h2 font-semibold tracking-[-0.01em] text-ink">{children}</h2>
+}
+
 export default async function PublicProjectPage({
   params,
 }: {
-  params: Promise<{ username: string; 'project-slug': string }>
+  params: Promise<RouteParams>
 }) {
   const { username, 'project-slug': projectSlug } = await params
-  const supabase = await createClient()
+  const { profile, project, isOwner, currentUserId } = await loadProjectIdentity(username, projectSlug)
 
-  const {
-    data: { user: currentUser },
-  } = await supabase.auth.getUser()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, username, display_name, avatar_url')
-    .eq('username', username)
-    .maybeSingle<Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>>()
-
-  if (!profile) notFound()
-
-  const { data: project } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('owner_id', profile.id)
-    .eq('slug', projectSlug)
-    .maybeSingle<Project>()
-
-  if (!project) notFound()
-
-  const isOwner = currentUser?.id === profile.id
-
+  if (!profile || !project) notFound()
   // Draft gates viewing regardless of visibility (mirrors devlog draft behaviour and the
   // projects_read RLS policy from the B4 migration) — a private project is visibility-gated,
-  // a draft project is lifecycle-gated, and both apply.
-  if ((project.lifecycle === 'draft' || project.visibility === 'private') && !isOwner) notFound()
+  // a draft project is lifecycle-gated, and both apply. Unlisted stays reachable by this exact link.
+  if (isInaccessible(project, isOwner)) notFound()
 
+  const supabase = await createClient()
+  const currentUser = currentUserId ? { id: currentUserId } : null
   const nowIso = new Date().toISOString()
 
   const [{ data: devlogRows, error: devlogsError }, { data: openPlaytest }, { data: publisherAccount }, { data: studioLinks }, { data: collabPosts }] =
@@ -154,236 +188,195 @@ export default async function PublicProjectPage({
   const stage = labelFor(PROJECT_STAGES, project.stage)
   const ownerName = profile.display_name || profile.username
   const projectHref = `/p/${username}/${projectSlug}`
-  const heroTint = tintFor(project.id || project.title)
-
-  const facts = [
-    // Stage is already the title badge above — stating it a second time here was pure repetition.
-    { label: 'Engine', value: engine },
-    { label: 'Genre', value: project.genre },
-    { label: 'Started', value: formatDate(project.created_at) },
-    { label: 'Last devlog', value: latestPublished ? relativeTime(latestPublished) : null },
-    { label: 'Devlogs', value: publishedCount > 0 ? String(publishedCount) : null, mono: true },
-  ]
   const tags = ((project.tags as string[] | null) ?? []).filter(Boolean)
+  const isArchived = project.lifecycle === 'archived'
 
-  const ownerActions = isOwner ? (
-    <div className="flex flex-wrap gap-2">
-      <Button asChild variant="secondary" size="sm"><Link href={`/dashboard/projects/${project.id}/edit`}><Pencil aria-hidden strokeWidth={1.75} className="size-4" /> Edit</Link></Button>
-      <Button asChild variant="primary" size="sm"><Link href={`/dashboard/projects/${project.id}/devlogs/new`}><PenLine aria-hidden strokeWidth={1.75} className="size-4" /> Write devlog</Link></Button>
-    </div>
-  ) : null
-
-  // The context rail: who + facts + how to participate + where else this project lives. Rendered
-  // in the Shell's rail slot ≥1280px, and inline (below the hero) under that width.
-  const railContent = (
-    <div className="space-y-7">
-      <div>
-        <Link href={`/dev/${username}`} className="group flex items-center gap-3">
-          <Avatar name={ownerName} src={profile.avatar_url} size="lg" />
-          <span className="min-w-0">
-            <span className="block truncate text-body font-semibold text-fg group-hover:text-link">{ownerName}</span>
-            <span className="block truncate font-mono text-micro text-fg-muted">@{profile.username}</span>
-          </span>
-        </Link>
-      </div>
-
-      <div className="border-t border-line-subtle pt-5">
-        <h2 className="mb-2 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Details</h2>
-        <MetadataBar layout="stacked" items={facts} />
-      </div>
-
-      {(openPlaytest || collabs.length > 0) && (
-        <div className="space-y-3 border-t border-line-subtle pt-5">
-          <h2 className="font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Get involved</h2>
-          {openPlaytest && (
-            <OpportunitySummary title="Open playtest">
-              <p className="text-small text-fg-secondary">
-                <span className="font-mono text-fg">{openPlaytest.current_testers}/{openPlaytest.requested_testers}</span> testers
-                {openPlaytest.focus_areas.length > 0 && <> · {openPlaytest.focus_areas.map((f) => f.replace(/_/g, ' ')).join(', ')}</>}
-              </p>
-              <Button asChild variant={isOwner ? 'secondary' : 'primary'} size="sm" className="mt-3">
-                <Link href={isOwner ? '/dashboard/playtests' : `/playtests/${openPlaytest.id}`}>{isOwner ? 'Manage playtest' : 'View and sign up'}</Link>
-              </Button>
-            </OpportunitySummary>
-          )}
-          {collabs.length > 0 && (
-            <OpportunitySummary title="Looking for collaborators">
-              <ul className="divide-y divide-line-subtle">
-                {collabs.map((post) => (
-                  <li key={post.id}>
-                    <Link href={`/collaborate/${post.id}`} className="group flex min-h-11 items-center justify-between gap-3 py-1.5">
-                      <span className="truncate text-small text-fg group-hover:text-link">{post.post_type === 'seeking_collaborator' ? `Seeking ${post.role_needed ?? 'a role'}` : `Offering ${post.role_offered ?? 'help'}`}</span>
-                      <span className="shrink-0 font-mono text-micro text-fg-muted">{CONTRACT_LABELS[post.contract_type] ?? post.contract_type}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </OpportunitySummary>
-          )}
-        </div>
-      )}
-
-      {externalLinks.length > 0 && (
-        <div className="border-t border-line-subtle pt-5">
-          <h2 className="mb-1.5 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Links</h2>
-          <ul>
-            {externalLinks.map(([platform, url]) => {
-              const Icon = platform.toLowerCase().includes('github') ? GitBranch : platform.toLowerCase().includes('itch') ? Joystick : Globe
-              return (
-                <li key={platform}>
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-small font-medium text-link underline-offset-2 hover:underline lg:min-h-0 lg:py-1">
-                    <Icon aria-hidden strokeWidth={1.75} className="size-4" /> {platform}<span className="sr-only"> (opens in a new tab)</span>
-                  </a>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
-
-      {(studios.length > 0 || jams.length > 0) && (
-        <div className="space-y-4 border-t border-line-subtle pt-5">
-          {studios.length > 0 && (
-            <div>
-              <h2 className="mb-1.5 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Studio</h2>
-              <ul className="space-y-0.5">
-                {studios.map((st) => <li key={st.slug}><Link href={`/studios/${st.slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-small text-link underline-offset-2 hover:underline lg:min-h-0"><Building2 aria-hidden strokeWidth={1.75} className="size-3.5" /> {st.name}</Link></li>)}
-              </ul>
-            </div>
-          )}
-          {jams.length > 0 && (
-            <div>
-              <h2 className="mb-1.5 font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Game jams</h2>
-              <ul className="space-y-0.5">
-                {jams.map((j) => <li key={j.slug}><Link href={`/jams/${j.slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-small text-link underline-offset-2 hover:underline lg:min-h-0"><Trophy aria-hidden strokeWidth={1.75} className="size-3.5" /> {j.title}</Link></li>)}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tags.length > 0 && (
-        <div className="border-t border-line-subtle pt-5">
-          <ul className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-small text-fg-secondary">
-            {tags.map((tag) => <li key={tag}>#{tag}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {isPublisherViewer && (
-        <div className="space-y-2 border-t border-line-subtle pt-5">
-          <h2 className="font-mono text-micro font-medium uppercase tracking-wide text-fg-muted">Publisher tools</h2>
-          <AddToShortlistButton projectId={project.id} shortlists={typedShortlists} />
-          <Link href={`/dashboard/publisher/contact/${project.owner_id}?project=${project.id}`} className="block text-small font-medium text-link underline-offset-2 hover:underline">Contact developer about this project</Link>
-        </div>
-      )}
-    </div>
-  )
+  const metaFacts = [engine, project.genre, `Started ${formatDate(project.created_at)}`].filter(Boolean) as string[]
 
   return (
-    <Shell breadcrumb={[{ label: ownerName, href: `/dev/${username}` }, { label: project.title }]} rail={railContent}>
-      <div className="mx-auto w-full max-w-3xl xl:mx-0 xl:max-w-2xl">
-        {/* Hero — cinematic when there is cover art, editorial when there isn't (media poverty must
-            never look like a broken box). Either way it establishes game identity in one glance. */}
-        {coverUrl ? (
-          <section className="relative -mx-4 overflow-hidden sm:-mx-6 sm:rounded-panel lg:-mx-8 lg:rounded-panel" style={{ boxShadow: '0 1px 2px rgb(24 25 37 / 0.06), 0 30px 60px -30px rgb(24 25 37 / 0.28)' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverUrl} alt={`${project.title} cover art`} className="aspect-[3/2] max-h-[420px] w-full object-cover sm:aspect-[2/1]" />
-            <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(10,10,12,.9) 6%, rgba(10,10,12,.45) 46%, rgba(10,10,12,.08) 100%)' }} />
-            <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-8">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                {stage && <span className="rounded-badge bg-white/18 px-2 py-0.5 font-mono text-micro font-medium backdrop-blur-sm">{stage}</span>}
-                {openPlaytest && <span className="rounded-badge bg-accent px-2 py-0.5 font-mono text-micro font-semibold">Open for playtesting</span>}
-                {isOwner && project.visibility !== 'public' && <span className="rounded-badge bg-warning px-2 py-0.5 font-mono text-micro font-semibold text-white">{project.visibility === 'private' ? 'Private' : 'Unlisted'}</span>}
-              </div>
-              <h1 className="text-[2rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[2.75rem] [overflow-wrap:anywhere]">{project.title}</h1>
-              {project.short_description && <p className="mt-2 max-w-[46ch] text-body leading-relaxed text-white/85 [overflow-wrap:anywhere]">{project.short_description}</p>}
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-                <Link href={`/dev/${username}`} className="inline-flex items-center gap-2 text-small font-medium hover:underline"><Avatar name={ownerName} src={profile.avatar_url} size="sm" /> {ownerName}</Link>
-                {!isOwner && openPlaytest && <Button asChild variant="secondary" size="sm" className="border-transparent bg-white text-fg hover:bg-white/90"><Link href={`/playtests/${openPlaytest.id}`}>Join playtest</Link></Button>}
-                {isOwner && ownerActions}
-              </div>
-            </div>
-          </section>
-        ) : (
-          // Media poverty must never read as an unfinished page. With no cover the title itself
-          // becomes the cover: a deterministic tinted band (same palette as the grid title-plates)
-          // carries the identity with real visual weight instead of black type on empty white.
-          <header
-            className="relative -mx-4 overflow-hidden px-5 py-7 sm:-mx-6 sm:rounded-panel sm:px-8 sm:py-9 lg:-mx-8 lg:px-9"
-            style={{ backgroundColor: heroTint.bg, color: heroTint.ink, boxShadow: '0 1px 2px rgb(24 25 37 / 0.05)' }}
-          >
-            <div className="relative mb-3 flex flex-wrap items-center gap-2">
-              {stage && <span className="rounded-badge bg-canvas/70 px-2 py-0.5 font-mono text-micro font-semibold" style={{ color: heroTint.ink }}>{stage}</span>}
-              {project.is_primary && <span className="rounded-badge bg-canvas/70 px-2 py-0.5 font-mono text-micro font-medium" style={{ color: heroTint.ink }}>Current project</span>}
-              {openPlaytest && <span className="rounded-badge bg-accent px-2 py-0.5 font-mono text-micro font-semibold text-white">Open for playtesting</span>}
-              {isOwner && project.visibility !== 'public' && <Badge tone="warning">{project.visibility === 'private' ? 'Private — only you can see this' : 'Unlisted — reachable by link only'}</Badge>}
-            </div>
-            <h1 className="relative text-display font-semibold tracking-[-0.02em] [overflow-wrap:anywhere]" style={{ color: heroTint.ink }}>{project.title}</h1>
-            {[engine, project.genre].some(Boolean) && (
-              <p className="relative mt-2 font-mono text-small" style={{ color: heroTint.ink, opacity: 0.72 }}>{[engine, project.genre].filter(Boolean).join(' · ')}</p>
+    <GlyphShell>
+      <div className="mx-auto w-full max-w-4xl">
+        {/* Identity — established in the first viewport, independent of media. Owner + project,
+            stage/lifecycle truth, evidence-of-activity, and the one viewer-relative primary action. */}
+        <div>
+          <Link href={`/dev/${username}`} className="group inline-flex items-center gap-2.5 outline-none">
+            <GAvatar name={ownerName} src={profile.avatar_url} size={28} />
+            <span className="text-small font-medium text-ink-2 group-hover:text-ink">{ownerName}</span>
+            <span className="font-mono text-micro text-ink-3">@{profile.username}</span>
+          </Link>
+
+          <div className="mt-4 flex items-start gap-4">
+            {!coverUrl && (
+              <span aria-hidden className="mt-1 flex size-14 shrink-0 items-center justify-center rounded-[12px] border border-hair bg-sunken font-mono text-h3 font-semibold text-ink-2">
+                {monogram(project.title)}
+              </span>
             )}
-            {project.short_description && <p className="relative mt-2 max-w-prose text-h3 font-normal [overflow-wrap:anywhere]" style={{ color: heroTint.ink, opacity: 0.82 }}>{project.short_description}</p>}
-            <div className="relative mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
-              <Link href={`/dev/${username}`} className="inline-flex min-h-11 items-center gap-2 text-small font-medium hover:underline" style={{ color: heroTint.ink }}><Avatar name={ownerName} src={profile.avatar_url} size="sm" /> {ownerName}</Link>
-              {!isOwner && openPlaytest && <Button asChild variant="primary" size="sm"><Link href={`/playtests/${openPlaytest.id}`}>Join playtest</Link></Button>}
-              {isOwner && ownerActions}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-display font-semibold tracking-[-0.025em] text-ink [overflow-wrap:anywhere]">{project.title}</h1>
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                {stage && <span className="rounded-full bg-sunken px-2.5 py-0.5 text-small font-medium text-ink-2">{stage}</span>}
+                {isArchived && <span className="font-mono text-micro uppercase tracking-[0.08em] text-ink-3">Archived</span>}
+                {openPlaytest && <span className="inline-flex items-center gap-1.5 rounded-full bg-ember px-2.5 py-0.5 text-small font-semibold text-ink-on-ember"><span aria-hidden className="size-1.5 rounded-full bg-ink-on-ember" />Open playtest</span>}
+                {isOwner && project.visibility !== 'public' && (
+                  <span className="rounded-full bg-gwarning/15 px-2.5 py-0.5 text-small font-medium text-gwarning">{project.visibility === 'private' ? 'Private — only you can see this' : 'Unlisted — reachable by link only'}</span>
+                )}
+              </div>
+              {metaFacts.length > 0 && <p className="mt-2 text-small text-ink-2">{metaFacts.join(' · ')}</p>}
             </div>
-          </header>
+          </div>
+
+          {project.short_description && <p className="mt-4 max-w-[68ch] text-body-lg leading-relaxed text-ink-2 [overflow-wrap:anywhere]">{project.short_description}</p>}
+
+          <div className="mt-5 flex flex-wrap items-center gap-2.5">
+            {!isOwner && openPlaytest && <GButton asChild variant="ember" size="md"><Link href={`/playtests/${openPlaytest.id}`}>Join playtest</Link></GButton>}
+            {isOwner && (
+              <>
+                <GButton asChild variant="outline" size="md"><Link href={`/dashboard/projects/${project.id}/edit`}><Pencil aria-hidden strokeWidth={1.75} className="size-4" /> Edit</Link></GButton>
+                <GButton asChild variant="ember" size="md"><Link href={`/dashboard/projects/${project.id}/devlogs/new`}><PenLine aria-hidden strokeWidth={1.75} className="size-4" /> Write devlog</Link></GButton>
+              </>
+            )}
+            {latestPublished && <span className="text-small text-ink-3">Last devlog {relativeTime(latestPublished)}</span>}
+          </div>
+
+          {tags.length > 0 && (
+            <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-1 font-mono text-small text-ink-3">
+              {tags.map((tag) => <li key={tag}>#{tag}</li>)}
+            </ul>
+          )}
+        </div>
+
+        {/* Media — evidence, not identity. Real crop preserved, no overlay, honest labelling. A
+            failed load or a disabled image never leaves a reserved slot (GlyphCoverMedia /
+            GlyphScreenshotGallery own their own error handling and unmount rather than showing a
+            broken box). */}
+        {coverUrl && <GlyphCoverMedia src={coverUrl} alt={`${project.title} cover art`} />}
+
+        {screenshots.length > 0 && (
+          <GlyphScreenshotGallery
+            title="Screenshots"
+            screenshots={screenshots.map((url, i) => ({ url, alt: `${project.title} screenshot ${i + 1}` }))}
+          />
         )}
 
-        {/* Rail content inline below the hero on < xl (the Shell rail only renders ≥ 1280). */}
-        <div className="mt-8 border-t border-line pt-6 xl:hidden">{railContent}</div>
-
-        {/* Narrative + the development record (the differentiator, given its own weight). */}
-        <div className="mt-10 space-y-12">
-          {project.long_description && (
-            <section aria-labelledby="about">
-              <h2 id="about" className="mb-4 text-h2 font-semibold tracking-[-0.01em] text-fg">About</h2>
-              <MarkdownRenderer content={project.long_description} />
-            </section>
-          )}
-
-          {screenshots.length > 0 && (
-            <section aria-labelledby="screenshots">
-              <h2 id="screenshots" className="mb-4 text-h2 font-semibold tracking-[-0.01em] text-fg">Screenshots</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {screenshots.map((url, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={url} src={url} alt={`${project.title} screenshot ${i + 1}`} loading="lazy" className="aspect-video w-full rounded-media border border-line object-cover transition-transform duration-300 ease-out motion-safe:hover:scale-[1.01]" />
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section aria-labelledby="devlogs">
-            <div className="mb-4 flex items-baseline gap-2">
-              <h2 id="devlogs" className="text-h2 font-semibold tracking-[-0.01em] text-fg">Development history</h2>
-              {publishedCount > 0 && <span className="font-mono text-small text-fg-muted">{publishedCount}</span>}
-            </div>
-            {devlogsError ? (
-              <ErrorState inline title="We couldn't load the devlogs" description="This may be temporary. Reload the page to try again." />
-            ) : entries.length > 0 ? (
-              <ol className="divide-y divide-line-subtle border-y border-line-subtle">
-                {entries.map((entry) => (
-                  <DevlogRow key={entry.id} variant="timeline" entry={entry} projectHref={projectHref} editHref={isOwner ? `/dashboard/projects/${project.id}/devlogs/${entry.id}/edit` : undefined} />
-                ))}
-              </ol>
-            ) : (
-              <div className="flex flex-col items-start gap-1 rounded-panel border border-line bg-surface-muted p-6 sm:p-8">
-                <span aria-hidden className="mb-2 flex size-9 items-center justify-center rounded-full bg-accent-subtle text-accent-hover">
-                  <PenLine strokeWidth={1.75} className="size-4" />
-                </span>
-                <h3 className="text-h3 font-semibold text-fg">No devlogs yet</h3>
-                <p className="max-w-md text-small text-fg-secondary">
-                  {isOwner ? "The first one starts this project's public record — the history testers and collaborators read to catch up." : `${ownerName} hasn't published a devlog for this project yet. Follow to see the first one.`}
-                </p>
-                {isOwner && <Button asChild variant="primary" size="sm" className="mt-3"><Link href={`/dashboard/projects/${project.id}/devlogs/new`}>Write the first devlog</Link></Button>}
-              </div>
-            )}
+        {project.long_description && (
+          <section aria-labelledby="about" className="mt-10 max-w-[68ch]">
+            <SectionHeading><span id="about">About</span></SectionHeading>
+            <div className="mt-4"><GlyphRichText content={project.long_description} /></div>
           </section>
-        </div>
+        )}
+
+        {/* Development record — the differentiator: evidence this is actively being built. */}
+        <section aria-labelledby="devlogs" className="mt-12">
+          <div className="flex items-baseline gap-2">
+            <SectionHeading><span id="devlogs">Development record</span></SectionHeading>
+            {publishedCount > 0 && <span className="font-mono text-small tabular-nums text-ink-3">{publishedCount}</span>}
+          </div>
+          <div className="mt-4">
+            {devlogsError ? (
+              <GErrorState title="We couldn't load the devlogs" description="This may be temporary. Reload the page to try again." />
+            ) : entries.length > 0 ? (
+              <ul>
+                {entries.map((entry) => (
+                  <GlyphProjectDevlogRow key={entry.id} entry={entry} projectHref={projectHref} editHref={isOwner ? `/dashboard/projects/${project.id}/devlogs/${entry.id}/edit` : undefined} />
+                ))}
+              </ul>
+            ) : (
+              <GEmptyState
+                title="No devlogs yet"
+                description={isOwner ? "The first one starts this project's public record — the history testers and collaborators read to catch up." : `${ownerName} hasn't published a devlog for this project yet.`}
+                action={isOwner ? <GButton asChild variant="ember" size="sm" className="h-11 sm:h-9"><Link href={`/dashboard/projects/${project.id}/devlogs/new`}>Write the first devlog</Link></GButton> : undefined}
+              />
+            )}
+          </div>
+        </section>
+
+        {/* Supporting context — discoverable without a persistent rail. Only sections with real data render. */}
+        {(openPlaytest || collabs.length > 0) && (
+          <section aria-labelledby="involved" className="mt-12">
+            <SectionHeading><span id="involved">Get involved</span></SectionHeading>
+            <div className="mt-4 space-y-4">
+              {openPlaytest && (
+                <div className="rounded-[12px] border border-hair bg-panel p-4">
+                  <div className="flex items-center gap-2"><span aria-hidden className="size-1.5 rounded-full bg-ember" /><p className="text-small font-medium text-ink">Open playtest</p></div>
+                  <p className="mt-1.5 text-small text-ink-2">
+                    <span className="font-mono tabular-nums text-ink">{openPlaytest.current_testers}/{openPlaytest.requested_testers}</span> testers
+                    {openPlaytest.focus_areas.length > 0 && <> · {openPlaytest.focus_areas.map((f) => f.replace(/_/g, ' ')).join(', ')}</>}
+                  </p>
+                  {/* The single Ember "Join playtest" primary action already lives in the identity
+                      row above — this stays a quiet secondary affordance to the same destination
+                      (owner: manage it instead) so the page never shows two equivalent CTAs. */}
+                  <GButton asChild variant="outline" size="sm" className="mt-3 h-11 sm:h-9">
+                    <Link href={isOwner ? '/dashboard/playtests' : `/playtests/${openPlaytest.id}`}>{isOwner ? 'Manage playtest' : 'View playtest details'}</Link>
+                  </GButton>
+                </div>
+              )}
+              {collabs.length > 0 && (
+                <div className="rounded-[12px] border border-hair bg-panel p-4">
+                  <p className="mb-1 flex items-center gap-2 text-small font-medium text-ink"><Users aria-hidden strokeWidth={1.75} className="size-4 text-ink-3" /> Looking for collaborators</p>
+                  <ul className="divide-y divide-hair">
+                    {collabs.map((post) => (
+                      <li key={post.id}>
+                        <Link href={`/collaborate/${post.id}`} className="group flex min-h-11 items-center justify-between gap-3 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ember">
+                          <span className="truncate text-small text-ink group-hover:text-ember-ink">{post.post_type === 'seeking_collaborator' ? `Seeking ${post.role_needed ?? 'a role'}` : `Offering ${post.role_offered ?? 'help'}`}</span>
+                          <span className="shrink-0 font-mono text-micro text-ink-3">{CONTRACT_LABELS[post.contract_type] ?? post.contract_type}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {(studios.length > 0 || jams.length > 0) && (
+          <section aria-labelledby="elsewhere" className="mt-12">
+            <SectionHeading><span id="elsewhere">Elsewhere on Glyph</span></SectionHeading>
+            <div className="mt-4 grid gap-6 sm:grid-cols-2">
+              {studios.length > 0 && (
+                <div>
+                  <p className="mb-2 text-micro font-medium text-ink-3">Studio</p>
+                  <ul className="space-y-1">{studios.map((st) => <li key={st.slug}><Link href={`/studios/${st.slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-small text-ember-ink underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ember sm:min-h-9"><Building2 aria-hidden strokeWidth={1.75} className="size-3.5" /> {st.name}</Link></li>)}</ul>
+                </div>
+              )}
+              {jams.length > 0 && (
+                <div>
+                  <p className="mb-2 text-micro font-medium text-ink-3">Game jams</p>
+                  <ul className="space-y-1">{jams.map((j) => <li key={j.slug}><Link href={`/jams/${j.slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-small text-ember-ink underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ember sm:min-h-9"><Trophy aria-hidden strokeWidth={1.75} className="size-3.5" /> {j.title}</Link></li>)}</ul>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {externalLinks.length > 0 && (
+          <section aria-labelledby="links" className="mt-12">
+            <SectionHeading><span id="links">Links</span></SectionHeading>
+            <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+              {externalLinks.map(([platform, url]) => {
+                const Icon = platform.toLowerCase().includes('github') ? GitBranch : platform.toLowerCase().includes('itch') ? Joystick : Globe
+                return (
+                  <li key={platform}>
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-small font-medium text-ember-ink underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ember">
+                      <Icon aria-hidden strokeWidth={1.75} className="size-4" /> {platform}<span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )}
+
+        {isPublisherViewer && (
+          <section aria-labelledby="publisher" className="mt-12 border-t border-hair pt-8">
+            <SectionHeading><span id="publisher">Publisher tools</span></SectionHeading>
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <GlyphShortlistButton projectId={project.id} shortlists={typedShortlists} />
+              <Link href={`/dashboard/publisher/contact/${project.owner_id}?project=${project.id}`} className="text-small font-medium text-ember-ink underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ember">Contact developer about this project</Link>
+            </div>
+          </section>
+        )}
       </div>
-    </Shell>
+    </GlyphShell>
   )
 }

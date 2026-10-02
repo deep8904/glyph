@@ -1,0 +1,200 @@
+{
+  "note": "Hand-extracted from this run's validation.log/results/*.txt for quick machine reference. The authoritative record is validation.log; re-running run-validation.sh will produce different UUIDs (expected — see README) but the same structural outcomes.",
+  "postgresql_version": "PostgreSQL 16.15 (Homebrew) on aarch64-apple-darwin27.0.0",
+  "connection_identity": {
+    "socket": "unix socket under /tmp/onb_val_sock.<random> (no TCP listener; inet_server_addr()/inet_server_port() both null)",
+    "port": 55433,
+    "roles_used": ["postgres (superuser, fresh cluster)", "rollback_operator (createdb, NOSUPERUSER)"]
+  },
+  "genuine_overlap_lock_hold": {
+    "description": "session 1 held `for update` on the profile row for 3s (pg_sleep), session 2 called finalize_onboarding_project for the same user concurrently",
+    "pg_locks_mid_hold": "relation RowShareLock, granted=true, on public.profiles, query='select pg_sleep(3);'",
+    "session2_project_id": "c64318db-2921-4c89-937e-a8e916271228",
+    "session2_started": "2026-09-29 13:10:28.43331-07",
+    "session2_finished": "2026-09-29 13:10:30.69229-07",
+    "observed_block_seconds": "~2.26 (matches session 1's 3s hold minus the ~0.7s stagger before session 2 was launched)",
+    "final_row_count_for_owner": 1,
+    "final_titles": ["Include Wins The Race"]
+  },
+  "genuine_include_include_race_no_artificial_delay": {
+    "description": "two real background psql processes called finalize_onboarding_project for the same brand-new user at nearly the same instant, no lock pre-held",
+    "final_project_id": "9569a8ba-c0e7-4424-b0f8-4b1fee51f923",
+    "final_title": "Racer B",
+    "both_callers_returned_this_same_id": true,
+    "final_row_count_for_owner": 1
+  },
+  "cross_account_mutation_assertion_corrected": {
+    "defect_in_prior_run": "expect_fail wrapped a shell comparison against 'psql -Atc' output containing multiple statements in one -c string; command-status lines ('SET') were captured alongside the intended scalar, so the string comparison never matched the expected literal regardless of whether RLS actually blocked the mutation — both secure and insecure outcomes recorded PASS.",
+    "fix": "capture A's is_onboarded before/after as the privileged operator via separate -qtA calls; run B's unauthorized attempt as one statement whose only output is a single scalar from `WITH changed AS (UPDATE ... RETURNING 1) SELECT count(*) FROM changed;` under -q -t -A.",
+    "before_value": "t",
+    "changed_row_scalar": "0",
+    "after_value": "t",
+    "byte_for_byte_unchanged": true,
+    "harness_self_test": {
+      "secure_scalar_0_passes": true,
+      "insecure_scalar_1_correctly_reported_as_failure": true,
+      "rls_weakened_or_bypassed_to_manufacture_self_test": false
+    }
+  },
+  "lost_response_retry_idempotency": {
+    "user": "11111111-1111-1111-1111-111111111111",
+    "first_call_title": "My Game",
+    "retry_call_title_supplied": "A Totally Different Title",
+    "retry_returned_same_project_id": true,
+    "final_row_count_for_owner": 1,
+    "final_title_unchanged": "My Game"
+  },
+  "terminal_skip": {
+    "user": "22222222-2222-2222-2222-222222222222",
+    "skip_call_project_id": null,
+    "retry_with_title_project_id": null,
+    "final_row_count_for_owner": 0
+  },
+  "caller_scoped_reconciliation_guard": {
+    "description": "proposal §5a: finalize_onboarding_project itself refuses an unresolved legacy account, independent of the external rollout gate",
+    "execute_privilege_before_migration": "false (or function absent)",
+    "execute_privilege_after_migration": true,
+    "granted_function_contains_guard_errcode_55000": true,
+    "G1_single_candidate_unresolved": {
+      "rejected": true,
+      "errcode_observed_in_error_text": true,
+      "project_rows_after_attempt": 1,
+      "marked_rows_after_attempt": 0,
+      "is_onboarded_after_attempt": false,
+      "error_text_leaks_project_id_or_title": false
+    },
+    "G2_ambiguous_unresolved": {
+      "rejected": true,
+      "project_rows_after_attempt": 2
+    },
+    "G3_reconciled_confirmed_onboarding": {
+      "rpc_returned_project_id": "c3000000-0000-0000-0000-000000000001",
+      "matches_reconciled_project_id": true,
+      "new_project_created": false
+    },
+    "G4_reconciled_confirmed_not_onboarding": {
+      "include_created_exactly_one_marked_project": true,
+      "total_projects_for_owner": 2,
+      "preexisting_candidate_remained_unmarked": true
+    },
+    "G5_concurrent_reconciliation_and_rpc": {
+      "session1_action": "admin_reconcile_onboarding, holding the profile row lock 2s first",
+      "session2_action": "finalize_onboarding_project for the same account, launched during session 1's hold",
+      "session2_started": "2026-09-29 13:23:05.879095-07",
+      "session2_finished": "2026-09-29 13:23:07.354296-07",
+      "session2_returned_project_id": "c5000000-0000-0000-0000-000000000001",
+      "matches_reconciled_project_id": true,
+      "final_project_count_for_owner": 1
+    }
+  },
+  "item51_real_slug_gate": {
+    "description": "proposal item 51 (revision 14): corrected real-slug non-blocking gate, genuine two-session, millisecond clock_timestamp() timing",
+    "corrected_migration": {
+      "session_a": "held profile lock for 3000ms via explicit transaction",
+      "session_b_elapsed_ms": 1,
+      "session_b_row_count": 1,
+      "conclusion": "real-slug insert never touched the profile lock; completed in ~1ms while the lock was held for 3000ms"
+    },
+    "broken_variant_isolated_db": {
+      "database": "onboarding_val_item51_broken (throwaway, early return removed from serialize_null_slug_project_insert)",
+      "session_b_elapsed_ms": 2487,
+      "conclusion": "with the early return removed, the SAME gate correctly fails by blocking for ~2487ms (matching the ~2.5s remaining on session A's 3000ms hold) — proves the gate discriminates, not vacuous"
+    }
+  },
+  "transition_matrix_reject_on_update": {
+    "description": "proposal §5c: UPDATE non-null -> null is rejected at the database boundary and takes no lock of any kind",
+    "rejection_errcode_observed": "23514",
+    "rejection_message": "clearing a project slug back to null is not supported",
+    "no_lock_proof": {
+      "another_session_held_profile_lock_for_ms": 3000,
+      "rejection_elapsed_ms": 42,
+      "conclusion": "the rejection completed in 42ms while a DIFFERENT session held the same owner's profile row locked for 3000ms — proves reject_slug_removal_update() never attempted to acquire that lock"
+    },
+    "unaffected_transitions_verified": ["null -> non-null", "non-null -> different-non-null"]
+  },
+  "item54_enforced_control": {
+    "description": "proposal item 54 (revision 14): enforced (not informational) trigger-less anti-vacuity control, millisecond clock_timestamp() timing, asserting the production acceptance assertions themselves flip",
+    "database": "onboarding_val_item54_control (throwaway, migration applied without either §5b trigger)",
+    "rpc_finished_at_ms": 1790727691780.604,
+    "ordinary_insert_actual_commit_at_ms": 1790727693260.725,
+    "rpc_finished_before_commit": true,
+    "rpc_incorrectly_reported": {"onboarded": true, "project_id": "5d46b905-6f23-4351-b809-0d8fc46b07c7"},
+    "final_state_without_trigger": {"marked": 1, "unmarked": 1, "total": 2, "conclusion": "the conflicting two-project state item 46/56 says must be impossible under the real migration"},
+    "same_scenario_under_real_fixed_migration": {
+      "reused_from": "Ordering A (item 35) in the same run",
+      "marked": 0,
+      "total": 1,
+      "conclusion": "the production acceptance assertions DO pass under the real migration in this same run — the control's assertions genuinely flip when the mechanism is removed"
+    }
+  },
+  "item55_deadlock_regression": {
+    "description": "proposal item 55 (revision 14): genuine two-session deadlock-order regression test against the CORRECTED design",
+    "session_a": "authenticated UPDATE renaming a real slug, held open 3000ms via explicit transaction",
+    "session_b": "admin_reconcile_onboarding (locks profile FIRST, then updates the same project) — launched 500ms after session A",
+    "both_sessions_exit_code": 0,
+    "postgres_deadlock_detected_error_observed": false,
+    "locks_surviving_after_both_completed": 0,
+    "final_state": {
+      "slug": "deadlock-regression-project-renamed",
+      "is_onboarding_project": true,
+      "reconciliation_resolution": "confirmed_onboarding"
+    },
+    "conclusion": "session B only ever waited on session A's project-row lock (a single resource), never a two-resource cycle, because session A's UPDATE never touches the profile lock under the corrected §5b design"
+  },
+  "item56_old_trigger_deadlock_reproduction": {
+    "description": "proposal item 56 (revision 14): isolated reproduction of revision 13's withdrawn single combined trigger, in a throwaway database, never combined with any correctness claim about the candidate migration",
+    "database": "onboarding_val_old_trigger_deadlock",
+    "migration_variant": "sql/29_migration_with_OLD_combined_trigger_TESTONLY.sql (revision 13's before-insert-or-update-of-slug trigger, substituted in place of the two corrected §5b triggers)",
+    "session_a": "authenticated UPDATE clearing slug to null (fires the OLD trigger's profile-lock attempt, AFTER Postgres has already locked the project row for the UPDATE)",
+    "session_b": "locks the profile row first, holds 2000ms, then updates the same project row",
+    "raw_postgres_error": "ERROR:  deadlock detected\nDETAIL:  Process 38746 waits for ShareLock on transaction 1081; blocked by process 38748.\nProcess 38748 waits for ShareLock on transaction 1080; blocked by process 38746.\nHINT:  See server log for query details.\nCONTEXT:  while locking tuple (0,1) in relation \"projects\"",
+    "conclusion": "a real, observable Postgres deadlock — not an inference from timing — reproducing exactly the reverse lock order (project-row held while waiting on profile-row; profile-row held while waiting on project-row) that revision 14 withdraws and replaces"
+  },
+  "null_slug_insert_serialization_trigger": {
+    "description": "proposal §5b (revision 13 baseline, still valid for the INSERT branch under revision 14's split): BEFORE INSERT trigger locks the row's owner profile before a null-slug insert proceeds",
+    "ordering_A_ordinary_insert_first": {
+      "session1_action": "createDraftProject-shaped insert, held open 2s via an explicit transaction",
+      "session1_lock_observed": "RowShareLock, granted=true, on public.profiles",
+      "session2_action": "finalize_onboarding_project for the same owner, launched during session 1's hold",
+      "session2_started": "2026-09-29 14:45:43.16882-07",
+      "session2_result": "ERROR 55000: onboarding cannot be finalized automatically",
+      "session2_finished": "2026-09-29 14:45:44.621335-07",
+      "observed_wait_seconds": "~1.45 (consistent with the ~2s hold minus the 0.5s stagger before session 2 launched)",
+      "final_project_count_for_owner": 1,
+      "final_marked_count_for_owner": 0,
+      "final_is_onboarded": false
+    },
+    "ordering_B_rpc_first": {
+      "session1_action": "manual pre-lock of the profile row, held 2s, then finalize_onboarding_project called",
+      "session2_action": "createDraftProject-shaped insert for the same owner, launched during session 1's hold",
+      "session2_result": "blocked, then resumed and committed (INSERT 0 1) once session 1 committed",
+      "final_project_count_for_owner": 2,
+      "final_marked_count_for_owner": 1,
+      "final_unmarked_count_for_owner": 1,
+      "final_is_onboarded": true
+    },
+    "unrelated_user_non_blocking": {
+      "elapsed_while_another_owners_lock_was_held_seconds": 0
+    },
+    "harness_self_test_trigger_deliberately_absent": {
+      "database": "onboarding_val_serialize_selftest (isolated throwaway, never combined with any correctness claim)",
+      "scenario": "identical to Ordering A, but migration applied without creating the trigger",
+      "rpc_elapsed_seconds": 0,
+      "conclusion": "the RPC does not wait without the trigger — confirms the ~1.45s wait observed in real Ordering A came from the trigger, not coincidence or unrelated latency"
+    }
+  },
+  "second_grantor_failure_fail_closed": {
+    "captured_grantors": ["test_grantor_x", "rollback_operator"],
+    "rollback_executed_as": "rollback_operator (non-superuser)",
+    "membership_revoked_before_attempt": "test_grantor_x membership revoked from rollback_operator",
+    "result": "SET LOCAL ROLE test_grantor_x failed with 'permission denied to set role', whole rollback transaction aborted",
+    "post_failure_authenticated_insert_privilege": false,
+    "post_failure_objects_present": {
+      "private.onboarding_migration_acl_baseline": true,
+      "public.onboarding_reconciliation": true,
+      "finalize_onboarding_project": true,
+      "projects.is_onboarding_project column": true
+    },
+    "surviving_locks_for_rollback_operator_after_failure": 0
+  }
+}

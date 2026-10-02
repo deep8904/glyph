@@ -1,0 +1,6 @@
+== pg_locks for rollback_operator after the failed session ended ==
+ surviving_locks 
+-----------------
+               0
+(1 row)
+

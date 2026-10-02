@@ -77,16 +77,21 @@ export async function fetchFeedPage(
   return { rows: all.slice(0, FEED_PAGE_SIZE), hasMore: all.length > FEED_PAGE_SIZE, error: false }
 }
 
-/** Comment count and per-type reaction totals for the devlogs on one page. Two queries, not one per row. */
+/**
+ * Comment count and per-type reaction totals for the devlogs on one page. Two queries, not one per
+ * row. Returns `error: true` when either query fails, so a caller never mistakes "the query failed"
+ * for "these devlogs genuinely have zero engagement" — the map is still populated with zeroed
+ * entries in that case so a caller that doesn't check `error` gets the same safe default as before.
+ */
 export async function fetchEngagement(
   supabase: SupabaseClient,
   devlogIds: string[]
-): Promise<Map<string, FeedEngagement>> {
+): Promise<{ engagement: Map<string, FeedEngagement>; error: boolean }> {
   const out = new Map<string, FeedEngagement>()
-  if (devlogIds.length === 0) return out
+  if (devlogIds.length === 0) return { engagement: out, error: false }
   for (const id of devlogIds) out.set(id, { comments: 0, reactions: [] })
 
-  const [{ data: comments }, { data: reactions }] = await Promise.all([
+  const [{ data: comments, error: commentsError }, { data: reactions, error: reactionsError }] = await Promise.all([
     supabase.from('comments').select('devlog_post_id').in('devlog_post_id', devlogIds),
     supabase.from('reactions').select('devlog_post_id, reaction_type').in('devlog_post_id', devlogIds),
   ])
@@ -102,7 +107,7 @@ export async function fetchEngagement(
     if (slot) slot.count += 1
     else e.reactions.push({ type: r.reaction_type, count: 1 })
   }
-  return out
+  return { engagement: out, error: !!(commentsError || reactionsError) }
 }
 
 export type SuggestedDeveloper = {
@@ -118,13 +123,24 @@ export type SuggestedDeveloper = {
  * who most recently published a public devlog, minus yourself, people you
  * already follow, and anyone you have a block/mute relationship with. No
  * scoring, no engagement weighting.
+ *
+ * Fails closed on `error: true`, returning no suggestions, when the block or mute lookup itself
+ * fails — an incomplete exclusion set could otherwise suggest someone the viewer has blocked or
+ * muted, which is a privacy failure, not just a presentation one. A failure of the recent-devlogs
+ * or profile lookups instead yields a safe empty list with `error: true`, so a caller can say "we
+ * couldn't check" rather than asserting "no one has published."
  */
 export async function fetchSuggestedDevelopers(
   supabase: SupabaseClient,
   userId: string,
   limit = 6
-): Promise<SuggestedDeveloper[]> {
-  const [{ data: follows }, { data: blocks }, { data: mutes }, { data: recent }] = await Promise.all([
+): Promise<{ suggestions: SuggestedDeveloper[]; error: boolean }> {
+  const [
+    { data: follows, error: followsError },
+    { data: blocks, error: blocksError },
+    { data: mutes, error: mutesError },
+    { data: recent, error: recentError },
+  ] = await Promise.all([
     supabase.from('follows').select('followed_id').eq('follower_id', userId),
     // blocks_read RLS returns rows where the viewer is blocker OR blocked, i.e. both directions.
     supabase.from('user_blocks').select('blocker_id, blocked_id'),
@@ -139,6 +155,10 @@ export async function fetchSuggestedDevelopers(
       .limit(80),
   ])
 
+  // A failed block/mute lookup must never produce an incomplete exclusion set — fail closed rather
+  // than risk suggesting someone the viewer has blocked or muted.
+  if (blocksError || mutesError) return { suggestions: [], error: true }
+
   const excluded = new Set<string>([userId])
   for (const f of (follows ?? []) as { followed_id: string }[]) excluded.add(f.followed_id)
   for (const b of (blocks ?? []) as { blocker_id: string; blocked_id: string }[]) {
@@ -152,9 +172,10 @@ export async function fetchSuggestedDevelopers(
     if (!excluded.has(r.author_id) && !authorIds.includes(r.author_id)) authorIds.push(r.author_id)
     if (authorIds.length >= limit) break
   }
-  if (authorIds.length === 0) return []
+  const queryFailed = !!(followsError || recentError)
+  if (authorIds.length === 0) return { suggestions: [], error: queryFailed }
 
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
     .select('id, username, display_name, avatar_url, primary_role')
     .in('id', authorIds)
@@ -163,5 +184,6 @@ export async function fetchSuggestedDevelopers(
 
   // Keep "most recently active first" order.
   const byId = new Map((profiles ?? []).map((p) => [p.id, p]))
-  return authorIds.map((id) => byId.get(id)).filter((p): p is SuggestedDeveloper => !!p)
+  const suggestions = authorIds.map((id) => byId.get(id)).filter((p): p is SuggestedDeveloper => !!p)
+  return { suggestions, error: queryFailed || !!profilesError }
 }

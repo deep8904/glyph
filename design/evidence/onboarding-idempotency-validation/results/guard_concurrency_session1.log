@@ -1,0 +1,19 @@
+BEGIN
+ is_onboarded 
+--------------
+ f
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+SET
+ admin_reconcile_onboarding 
+----------------------------
+ 
+(1 row)
+
+RESET
+COMMIT

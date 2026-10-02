@@ -1,0 +1,20 @@
+BEGIN
+ is_onboarded 
+--------------
+ f
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ 91696d3e-0c02-44ca-a521-6dd05c466240 | t
+(1 row)
+
+RESET
+COMMIT

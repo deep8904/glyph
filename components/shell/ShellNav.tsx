@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Bell, Compass, Home, LogIn, LogOut, Plus, User, UserPlus, type LucideIcon } from 'lucide-react'
+import { Bell, Compass, Home, LogOut, Plus, User, type LucideIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { CREATE_ITEMS, activeGlobal, meLinks, type GlobalKey } from '@/lib/shell/nav'
@@ -14,11 +14,13 @@ import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } fr
 
 export type ShellUser = { displayName: string; username: string; email: string; nav: SidebarNavFlags }
 
-const BRAND = (
-  <>
-    Glyph<span className="text-accent">°</span>
-  </>
-)
+function Wordmark({ className }: { className?: string }) {
+  return (
+    <span className={cn('font-semibold tracking-tight text-fg', className)}>
+      Glyph<span className="text-accent">°</span>
+    </span>
+  )
+}
 
 function useSignOut() {
   const router = useRouter()
@@ -31,32 +33,30 @@ function useSignOut() {
 
 function UnreadBadge({ count, className }: { count: number; className?: string }) {
   if (!count) return null
+  // Real measured count → tabular mono is legitimate here (data, not costume).
   return (
-    <span aria-hidden className={cn('inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 font-mono text-micro font-medium text-fg-on-accent', className)}>
+    <span aria-hidden className={cn('inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 font-mono text-[11px] font-medium tabular-nums text-fg-on-accent', className)}>
       {count > 9 ? '9+' : count}
     </span>
   )
 }
 
-/* ── Desktop / tablet rail ── */
+/* ── Desktop / tablet rail ──
+   md = compact icon rail (72px); lg = labelled rail (240px). Active reads as a quiet filled
+   row (surface-muted + accent icon), not a raised pill. Content owns the page; the rail recedes. */
 
-const railItem =
-  'relative flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-small font-medium transition-colors duration-150 md:flex-col md:justify-center md:gap-0.5 md:px-1 md:py-1.5 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:py-0'
-const railLabel = 'md:text-micro lg:text-small'
-// One active language, shared with the mobile bar: an elevated white pill (soft shadow, hairline
-// ring) plus a restrained accent icon — the Direction-A treatment. Not a filled accent block.
-const stateClass = (active: boolean) =>
-  active
-    ? 'bg-surface text-fg shadow-[0_1px_2px_rgb(24_25_37/0.06),0_0_0_1px_rgb(24_25_37/0.04)]'
-    : 'text-fg-secondary hover:bg-surface-muted hover:text-fg'
-const iconStateClass = (active: boolean) => (active ? 'text-accent' : '')
+const navRow =
+  'group relative flex min-h-11 items-center gap-3 rounded-control text-small font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus md:justify-center md:px-0 lg:justify-start lg:px-3'
+const navState = (active: boolean) =>
+  active ? 'bg-surface-muted text-fg' : 'text-fg-secondary hover:bg-surface-muted/70 hover:text-fg'
 
 function RailLink({ href, label, Icon, active, badge, ariaLabel }: { href: string; label: string; Icon: LucideIcon; active: boolean; badge?: number; ariaLabel?: string }) {
   return (
-    <Link href={href} aria-current={active ? 'page' : undefined} aria-label={ariaLabel} className={cn(railItem, stateClass(active))}>
-      <Icon aria-hidden strokeWidth={1.75} className={cn('size-5 shrink-0', iconStateClass(active))} />
-      <span className={railLabel}>{label}</span>
-      {!!badge && <UnreadBadge count={badge} className="ml-auto md:absolute md:right-1.5 md:top-0.5 md:ml-0 lg:static lg:ml-auto" />}
+    <Link href={href} aria-current={active ? 'page' : undefined} aria-label={ariaLabel} className={cn(navRow, navState(active), 'px-3')}>
+      <Icon aria-hidden strokeWidth={1.75} className={cn('size-5 shrink-0 transition-colors', active ? 'text-accent' : 'text-fg-muted group-hover:text-fg')} />
+      <span className="hidden lg:inline">{label}</span>
+      {!!badge && <UnreadBadge count={badge} className="ml-auto hidden lg:inline-flex" />}
+      {!!badge && <span aria-hidden className="absolute right-2 top-1.5 size-2 rounded-full bg-accent lg:hidden" />}
     </Link>
   )
 }
@@ -64,11 +64,14 @@ function RailLink({ href, label, Icon, active, badge, ariaLabel }: { href: strin
 function CreateMenu() {
   return (
     <Menu>
-      <MenuTrigger className={cn(railItem, stateClass(false), 'data-[state=open]:bg-surface-muted data-[state=open]:text-fg')}>
-        <Plus aria-hidden strokeWidth={1.75} className="size-5 shrink-0" />
-        <span className={railLabel}>Create</span>
+      <MenuTrigger
+        aria-label="Create"
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-control bg-accent px-3 text-small font-medium text-fg-on-accent outline-none transition-[background-color,box-shadow] duration-150 hover:bg-accent-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-canvas data-[state=open]:bg-accent-hover lg:justify-start lg:gap-3"
+      >
+        <Plus aria-hidden strokeWidth={2} className="size-5 shrink-0" />
+        <span className="hidden lg:inline">Create</span>
       </MenuTrigger>
-      <MenuContent side="right" align="start" sideOffset={8} className="w-72">
+      <MenuContent side="right" align="start" sideOffset={10} className="w-72">
         <MenuLabel>Create</MenuLabel>
         {CREATE_ITEMS.map((it) => (
           <MenuItem key={it.href} asChild className="h-auto min-h-11 items-start py-2">
@@ -92,7 +95,7 @@ function MeMenu({ user, active }: { user: ShellUser; active: boolean }) {
     <Menu>
       <MenuTrigger
         aria-label={`Account menu for ${user.displayName}`}
-        className={cn('flex min-h-11 w-full items-center gap-3 rounded-control p-2 text-left transition-colors duration-150 hover:bg-surface-muted data-[state=open]:bg-surface-muted md:justify-center lg:justify-start', active && 'bg-surface-muted')}
+        className={cn('flex min-h-11 w-full items-center gap-3 rounded-control p-2 text-left outline-none transition-colors duration-150 hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-focus data-[state=open]:bg-surface-muted md:justify-center lg:justify-start', active && 'bg-surface-muted')}
       >
         <Avatar name={user.displayName} size="md" />
         <span className="hidden min-w-0 flex-1 lg:block">
@@ -120,19 +123,19 @@ export function Rail({ user }: { user: ShellUser | null }) {
   const pathname = usePathname()
   const g: GlobalKey | null = activeGlobal(pathname, user?.username ?? '')
   return (
-    <aside className="sticky top-0 hidden h-dvh w-24 shrink-0 flex-col border-r border-line bg-canvas md:flex lg:w-60">
+    <aside className="sticky top-0 hidden h-dvh w-[72px] shrink-0 flex-col border-r border-line bg-canvas md:flex lg:w-60">
       <div className="flex h-14 items-center justify-center px-3 lg:justify-start lg:px-5">
-        <Link href={user ? '/feed' : '/'} className="text-h3 font-semibold tracking-tight text-fg">{BRAND}</Link>
+        <Link href={user ? '/feed' : '/'} className="rounded-control outline-none focus-visible:ring-2 focus-visible:ring-focus">
+          <Wordmark className="text-h3 lg:text-h3" />
+        </Link>
       </div>
-      {/* Nav and account sit together under the brand; empty space pools once at the foot of the
-          rail instead of splitting into a mid-column void. For a signed-out visitor the rail is
-          only two links, so a bottom-pinned auth block left a large dead gap. */}
-      <nav aria-label="Primary" className="space-y-1 overflow-y-auto p-2 lg:p-3">
-        {user ? (
-          <>
+
+      {user ? (
+        <>
+          <div className="px-3 pt-1 lg:px-3"><CreateMenu /></div>
+          <nav aria-label="Primary" className="mt-2 space-y-0.5 overflow-y-auto px-3 lg:px-3">
             <RailLink href="/feed" label="Home" Icon={Home} active={g === 'home'} />
             <RailLink href="/explore" label="Explore" Icon={Compass} active={g === 'explore'} />
-            <CreateMenu />
             <RailLink
               href="/notifications"
               label="Notifications"
@@ -141,25 +144,27 @@ export function Rail({ user }: { user: ShellUser | null }) {
               badge={user.nav.unreadNotifications}
               ariaLabel={user.nav.unreadNotifications ? `Notifications, ${user.nav.unreadNotifications} unread` : 'Notifications'}
             />
-          </>
-        ) : (
-          <>
+          </nav>
+          <div className="mt-auto border-t border-line p-2 lg:p-3">
+            <MeMenu user={user} active={g === 'me'} />
+          </div>
+        </>
+      ) : (
+        <>
+          <nav aria-label="Primary" className="space-y-0.5 overflow-y-auto px-3 pt-1">
             <RailLink href="/" label="Home" Icon={Home} active={pathname === '/'} />
             <RailLink href="/explore" label="Explore" Icon={Compass} active={g === 'explore'} />
-          </>
-        )}
-      </nav>
-      {user ? (
-        <div className="mt-auto border-t border-line p-2 lg:p-3">
-          <MeMenu user={user} active={g === 'me'} />
-        </div>
-      ) : (
-        <div className="mx-2 mt-2 flex flex-col gap-2 rounded-panel border border-line bg-surface-muted p-3 lg:mx-3">
-          <p className="px-1 text-small font-medium text-fg">Join Glyph</p>
-          <p className="px-1 text-micro leading-relaxed text-fg-secondary">Show your game as you build it — devlogs, playtests, collaborators.</p>
-          <Button asChild variant="primary" size="sm" className="mt-1 w-full px-2"><Link href="/signup">Sign up</Link></Button>
-          <Button asChild variant="secondary" size="sm" className="w-full px-2"><Link href="/login">Log in</Link></Button>
-        </div>
+          </nav>
+          <div className="mx-3 mt-3 hidden flex-col gap-2 rounded-panel border border-line bg-surface p-3 lg:flex">
+            <p className="text-small font-medium text-fg">Join Glyph</p>
+            <p className="text-micro leading-relaxed text-fg-secondary">Show your game as you build it — devlogs, playtests, collaborators.</p>
+            <Button asChild variant="primary" size="sm" className="mt-1 w-full"><Link href="/signup">Sign up</Link></Button>
+            <Button asChild variant="secondary" size="sm" className="w-full"><Link href="/login">Log in</Link></Button>
+          </div>
+          <div className="mt-auto flex flex-col gap-2 p-3 lg:hidden">
+            <Button asChild variant="primary" size="sm" className="w-full px-0"><Link href="/signup" aria-label="Sign up">Join</Link></Button>
+          </div>
+        </>
       )}
     </aside>
   )
@@ -167,7 +172,7 @@ export function Rail({ user }: { user: ShellUser | null }) {
 
 /* ── Mobile bottom bar (below md) ── */
 
-const barItem = 'flex min-h-14 flex-col items-center justify-center gap-0.5 text-micro font-medium transition-colors duration-150'
+const barItem = 'flex min-h-14 flex-col items-center justify-center gap-0.5 text-micro font-medium outline-none transition-colors duration-150'
 const barState = (active: boolean) => (active ? 'text-accent' : 'text-fg-secondary')
 
 function BarLink({ href, label, Icon, active, badge, ariaLabel }: { href: string; label: string; Icon: LucideIcon; active: boolean; badge?: number; ariaLabel?: string }) {
@@ -246,7 +251,7 @@ export function BottomBar({ user }: { user: ShellUser | null }) {
   const pathname = usePathname()
   const g = activeGlobal(pathname, user?.username ?? '')
   return (
-    <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       {user ? (
         <div className="grid grid-cols-5">
           <BarLink href="/feed" label="Home" Icon={Home} active={g === 'home'} />
@@ -263,11 +268,15 @@ export function BottomBar({ user }: { user: ShellUser | null }) {
           <MeSheet user={user} active={g === 'me'} />
         </div>
       ) : (
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-3">
           <BarLink href="/" label="Home" Icon={Home} active={pathname === '/'} />
           <BarLink href="/explore" label="Explore" Icon={Compass} active={g === 'explore'} />
-          <BarLink href="/login" label="Log in" Icon={LogIn} active={pathname === '/login'} />
-          <BarLink href="/signup" label="Sign up" Icon={UserPlus} active={pathname === '/signup'} />
+          <Link href="/signup" className={cn(barItem, barState(false))}>
+            <span className="flex size-8 items-center justify-center rounded-control bg-accent text-fg-on-accent">
+              <User aria-hidden strokeWidth={2} className="size-5" />
+            </span>
+            Join
+          </Link>
         </div>
       )}
     </nav>

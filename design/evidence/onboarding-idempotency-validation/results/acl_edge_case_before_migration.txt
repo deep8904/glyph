@@ -1,0 +1,12 @@
+== raw ACL before migration (edge-case db) ==
+                                                                                     relacl                                                                                      
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {postgres=arwdDxt/postgres,authenticated=arwd/postgres,anon=r/postgres,=a/postgres,test_grantor_g=a*/postgres,"\"Weird Role Name\"=a/postgres",test_grantee_h=a/test_grantor_g}
+(1 row)
+
+ attname |                            attacl                            
+---------+--------------------------------------------------------------
+ slug    | {=w/postgres}
+ title   | {test_grantee_h=a/postgres,"\"Weird Role Name\"=w/postgres"}
+(2 rows)
+

@@ -25,12 +25,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ available: false, error: 'Invalid format' })
   }
 
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('profiles')
-    .select('username')
-    .eq('username', username)
-    .maybeSingle()
+  // A failed lookup must never be reported as "available" — `available: !data` on a query that
+  // actually errored (data is null either way) would be a false positive that could let a duplicate
+  // slip through to the profile insert (which does still enforce uniqueness, but the UI would have
+  // lied about it getting there). Any lookup failure — returned or thrown — is a real 503, never a
+  // 2xx with a fabricated answer, and never exposes the underlying Supabase error text.
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', username)
+      .maybeSingle()
 
-  return NextResponse.json({ available: !data })
+    if (error) {
+      return NextResponse.json({ error: 'lookup_failed' }, { status: 503 })
+    }
+    return NextResponse.json({ available: !data })
+  } catch {
+    return NextResponse.json({ error: 'lookup_failed' }, { status: 503 })
+  }
 }

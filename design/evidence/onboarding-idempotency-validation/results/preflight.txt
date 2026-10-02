@@ -1,0 +1,26 @@
+== Safety preflight ==
+                                                            version                                                            
+-------------------------------------------------------------------------------------------------------------------------------
+ PostgreSQL 16.15 (Homebrew) on aarch64-apple-darwin27.0.0, compiled by Apple clang version 21.0.0 (clang-2100.3.34.2), 64-bit
+(1 row)
+
+ inet_server_addr | inet_server_port | current_database | current_user | session_user 
+------------------+------------------+------------------+--------------+--------------
+                  |                  | postgres         | postgres     | postgres
+(1 row)
+
+ listen_addresses 
+------------------
+ 
+(1 row)
+
+  datname  
+-----------
+ postgres
+ template1
+ template0
+(3 rows)
+
+socket dir: /tmp/onb_val_sock.mUPoxy
+port: 55433
+pgdata: /var/folders/vl/m1q1j_715vxck49vxwrm5m3r0000gn/T//onb_val.WCddlO/pgdata

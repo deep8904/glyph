@@ -1,0 +1,11 @@
+      rolname      
+-------------------
+ test_grantor_x
+ rollback_operator
+(2 rows)
+
+ authenticated_insert_still_revoked 
+------------------------------------
+ f
+(1 row)
+

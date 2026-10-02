@@ -17,8 +17,6 @@ export function ProfileHeader({
   location,
   facts,
   isOpenToCollab,
-  followerCount,
-  followingCount,
   isOwner,
   currentUserId,
   targetId,
@@ -34,8 +32,6 @@ export function ProfileHeader({
   /** Role, engine, experience — already labelled, empty entries dropped. */
   facts: string[]
   isOpenToCollab: boolean
-  followerCount: number
-  followingCount: number
   isOwner: boolean
   currentUserId: string | null
   targetId: string
@@ -68,19 +64,6 @@ export function ProfileHeader({
           <span aria-hidden className={cn('size-2 rounded-full', isOpenToCollab ? 'bg-success' : 'bg-line-strong')} />
           {isOpenToCollab ? 'Open to collaborate' : 'Not currently available'}
         </p>
-        {/* Network counts only earn space once they carry signal. A brand-new developer showing
-            "0 followers · 0 following" just advertises an empty room; the owner still sees their
-            own so the links stay reachable. */}
-        {(followerCount > 0 || followingCount > 0 || isOwner) && (
-          <p className="mt-3 flex flex-wrap gap-x-4 text-small text-fg-secondary">
-            <Link href={`/dev/${username}/followers`} className="inline-flex min-h-11 items-center hover:text-fg hover:underline underline-offset-2">
-              <span className="mr-1 font-mono font-medium text-fg">{followerCount}</span> {followerCount === 1 ? 'follower' : 'followers'}
-            </Link>
-            <Link href={`/dev/${username}/following`} className="inline-flex min-h-11 items-center hover:text-fg hover:underline underline-offset-2">
-              <span className="mr-1 font-mono font-medium text-fg">{followingCount}</span> following
-            </Link>
-          </p>
-        )}
       </div>
 
       {isOwner ? (

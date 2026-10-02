@@ -1,0 +1,10 @@
+SET
+SET
+BEGIN
+UPDATE 1
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT

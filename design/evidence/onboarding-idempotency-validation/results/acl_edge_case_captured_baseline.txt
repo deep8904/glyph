@@ -1,0 +1,16 @@
+== captured baseline (edge-case db), resolved to role names for readability ==
+ grantor_oid |  grantor_name  | grantee_oid |  grantee_name   | column_name | privilege_type | is_grantable 
+-------------+----------------+-------------+-----------------+-------------+----------------+--------------
+          10 | postgres       |           0 | PUBLIC          |             | INSERT         | f
+          10 | postgres       |           0 | PUBLIC          | slug        | UPDATE         | f
+          10 | postgres       |       16390 | Weird Role Name |             | INSERT         | f
+          10 | postgres       |       16390 | Weird Role Name | title       | UPDATE         | f
+          10 | postgres       |       16385 | authenticated   |             | INSERT         | f
+          10 | postgres       |       16385 | authenticated   |             | UPDATE         | f
+          10 | postgres       |          10 | postgres        |             | INSERT         | f
+          10 | postgres       |          10 | postgres        |             | UPDATE         | f
+          10 | postgres       |       16389 | test_grantee_h  | title       | INSERT         | f
+          10 | postgres       |       16387 | test_grantor_g  |             | INSERT         | t
+       16387 | test_grantor_g |       16389 | test_grantee_h  |             | INSERT         | f
+(11 rows)
+

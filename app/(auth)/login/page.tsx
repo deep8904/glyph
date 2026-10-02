@@ -1,10 +1,15 @@
 import { Suspense } from 'react'
-import AuthForm from '@/components/auth/AuthForm'
+import { GAuthShell } from '@/components/glyph/auth/GAuthShell'
+import { GlyphLoginForm } from '@/components/glyph/auth/GlyphLoginForm'
+
+export const metadata = { title: 'Log in — Glyph' }
 
 export default function LoginPage() {
   return (
-    <Suspense>
-      <AuthForm mode="login" />
-    </Suspense>
+    <GAuthShell>
+      <Suspense>
+        <GlyphLoginForm />
+      </Suspense>
+    </GAuthShell>
   )
 }

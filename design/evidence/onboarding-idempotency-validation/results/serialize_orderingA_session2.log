@@ -1,0 +1,14 @@
+SET
+SET
+            started            
+-------------------------------
+ 2026-09-29 17:21:15.531237-07
+(1 row)
+
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/20_rpc_call_timed.sql:8: ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+           finished            
+-------------------------------
+ 2026-09-29 17:21:16.989565-07
+(1 row)
+

@@ -1,0 +1,6 @@
+== pg_locks mid-hold (session 1 should hold a RowShareLock on public.profiles) ==
+ locktype |     mode     | granted |        query        | state  
+----------+--------------+---------+---------------------+--------
+ relation | RowShareLock | t       | select pg_sleep(3); | active
+(1 row)
+

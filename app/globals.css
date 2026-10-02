@@ -2,75 +2,84 @@
 @plugin "@tailwindcss/typography";
 
 /* ─────────────────────────────────────────────
-   Glyph design system — tokens (docs/design/glyph-design-system.md)
+   Glyph design system — tokens
+   Visual thesis: "the living build record" (design/research/glyph-ui-inspiration).
+   Warm editorial paper canvas + warm near-black ink; project art supplies chroma;
+   one controlled indigo action accent + semantic state colors. Two registers
+   (expressive editorial / quiet operational) share these tokens. Geist display +
+   body, JetBrains Mono for technical metadata.
 
-   Two tiers. Primitives are Tailwind's own palette/scale. Semantic tokens
-   (below, on :root) are what components use; @theme inline exposes them as
-   Tailwind utilities (bg-surface, text-fg-muted, border-line, rounded-control …).
-   New names only — Tailwind's default color/radius/text names are NOT
-   overridden, so existing pages keep rendering as before.
+   Token NAMES are unchanged from Glyph's system — every component keeps working;
+   only the values change. Semantic tokens live on :root; @theme inline exposes
+   them as utilities (bg-surface, text-fg-muted, border-line…).
    ───────────────────────────────────────────── */
 :root {
-  /* surfaces — Neuform: white canvas dominant; slate reserved for inverse/Operate moments */
-  --canvas: #ffffff;
-  --surface: #ffffff;
-  --surface-muted: #fafafa;
-  --surface-elevated: #ffffff;
-  --surface-inverse: #33394a;
-  --surface-inverse-raised: #3d4459;
-  --overlay: rgb(24 25 37 / 0.45);
-  /* lines — literal Neuform border, one step up for stronger dividers */
-  --line: #d8dadf;
-  --line-subtle: #eceef1;
-  --line-strong: #b7bcc7;
-  --line-on-inverse: rgb(255 255 255 / 0.12);
-  /* text — Carbon kept (negligible delta from Neuform's #111827); slate repurposed as the
-     deliberate structural-contrast secondary text color the brief asks for, not decoration */
-  --fg: #181925;
-  --fg-secondary: #53617a;
-  /* Muted text: darkened from #8a93a6 (~3.1:1, failed AA) to ~4.7:1 on white — the a11y review
-     found the old value failing across every surface's metadata/timestamps. Still clearly a step
-     below fg-secondary, so the three-level text hierarchy holds. */
-  --fg-muted: #6b7280;
-  --fg-on-accent: #181925;
-  --fg-on-inverse: #ffffff;
-  --fg-on-inverse-secondary: #c4c9d4;
-  /* the one accent — Neuform primary/secondary orange. --link and --focus-ring are darkened,
-     separate shades: the raw accent (#E48B59) is ~2.6:1 on white, below AA for text/UI use. */
-  --accent: #e48b59;
-  --accent-hover: #d97a46;
-  --accent-secondary: #ed7b46;
-  --accent-subtle: #fdf2ea;
-  --accent-line: #f3d9c4;
-  --link: #a8551f;
-  --focus-ring: #d97a46;
-  /* status: solid/text, subtle background, line — recast so warning doesn't compete with accent's hue */
-  --success: #2fa35c;
-  --success-subtle: #e6f7ec;
+  /* surfaces — warm off-white paper; warm near-black reserved for inverse bands */
+  --canvas: #f4f1ea;
+  --surface: #fffdf8;
+  --surface-muted: #ece7db;
+  --surface-elevated: #fffdf8;
+  --surface-inverse: #17150f;
+  --surface-inverse-raised: #221f16;
+  --overlay: rgb(17 15 9 / 0.55);
+  /* lines — warm neutral borders */
+  --line: #e2dccf;
+  --line-subtle: #ece7db;
+  --line-strong: #d0c8b7;
+  --line-on-inverse: rgb(255 255 255 / 0.10);
+  --line-on-inverse-strong: rgb(255 255 255 / 0.20);
+  /* text — warm charcoal, three legible steps */
+  --fg: #17150f;
+  --fg-secondary: #57534a;
+  --fg-muted: #7d766a;
+  --fg-on-accent: #ffffff;
+  --fg-on-inverse: #f7f4ec;
+  --fg-on-inverse-secondary: #b7b1a2;
+  --fg-on-inverse-muted: #8a8478;
+  /* the one accent — Auralis indigo primary, cyan secondary. link/focus AA on white. */
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-secondary: #06b6d4;
+  --accent-subtle: #eceafb;
+  --accent-line: #d3d2f4;
+  --link: #4338ca;
+  --focus-ring: #4f46e5;
+  /* signature gradient stops (indigo → iris → cyan) — for fills/decoration */
+  --grad-from: #4f46e5;
+  --grad-via: #6366f1;
+  --grad-to: #06b6d4;
+  /* text gradient — every stop ≥ AA on white (cyan tail darkened to cyan-700) */
+  --grad-text-from: #4338ca;
+  --grad-text-via: #4f46e5;
+  --grad-text-to: #0e7490;
+  /* accent for small colored text/eyebrows — AA on white at 12px */
+  --accent-strong: #4338ca;
+  /* status */
+  --success: #10b981;
+  --success-subtle: #e7f8f1;
   --success-line: #bce8cc;
-  --warning: #c97a2e;
-  --warning-subtle: #fbf0e4;
-  --warning-line: #edd2ac;
-  --danger: #d64545;
-  --danger-hover: #b83737;
-  --danger-subtle: #fbebeb;
-  --danger-line: #f0bcbc;
-  --info: #3b6fb0;
-  --info-subtle: #e9f0f9;
-  --info-line: #bcd3ea;
-  /* radius — badges/pills are the one genuinely pill shape; buttons/controls stay 8px so pills
-     don't become the default action/container shape. Cards 16px. Tables match cards, not 24px. */
+  --warning: #d97706;
+  --warning-subtle: #fef3e2;
+  --warning-line: #f4d9ac;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-subtle: #fdecec;
+  --danger-line: #f4bcbc;
+  --info: #4f46e5;
+  --info-subtle: #eef0ff;
+  --info-line: #d6d9ff;
+  /* radius — pills for badges/pills; controls/media 8px; cards/panels 16px */
   --r-badge: 9999px;
   --r-control: 8px;
   --r-pill: 9999px;
   --r-media: 8px;
   --r-panel: 16px;
   --r-table: 16px;
-  /* elevation: subtle three-step stack — raised (card) < popover < dialog. No dramatic shadows. */
-  --elev-raised: 0 1px 2px rgb(24 25 37 / 0.04), 0 1px 1px rgb(24 25 37 / 0.03);
-  --elev-popover: 0 4px 16px -2px rgb(24 25 37 / 0.10), 0 0 0 1px rgb(24 25 37 / 0.05);
-  --elev-dialog: 0 16px 40px -8px rgb(24 25 37 / 0.20), 0 0 0 1px rgb(24 25 37 / 0.05);
-  /* motion — timing bands. Duration only; components already carry easing per §6 of the plan. */
+  /* elevation — soft, warm-tinted three-step stack */
+  --elev-raised: 0 1px 2px rgb(23 21 15 / 0.05), 0 1px 1px rgb(23 21 15 / 0.03);
+  --elev-popover: 0 4px 16px -2px rgb(23 21 15 / 0.08), 0 0 0 1px rgb(23 21 15 / 0.04);
+  --elev-dialog: 0 24px 60px -20px rgb(23 21 15 / 0.26), 0 0 0 1px rgb(23 21 15 / 0.05);
+  /* motion */
   --motion-micro: 140ms;
   --motion-control: 160ms;
   --motion-drawer: 200ms;
@@ -78,11 +87,117 @@
   --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ── Dark mode: system default, overridable via [data-theme] ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #14120c;
+    --surface: #1c1910;
+    --surface-muted: #100e08;
+    --surface-elevated: #221e13;
+    --surface-inverse: #f4f1ea;
+    --surface-inverse-raised: #fffdf8;
+    --overlay: rgb(0 0 0 / 0.6);
+    --line: rgb(255 250 235 / 0.11);
+    --line-subtle: rgb(255 250 235 / 0.06);
+    --line-strong: rgb(255 250 235 / 0.20);
+    --line-on-inverse: rgb(23 21 15 / 0.10);
+    --line-on-inverse-strong: rgb(23 21 15 / 0.16);
+    --fg: #f3efe5;
+    --fg-secondary: #b3ada0;
+    --fg-muted: #8f887b;
+    --fg-on-accent: #ffffff;
+    --fg-on-inverse: #17150f;
+    --fg-on-inverse-secondary: #57534a;
+    --fg-on-inverse-muted: #7d766a;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --accent-secondary: #22d3ee;
+    --accent-subtle: rgb(99 102 241 / 0.16);
+    --accent-line: rgb(99 102 241 / 0.34);
+    --link: #a5b4fc;
+    --focus-ring: #818cf8;
+    --grad-from: #818cf8;
+    --grad-via: #6366f1;
+    --grad-to: #22d3ee;
+    --grad-text-from: #a5b4fc;
+    --grad-text-via: #818cf8;
+    --grad-text-to: #22d3ee;
+    --accent-strong: #a5b4fc;
+    --success: #34d399;
+    --success-subtle: rgb(16 185 129 / 0.14);
+    --success-line: rgb(16 185 129 / 0.30);
+    --warning: #fbbf24;
+    --warning-subtle: rgb(217 119 6 / 0.16);
+    --warning-line: rgb(217 119 6 / 0.34);
+    --danger: #f87171;
+    --danger-hover: #ef4444;
+    --danger-subtle: rgb(220 38 38 / 0.16);
+    --danger-line: rgb(220 38 38 / 0.34);
+    --info: #818cf8;
+    --info-subtle: rgb(99 102 241 / 0.16);
+    --info-line: rgb(99 102 241 / 0.34);
+    --elev-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+    --elev-popover: 0 4px 16px -2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
+    --elev-dialog: 0 24px 60px -20px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
+  }
+}
+/* Explicit override wins over system in either direction */
+:root[data-theme="dark"] {
+  --canvas: #14120c;
+  --surface: #1c1910;
+  --surface-muted: #100e08;
+  --surface-elevated: #221e13;
+  --surface-inverse: #f4f1ea;
+  --surface-inverse-raised: #fffdf8;
+  --overlay: rgb(0 0 0 / 0.6);
+  --line: rgb(255 250 235 / 0.11);
+  --line-subtle: rgb(255 250 235 / 0.06);
+  --line-strong: rgb(255 250 235 / 0.20);
+  --line-on-inverse: rgb(23 21 15 / 0.10);
+  --line-on-inverse-strong: rgb(23 21 15 / 0.16);
+  --fg: #f3efe5;
+  --fg-secondary: #b3ada0;
+  --fg-muted: #8f887b;
+  --fg-on-accent: #ffffff;
+  --fg-on-inverse: #17150f;
+  --fg-on-inverse-secondary: #57534a;
+  --fg-on-inverse-muted: #7d766a;
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-secondary: #22d3ee;
+  --accent-subtle: rgb(99 102 241 / 0.16);
+  --accent-line: rgb(99 102 241 / 0.34);
+  --link: #a5b4fc;
+  --focus-ring: #818cf8;
+  --grad-from: #818cf8;
+  --grad-via: #6366f1;
+  --grad-to: #22d3ee;
+  --grad-text-from: #a5b4fc;
+  --grad-text-via: #818cf8;
+  --grad-text-to: #22d3ee;
+  --accent-strong: #a5b4fc;
+  --success: #34d399;
+  --success-subtle: rgb(16 185 129 / 0.14);
+  --success-line: rgb(16 185 129 / 0.30);
+  --warning: #fbbf24;
+  --warning-subtle: rgb(217 119 6 / 0.16);
+  --warning-line: rgb(217 119 6 / 0.34);
+  --danger: #f87171;
+  --danger-hover: #ef4444;
+  --danger-subtle: rgb(220 38 38 / 0.16);
+  --danger-line: rgb(220 38 38 / 0.34);
+  --info: #818cf8;
+  --info-subtle: rgb(99 102 241 / 0.16);
+  --info-line: rgb(99 102 241 / 0.34);
+  --elev-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+  --elev-popover: 0 4px 16px -2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --elev-dialog: 0 24px 60px -20px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
-  /* Legacy alias: Space Grotesk was removed (Phase A). font-display now renders Inter. */
-  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
+  --font-display: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
 
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
@@ -95,19 +210,25 @@
   --color-line-subtle: var(--line-subtle);
   --color-line-strong: var(--line-strong);
   --color-line-on-inverse: var(--line-on-inverse);
+  --color-line-on-inverse-strong: var(--line-on-inverse-strong);
   --color-fg: var(--fg);
   --color-fg-secondary: var(--fg-secondary);
   --color-fg-muted: var(--fg-muted);
   --color-fg-on-accent: var(--fg-on-accent);
   --color-fg-on-inverse: var(--fg-on-inverse);
   --color-fg-on-inverse-secondary: var(--fg-on-inverse-secondary);
+  --color-fg-on-inverse-muted: var(--fg-on-inverse-muted);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-secondary: var(--accent-secondary);
   --color-accent-subtle: var(--accent-subtle);
   --color-accent-line: var(--accent-line);
+  --color-accent-strong: var(--accent-strong);
   --color-link: var(--link);
   --color-focus: var(--focus-ring);
+  --color-grad-from: var(--grad-from);
+  --color-grad-via: var(--grad-via);
+  --color-grad-to: var(--grad-to);
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);
   --color-success-line: var(--success-line);
@@ -133,18 +254,16 @@
   --shadow-popover: var(--elev-popover);
   --shadow-dialog: var(--elev-dialog);
 
-  /* type scale — Neuform, application-adapted (not the source's literal 64px everywhere: see
-     glyph-neuform-redesign-plan.md §3). Display is reserved for Landing hero + the largest
-     Identity/Work anchors, not a blanket size bump. Strictly descending 44>30>24>18>16>14>12. */
-  --text-display: 2.75rem;
-  --text-display--line-height: 1.1;
-  --text-display--letter-spacing: -0.02em;
-  --text-h1: 1.875rem;
-  --text-h1--line-height: 1.2;
-  --text-h1--letter-spacing: -0.015em;
+  /* type scale — Geist. Display reserved for Landing hero + largest anchors. Descending. */
+  --text-display: clamp(2.5rem, 1.5rem + 4.6vw, 4rem);
+  --text-display--line-height: 1.04;
+  --text-display--letter-spacing: -0.028em;
+  --text-h1: clamp(1.875rem, 1.4rem + 2.2vw, 2.75rem);
+  --text-h1--line-height: 1.1;
+  --text-h1--letter-spacing: -0.022em;
   --text-h2: 1.5rem;
   --text-h2--line-height: 1.25;
-  --text-h2--letter-spacing: -0.012em;
+  --text-h2--letter-spacing: -0.014em;
   --text-h3: 1.125rem;
   --text-h3--line-height: 1.3;
   --text-h3--letter-spacing: -0.01em;
@@ -158,24 +277,73 @@
 }
 
 @layer base {
-  html {
-    scroll-behavior: smooth;
-  }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     background-color: var(--canvas);
+    color: var(--fg);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-  ::selection {
-    background: var(--accent-subtle);
-    color: var(--fg);
-  }
+  ::selection { background: color-mix(in oklab, var(--accent) 22%, transparent); color: var(--fg); }
+  /* Browser surfaces themed from the palette, not left at UA defaults. */
+  html { accent-color: var(--accent); caret-color: var(--accent); scrollbar-color: var(--line-strong) transparent; }
+  * { scrollbar-width: thin; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background-color: var(--line-strong); border: 3px solid transparent; background-clip: padding-box; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--fg-muted); }
+  ::-webkit-scrollbar-track { background: transparent; }
 }
 
-/* ── Backdrop: Visitors atmospheric hero band — sky→lavender oklab gradient ── */
+/* ── Signature gradient text + surfaces ── */
+.text-gradient {
+  background-image: linear-gradient(100deg, var(--grad-text-from), var(--grad-text-via) 46%, var(--grad-text-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.bg-gradient-brand { background-image: linear-gradient(120deg, var(--grad-from), var(--grad-to)); }
+.border-gradient-brand {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(120deg, var(--grad-from), var(--grad-to)) border-box;
+}
+
+/* ── Glass ── */
+.glass {
+  background: color-mix(in oklab, var(--surface) 72%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--line);
+}
+.glass-inverse {
+  background: rgb(255 255 255 / 0.06);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--line-on-inverse-strong);
+}
+
+/* ── Prism gradient field (hero focal / ambient, CSS fallback for the canvas layer) ──
+   Vertical bands of light: white → mint/cyan → lavender → indigo → deep blue. */
+.prism {
+  background:
+    linear-gradient(90deg,
+      rgb(255 255 255 / 0) 0%,
+      rgb(224 247 250 / 0.55) 26%,
+      rgb(165 180 252 / 0.65) 48%,
+      rgb(99 102 241 / 0.85) 68%,
+      rgb(49 46 129 / 0.95) 100%),
+    repeating-linear-gradient(90deg,
+      rgb(255 255 255 / 0.06) 0px,
+      rgb(255 255 255 / 0.06) 1px,
+      transparent 1px,
+      transparent 84px);
+}
+
+/* ── Legacy atmospheric band (kept for any existing references) ── */
 .bg-plasma {
   background-color: #ffffff;
-  background-image: linear-gradient(to right in oklab, #2c78fc 0%, #918df6 100%);
+  background-image: linear-gradient(to right in oklab, var(--grad-from) 0%, var(--grad-to) 100%);
 }
 
 /* ── Fine grain, fixed layer only (never over scrolling content) ── */
@@ -189,32 +357,33 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ── Panel shadow: Visitors three-layer subtle stack ── */
+/* ── Panel shadow: three-layer subtle stack ── */
 .panel-shadow {
   box-shadow:
-    0 1px 3px 0 rgba(0, 0, 0, 0.06),
-    0 8px 16px 0 rgba(0, 0, 0, 0.06),
-    0 0 0 1px rgba(0, 0, 0, 0.02);
+    0 1px 3px 0 rgba(17, 24, 39, 0.06),
+    0 8px 16px 0 rgba(17, 24, 39, 0.06),
+    0 0 0 1px rgba(17, 24, 39, 0.02);
 }
 
-/* ── Above-the-fold entrance: pure CSS, no JS/GSAP dependency, so it can
-   never flash a near-blank page while a JS bundle loads and hydrates. ── */
+/* ── Above-the-fold entrance: pure CSS, no JS dependency ── */
 @keyframes reveal-hero-in {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: none; }
 }
-.reveal-hero {
-  animation: reveal-hero-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
+.reveal-hero { animation: reveal-hero-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .reveal-hero-1 { animation-delay: 0s; }
 .reveal-hero-2 { animation-delay: 0.08s; }
 .reveal-hero-3 { animation-delay: 0.16s; }
 .reveal-hero-4 { animation-delay: 0.24s; }
 .reveal-hero-5 { animation-delay: 0.1s; }
 
+/* ── Marquee ── */
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee { animation: marquee 34s linear infinite; }
+
 /* ── Accessibility: reduce motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .reveal-hero {
+  .reveal-hero, .marquee {
     opacity: 1;
     transform: none;
     animation: none;
@@ -269,7 +438,7 @@
   white-space: normal;
 }
 
-/* ── Overlay/menu motion (Radix data-state). State change only; reduced-motion rule above shortens these. ── */
+/* ── Overlay/menu motion (Radix data-state) ── */
 @keyframes ui-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ui-pop-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes ui-slide-in-right { from { transform: translateX(100%); } to { transform: none; } }
@@ -298,7 +467,150 @@
   --tw-prose-captions: var(--fg-muted);
   --tw-prose-code: var(--fg);
   --tw-prose-pre-code: #e5e7eb;
-  --tw-prose-pre-bg: #111827;
+  --tw-prose-pre-bg: #0b0b10;
   --tw-prose-th-borders: var(--line-strong);
   --tw-prose-td-borders: var(--line);
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   NEW GLYPH — "Graphite & Bone + Ember" (design/NEW_GLYPH_PRODUCT_DIRECTION.md)
+   Isolated token layer for the greenfield system under components/glyph/.
+   Namespaced --gg-* vars → new utilities (bg-paper, text-ink, text-ember,
+   border-hair …). Does not touch the legacy --fg/--accent/etc. tokens.
+   Theme-dual: Bone (light) editorial · Graphite (dark) operational.
+   ═════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Bone (light) */
+  --gg-paper: #f6f4ef;
+  --gg-panel: #ffffff;
+  --gg-panel-raised: #ffffff;
+  --gg-sunken: #eeebe3;
+  --gg-ink: #191817;
+  --gg-ink-2: #56534c;
+  /* AA fix: was #86827a (~3.5:1 on panel), fails normal text. #6c675f clears 4.5:1 on paper,
+     panel, and sunken while staying a distinct third step below ink-2. */
+  --gg-ink-3: #6c675f;
+  --gg-hair: #e4e0d6;
+  --gg-hair-strong: #cfc9bb;
+  --gg-on-media: #ffffff;           /* text over dark media/scrim */
+  --gg-on-media-2: rgb(255 255 255 / 0.72);
+  /* Ember — the one signal accent: action / live / selection only */
+  --gg-ember: #e8552a;
+  --gg-ember-press: #c8461f;
+  --gg-ember-ink: #bf461e;          /* accent-as-text, AA on paper */
+  --gg-ember-quiet: rgb(232 85 42 / 0.12);
+  --gg-ember-line: rgb(232 85 42 / 0.34);
+  /* Text on an Ember fill: warm near-black, not white. White on #e8552a is ~3.3:1 (fails AA);
+     near-black is ~4.9:1 AA-pass and reads more distinctive than generic white-on-orange. */
+  --gg-ink-on-ember: #17120c;
+  /* semantic state — muted, always paired with icon/label */
+  --gg-success: #2e9e5b;
+  --gg-warning: #c8811e;
+  --gg-danger: #d5423b;
+  --gg-info: #4b72b8;
+  /* elevation — warm-neutral, soft */
+  --gg-elev-1: 0 1px 2px rgb(25 24 23 / 0.06), 0 1px 1px rgb(25 24 23 / 0.03);
+  --gg-elev-2: 0 6px 20px -4px rgb(25 24 23 / 0.10), 0 0 0 1px rgb(25 24 23 / 0.04);
+  --gg-elev-3: 0 28px 64px -24px rgb(25 24 23 / 0.30), 0 0 0 1px rgb(25 24 23 / 0.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --gg-paper: #121312;
+    --gg-panel: #1a1b1a;
+    --gg-panel-raised: #212220;
+    --gg-sunken: #0e0f0e;
+    --gg-ink: #f3f1ec;
+    --gg-ink-2: #ada99f;
+    /* AA fix: was #7c7970 (~4.28:1 on panel), fails normal text. #8f8b81 clears 4.5:1 on paper,
+       panel, and sunken while staying a distinct third step below ink-2. */
+    --gg-ink-3: #8f8b81;
+    --gg-hair: rgb(255 250 240 / 0.10);
+    --gg-hair-strong: rgb(255 250 240 / 0.20);
+    --gg-ember: #ff6a3d;
+    --gg-ember-press: #e8552a;
+    --gg-ember-ink: #ff7a52;
+    --gg-ember-quiet: rgb(255 106 61 / 0.16);
+    --gg-ember-line: rgb(255 106 61 / 0.36);
+    --gg-success: #34d17f;
+    --gg-warning: #e0a53a;
+    --gg-danger: #f0655d;
+    --gg-info: #6f97dd;
+    --gg-elev-1: 0 1px 2px rgb(0 0 0 / 0.5);
+    --gg-elev-2: 0 6px 20px -4px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(255 250 240 / 0.06);
+    --gg-elev-3: 0 28px 64px -24px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 250 240 / 0.07);
+  }
+}
+:root[data-theme="dark"] {
+  --gg-paper: #121312;
+  --gg-panel: #1a1b1a;
+  --gg-panel-raised: #212220;
+  --gg-sunken: #0e0f0e;
+  --gg-ink: #f3f1ec;
+  --gg-ink-2: #ada99f;
+  --gg-ink-3: #8f8b81;
+  --gg-hair: rgb(255 250 240 / 0.10);
+  --gg-hair-strong: rgb(255 250 240 / 0.20);
+  --gg-ember: #ff6a3d;
+  --gg-ember-press: #e8552a;
+  --gg-ember-ink: #ff7a52;
+  --gg-ember-quiet: rgb(255 106 61 / 0.16);
+  --gg-ember-line: rgb(255 106 61 / 0.36);
+  --gg-success: #34d17f;
+  --gg-warning: #e0a53a;
+  --gg-danger: #f0655d;
+  --gg-info: #6f97dd;
+  --gg-elev-1: 0 1px 2px rgb(0 0 0 / 0.5);
+  --gg-elev-2: 0 6px 20px -4px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(255 250 240 / 0.06);
+  --gg-elev-3: 0 28px 64px -24px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 250 240 / 0.07);
+}
+@theme inline {
+  --color-paper: var(--gg-paper);
+  --color-panel: var(--gg-panel);
+  --color-panel-raised: var(--gg-panel-raised);
+  --color-sunken: var(--gg-sunken);
+  --color-ink: var(--gg-ink);
+  --color-ink-2: var(--gg-ink-2);
+  --color-ink-3: var(--gg-ink-3);
+  --color-hair: var(--gg-hair);
+  --color-hair-strong: var(--gg-hair-strong);
+  --color-on-media: var(--gg-on-media);
+  --color-on-media-2: var(--gg-on-media-2);
+  --color-ember: var(--gg-ember);
+  --color-ember-press: var(--gg-ember-press);
+  --color-ember-ink: var(--gg-ember-ink);
+  --color-ember-quiet: var(--gg-ember-quiet);
+  --color-ember-line: var(--gg-ember-line);
+  --color-ink-on-ember: var(--gg-ink-on-ember);
+  --color-gsuccess: var(--gg-success);
+  --color-gwarning: var(--gg-warning);
+  --color-gdanger: var(--gg-danger);
+  --color-ginfo: var(--gg-info);
+  --shadow-g1: var(--gg-elev-1);
+  --shadow-g2: var(--gg-elev-2);
+  --shadow-g3: var(--gg-elev-3);
+}
+
+/* New Glyph surface owns its focus (Ember), independent of the legacy --focus-ring. */
+.gg-scope :focus-visible { outline: 2px solid var(--gg-ember); outline-offset: 2px; border-radius: 5px; }
+.gg-scope ::selection { background: color-mix(in oklab, var(--gg-ember) 26%, transparent); color: var(--gg-ink); }
+
+/* ── New Glyph rich text (Project/devlog long-form): typography plugin mapped to --gg-* tokens.
+   Parallel to legacy .prose-glyph, isolated — no legacy-token leakage into the new surface. ── */
+.prose-gg {
+  --tw-prose-body: var(--gg-ink-2);
+  --tw-prose-headings: var(--gg-ink);
+  --tw-prose-lead: var(--gg-ink-2);
+  --tw-prose-links: var(--gg-ember-ink);
+  --tw-prose-bold: var(--gg-ink);
+  --tw-prose-counters: var(--gg-ink-3);
+  --tw-prose-bullets: var(--gg-hair-strong);
+  --tw-prose-hr: var(--gg-hair);
+  --tw-prose-quotes: var(--gg-ink);
+  --tw-prose-quote-borders: var(--gg-ember-line);
+  --tw-prose-captions: var(--gg-ink-3);
+  --tw-prose-code: var(--gg-ink);
+  --tw-prose-pre-code: var(--gg-ink);
+  --tw-prose-pre-bg: var(--gg-sunken);
+  --tw-prose-th-borders: var(--gg-hair-strong);
+  --tw-prose-td-borders: var(--gg-hair);
 }

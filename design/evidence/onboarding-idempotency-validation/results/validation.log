@@ -1,0 +1,1295 @@
+[2026-09-30T00:21:08Z] ==========================================================================
+[2026-09-30T00:21:08Z] STEP 0: Preflight — start disposable cluster
+[2026-09-30T00:21:08Z] ==========================================================================
+The files belonging to this database system will be owned by user "deeppatel".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.UTF-8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/folders/vl/m1q1j_715vxck49vxwrm5m3r0000gn/T/onb_val.WCddlO/pgdata ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... America/Phoenix
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /var/folders/vl/m1q1j_715vxck49vxwrm5m3r0000gn/T//onb_val.WCddlO/pgdata -l logfile start
+
+== Safety preflight ==
+                                                            version                                                            
+-------------------------------------------------------------------------------------------------------------------------------
+ PostgreSQL 16.15 (Homebrew) on aarch64-apple-darwin27.0.0, compiled by Apple clang version 21.0.0 (clang-2100.3.34.2), 64-bit
+(1 row)
+
+ inet_server_addr | inet_server_port | current_database | current_user | session_user 
+------------------+------------------+------------------+--------------+--------------
+                  |                  | postgres         | postgres     | postgres
+(1 row)
+
+ listen_addresses 
+------------------
+ 
+(1 row)
+
+  datname  
+-----------
+ postgres
+ template1
+ template0
+(3 rows)
+
+socket dir: /tmp/onb_val_sock.mUPoxy
+port: 55433
+pgdata: /var/folders/vl/m1q1j_715vxck49vxwrm5m3r0000gn/T//onb_val.WCddlO/pgdata
+[2026-09-30T00:21:11Z] ==========================================================================
+[2026-09-30T00:21:11Z] STEP 1: Cluster-level roles
+[2026-09-30T00:21:11Z] ==========================================================================
+DO
+[2026-09-30T00:21:11Z] ==========================================================================
+[2026-09-30T00:21:11Z] DB main: fresh Bootstrap -> Capture -> Guard(stock, must pass) -> Migration
+[2026-09-30T00:21:11Z] ==========================================================================
+NOTICE:  database "onboarding_val_main" does not exist, skipping
+DROP DATABASE
+CREATE DATABASE
+CREATE EXTENSION
+GRANT
+CREATE SCHEMA
+CREATE FUNCTION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+GRANT
+GRANT
+GRANT
+CREATE SCHEMA
+REVOKE
+GRANT
+CREATE TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+REVOKE
+REVOKE
+GRANT
+GRANT
+                to_regclass                
+-------------------------------------------
+ private.onboarding_migration_acl_baseline
+(1 row)
+
+INSERT 0 1
+INSERT 0 4
+INSERT 0 0
+ count 
+-------
+     4
+(1 row)
+
+DO
+[2026-09-30T00:21:11Z] EXPECTED-PASS OK: stock ACL baseline passes Guard
+[2026-09-30T00:21:11Z] -- EXECUTE privilege on finalize_onboarding_project: absent before migration --
+[2026-09-30T00:21:11Z] EXECUTE privilege before migration = '' (blank = function does not exist yet, also acceptable)
+[2026-09-30T00:21:11Z] EXPECTED-PASS OK: authenticated has NO EXECUTE on finalize_onboarding_project before migration
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:7: NOTICE:  schema "private" already exists, skipping
+CREATE SCHEMA
+REVOKE
+GRANT
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:14: NOTICE:  relation "onboarding_migration_acl_capture" already exists, skipping
+CREATE TABLE
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:25: NOTICE:  relation "onboarding_migration_acl_baseline" already exists, skipping
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+REVOKE
+REVOKE
+GRANT
+GRANT
+ALTER TABLE
+CREATE INDEX
+CREATE FUNCTION
+REVOKE
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:68: NOTICE:  trigger "serialize_null_slug_project_on_insert" for relation "public.projects" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+REVOKE
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:98: NOTICE:  trigger "reject_slug_removal_on_update" for relation "public.projects" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+REVOKE
+GRANT
+GRANT
+CREATE TABLE
+ALTER TABLE
+REVOKE
+GRANT
+CREATE TABLE
+ALTER TABLE
+REVOKE
+GRANT
+CREATE VIEW
+CREATE VIEW
+REVOKE
+REVOKE
+GRANT
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+                 proname                  | prosecdef 
+------------------------------------------+-----------
+ admin_reconcile_onboarding               | t
+ admin_emergency_repair_onboarding_marker | t
+ admin_correct_onboarding_reconciliation  | t
+ finalize_onboarding_project              | t
+(4 rows)
+
+ count 
+-------
+     0
+(1 row)
+
+ table_insert | table_update 
+--------------+--------------
+ f            | f
+(1 row)
+
+ marker_insert | marker_update 
+---------------+---------------
+ f             | f
+(1 row)
+
+    column_name    | can_insert | can_update 
+-------------------+------------+------------
+ cover_url         | t          | t
+ engine            | t          | t
+ external_links    | t          | t
+ genre             | t          | t
+ is_primary        | t          | f
+ lifecycle         | t          | t
+ long_description  | t          | t
+ owner_id          | t          | f
+ screenshots       | t          | t
+ short_description | t          | t
+ slug              | t          | t
+ stage             | t          | t
+ tags              | t          | t
+ title             | t          | t
+ visibility        | t          | t
+(15 rows)
+
+[2026-09-30T00:21:11Z] -- EXECUTE privilege on finalize_onboarding_project: present after migration, AND the granted
+[2026-09-30T00:21:11Z]    function definition already contains the caller-scoped guard (55000) --
+[2026-09-30T00:21:11Z] EXECUTE privilege after migration = 't'
+[2026-09-30T00:21:11Z] EXPECTED-PASS OK: authenticated HAS EXECUTE on finalize_onboarding_project after migration
+[2026-09-30T00:21:11Z] granted function definition contains the guard's errcode 55000 = 't'
+[2026-09-30T00:21:11Z] EXPECTED-PASS OK: the specific function version authenticated was granted EXECUTE on already contains the 55000 guard
+[2026-09-30T00:21:11Z] -- functional RPC + reconciliation fixtures --
+INSERT 0 6
+INSERT 0 1
+INSERT 0 2
+[2026-09-30T00:21:11Z] -- genuinely new account (user A, zero candidates) is unaffected by the guard --
+[2026-09-30T00:21:11Z] EXPECTED-PASS OK: user A (zero candidates) is never a member of onboarding_unresolved_candidates
+[2026-09-30T00:21:11Z] -- Include (user A) --
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ fcd33c43-c1bc-4c8d-9d6a-c1879681fb4d | t
+(1 row)
+
+[2026-09-30T00:21:11Z] -- Include retry with a DIFFERENT title after completion: must return the SAME project_id, create nothing --
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ fcd33c43-c1bc-4c8d-9d6a-c1879681fb4d | t
+(1 row)
+
+ count |  array_agg  
+-------+-------------
+     1 | {"My Game"}
+(1 row)
+
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: user B (zero candidates) is never a member of onboarding_unresolved_candidates (Skip path unaffected too)
+[2026-09-30T00:21:12Z] -- Skip (user B) --
+SET
+SET
+ project_id | onboarded 
+------------+-----------
+            | t
+(1 row)
+
+[2026-09-30T00:21:12Z] -- Skip terminal: user B retries WITH a title, must still return null project_id, create nothing --
+SET
+SET
+ project_id | onboarded 
+------------+-----------
+            | t
+(1 row)
+
+ count 
+-------
+     0
+(1 row)
+
+[2026-09-30T00:21:12Z] -- anon cannot call finalize_onboarding_project --
+SET
+ERROR:  permission denied for function finalize_onboarding_project
+[2026-09-30T00:21:12Z] EXPECTED-FAIL OK (exit 1): anon calling finalize_onboarding_project is denied
+[2026-09-30T00:21:12Z] -- anon cannot call admin_reconcile_onboarding --
+SET
+ERROR:  permission denied for function admin_reconcile_onboarding
+[2026-09-30T00:21:12Z] EXPECTED-FAIL OK (exit 1): anon calling admin_reconcile_onboarding is denied
+[2026-09-30T00:21:12Z] -- authenticated (even the affected user) cannot call admin_reconcile_onboarding --
+SET
+SET
+ERROR:  permission denied for function admin_reconcile_onboarding
+[2026-09-30T00:21:12Z] EXPECTED-FAIL OK (exit 1): authenticated calling admin_reconcile_onboarding is denied
+[2026-09-30T00:21:12Z] -- cross-account RLS isolation: user B attempts to mutate user A's profile directly --
+[2026-09-30T00:21:12Z]    (corrected assertion: revision 1 of this test used 'psql -Atc' with multiple statements in
+[2026-09-30T00:21:12Z]     one -c string; command-status lines like 'SET'/'UPDATE 1' were captured alongside the
+[2026-09-30T00:21:12Z]     intended scalar, so the shell comparison never equaled the expected literal regardless of
+[2026-09-30T00:21:12Z]     whether RLS actually blocked the mutation — both secure and insecure outcomes recorded
+[2026-09-30T00:21:12Z]     PASS. Fixed by: capturing A's value before/after as the privileged operator, running B's
+[2026-09-30T00:21:12Z]     attempt as a single statement whose only output is one scalar (a CTE UPDATE...RETURNING
+[2026-09-30T00:21:12Z]     counted by the outer SELECT), and using -q -t -A so nothing but that scalar is captured.)
+[2026-09-30T00:21:12Z] cross-account: user A is_onboarded BEFORE user B's attempt = 't'
+[2026-09-30T00:21:12Z] cross-account: changed-row scalar from B's unauthorized update attempt on A's row = '0'
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: cross-account: authenticated B's unauthorized update on A's profile affects zero rows
+[2026-09-30T00:21:12Z] cross-account: user A is_onboarded AFTER user B's attempt = 't'
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: cross-account: user A's is_onboarded is byte-for-byte unchanged after B's unauthorized attempt
+[2026-09-30T00:21:12Z] -- harness self-test: prove the changed-row scalar assertion actually discriminates secure vs
+[2026-09-30T00:21:12Z]    insecure outcomes, using synthetic input only — RLS itself is never weakened or bypassed to
+[2026-09-30T00:21:12Z]    manufacture this test; it exercises the assertion's own comparison logic in isolation --
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: harness self-test: scalar assertion PASSES for a secure outcome (0 changed rows)
+[2026-09-30T00:21:12Z] EXPECTED-FAIL OK (exit 1): harness self-test: scalar assertion FAILS for an insecure outcome (1 changed row) — proves the check is not vacuous
+[2026-09-30T00:21:12Z] -- legacy lost-response candidate (user C) AND ambiguous candidate (user D): enumeration returns
+[2026-09-30T00:21:12Z]    BOTH unresolved accounts, so the gate is only re-checked as clear once BOTH are reconciled —
+[2026-09-30T00:21:12Z]    asserting it clear after reconciling only one is a test-sequencing bug, not a proposal defect
+[2026-09-30T00:21:12Z]    (this exact ordering mistake was caught by actually running the gate, not by static review).
+ERROR:  onboarding RPC rollout blocked: 2 account(s) unresolved
+CONTEXT:  PL/pgSQL function inline_code_block line 1 at RAISE
+[2026-09-30T00:21:12Z] EXPECTED-FAIL OK (exit 1): hard-abort gate blocks rollout with unresolved legacy candidates
+              profile_id              |         candidate_project_id         |           title            |          created_at           
+--------------------------------------+--------------------------------------+----------------------------+-------------------------------
+ 33333333-3333-3333-3333-333333333333 | 44444444-4444-4444-4444-444444444444 | Legacy Lost-Response Draft | 2026-09-29 17:21:11.753493-07
+ 66666666-6666-6666-6666-666666666666 | 77777777-7777-7777-7777-777777777777 | Candidate P                | 2026-09-29 17:21:11.757144-07
+ 66666666-6666-6666-6666-666666666666 | 88888888-8888-8888-8888-888888888888 | Candidate Q                | 2026-09-29 17:21:11.757144-07
+(3 rows)
+
+SET
+ admin_reconcile_onboarding 
+----------------------------
+ 
+(1 row)
+
+[2026-09-30T00:21:12Z] -- ambiguous legacy candidate (user D): reconcile P (still leaves 0 unresolved once C is also done) --
+SET
+ admin_reconcile_onboarding 
+----------------------------
+ 
+(1 row)
+
+DO
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: hard-abort gate passes once BOTH legacy candidates are reconciled
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ 44444444-4444-4444-4444-444444444444 | t
+(1 row)
+
+ count 
+-------
+     1
+(1 row)
+
+[2026-09-30T00:21:12Z] -- ambiguous legacy candidate (user D): correct to Q before completion, complete, correct after completion must fail --
+SET
+ admin_correct_onboarding_reconciliation 
+-----------------------------------------
+ 
+(1 row)
+
+                  id                  |    title    | is_onboarding_project 
+--------------------------------------+-------------+-----------------------
+ 77777777-7777-7777-7777-777777777777 | Candidate P | f
+ 88888888-8888-8888-8888-888888888888 | Candidate Q | t
+(2 rows)
+
+  action   |      resolution      |         resolved_project_id          
+-----------+----------------------+--------------------------------------
+ created   | confirmed_onboarding | 77777777-7777-7777-7777-777777777777
+ corrected | confirmed_onboarding | 88888888-8888-8888-8888-888888888888
+(2 rows)
+
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ 88888888-8888-8888-8888-888888888888 | t
+(1 row)
+
+SET
+ERROR:  profile 66666666-6666-6666-6666-666666666666 has already completed onboarding — ordinary correction is not permitted; use admin_emergency_repair_onboarding_marker if repair is genuinely required
+CONTEXT:  PL/pgSQL function public.admin_correct_onboarding_reconciliation(uuid,text,uuid,text) line 21 at RAISE
+[2026-09-30T00:21:12Z] EXPECTED-FAIL OK (exit 1): correction after onboarding completes is rejected
+                  id                  |    title    | is_onboarding_project 
+--------------------------------------+-------------+-----------------------
+ 77777777-7777-7777-7777-777777777777 | Candidate P | f
+ 88888888-8888-8888-8888-888888888888 | Candidate Q | t
+(2 rows)
+
+[2026-09-30T00:21:12Z] -- deletion of a positively reconciled project: current record cascades, history preserved --
+DELETE 1
+ count 
+-------
+     0
+(1 row)
+
+ action  |      resolution      
+---------+----------------------
+ created | confirmed_onboarding
+(1 row)
+
+[2026-09-30T00:21:12Z] -- emergency repair on a NORMAL-RPC account (user A) with ZERO reconciliation rows --
+ count 
+-------
+     0
+(1 row)
+
+INSERT 0 1
+SET
+ admin_emergency_repair_onboarding_marker 
+------------------------------------------
+ 
+(1 row)
+
+                  id                  |      title      | is_onboarding_project 
+--------------------------------------+-----------------+-----------------------
+ fcd33c43-c1bc-4c8d-9d6a-c1879681fb4d | My Game         | f
+ 55555555-5555-5555-5555-555555555555 | Repair Target B | t
+(2 rows)
+
+[2026-09-30T00:21:12Z] ==========================================================================
+[2026-09-30T00:21:12Z] DB main: caller-scoped reconciliation guard (proposal §5a)
+[2026-09-30T00:21:12Z] ==========================================================================
+INSERT 0 5
+INSERT 0 6
+[2026-09-30T00:21:12Z] -- G1: unresolved SINGLE-candidate account calls the RPC directly -> rejected, nothing created/changed --
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G1: unresolved single-candidate account is rejected by the RPC
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G1: rejection carries SQLSTATE 55000
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G1: no project marked for the rejected account
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G1: profile is_onboarded remains false after the rejected attempt
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G1: no new project row was inserted (still exactly the one seeded candidate)
+[2026-09-30T00:21:12Z] -- G1 error surface: no candidate/project detail is exposed --
+[2026-09-30T00:21:12Z] EXPECTED-FAIL OK (exit 1): G1: the error text does not mention the candidate's project id
+[2026-09-30T00:21:12Z] EXPECTED-FAIL OK (exit 1): G1: the error text does not mention the candidate's project title
+[2026-09-30T00:21:12Z] -- G2: unresolved AMBIGUOUS (multi-candidate) account calls the RPC directly -> identical rejection --
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G2: unresolved ambiguous account is rejected by the RPC, same as a single candidate
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G2: no new project row was inserted (still exactly the two seeded candidates)
+[2026-09-30T00:21:12Z] -- G3: reconcile confirmed_onboarding, THEN call the RPC -> returns the reconciled project id --
+SET
+ admin_reconcile_onboarding 
+----------------------------
+ 
+(1 row)
+
+G3 RPC result: c3000000-0000-0000-0000-000000000001
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G3: reconciled confirmed_onboarding account's RPC call returns the reconciled project id
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G3: no NEW project was created — still exactly the one reconciled candidate
+[2026-09-30T00:21:12Z] -- G4: reconcile confirmed_not_onboarding, THEN Include -> exactly one NEW marked project --
+SET
+ admin_reconcile_onboarding 
+----------------------------
+ 
+(1 row)
+
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ c465072a-79a4-419b-b1c3-65a119ab479d | t
+(1 row)
+
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G4: exactly one marked project after Include
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G4: two projects total — the pre-existing not-onboarding candidate plus the new one
+[2026-09-30T00:21:12Z] EXPECTED-PASS OK: G4: the pre-existing not-onboarding candidate was never marked
+[2026-09-30T00:21:12Z] -- G3-direct-bypass: cannot supply any argument that reaches the post-guard code path without going through admin_reconcile_onboarding/admin_correct_onboarding_reconciliation first (re-run on a still-unresolved account, G1) --
+SET
+SET
+ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+[2026-09-30T00:21:12Z] EXPECTED-FAIL OK (exit 1): no argument shape to finalize_onboarding_project lets G1 bypass the operator workflow
+[2026-09-30T00:21:12Z] -- G5: concurrent reconciliation and RPC invocation for the SAME account, genuinely overlapping --
+== pg_locks mid-hold for G5 (session 1 should hold RowShareLock while reconciling) ==
+ locktype |     mode     | granted |        query        | state  
+----------+--------------+---------+---------------------+--------
+ relation | RowShareLock | t       | select pg_sleep(2); | active
+(1 row)
+
+SET
+SET
+            started            
+-------------------------------
+ 2026-09-29 17:21:13.427317-07
+(1 row)
+
+              project_id              | onboarded 
+--------------------------------------+-----------
+ c5000000-0000-0000-0000-000000000001 | t
+(1 row)
+
+           finished            
+-------------------------------
+ 2026-09-29 17:21:14.897377-07
+(1 row)
+
+BEGIN
+ is_onboarded 
+--------------
+ f
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+SET
+ admin_reconcile_onboarding 
+----------------------------
+ 
+(1 row)
+
+RESET
+COMMIT
+[2026-09-30T00:21:14Z] EXPECTED-PASS OK: G5: concurrent RPC call observes the committed reconciliation, returns the reconciled project id, no duplicate
+[2026-09-30T00:21:14Z] EXPECTED-PASS OK: G5: exactly one project exists for the account after the concurrent race
+[2026-09-30T00:21:14Z] ==========================================================================
+[2026-09-30T00:21:14Z] DB main: null-slug insert serialization trigger (proposal §5b)
+[2026-09-30T00:21:14Z] ==========================================================================
+INSERT 0 4
+[2026-09-30T00:21:14Z] -- Ordering A (item 43): ordinary createDraftProject-shaped insert locks/commits first; RPC waits, then rejects with 55000 --
+== pg_locks mid-hold, Ordering A (session 1 — the ordinary insert — should hold, session 2 should be waiting once launched) ==
+ locktype |     mode     | granted |        query        | state  
+----------+--------------+---------+---------------------+--------
+ relation | RowShareLock | t       | select pg_sleep(2); | active
+(1 row)
+
+SET
+SET
+BEGIN
+                  id                  
+--------------------------------------
+ 0f25b85a-15f1-489b-abca-b5a95e58d20f
+(1 row)
+
+INSERT 0 1
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+SET
+SET
+            started            
+-------------------------------
+ 2026-09-29 17:21:15.531237-07
+(1 row)
+
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/20_rpc_call_timed.sql:8: ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+           finished            
+-------------------------------
+ 2026-09-29 17:21:16.989565-07
+(1 row)
+
+SET
+SET
+            started            
+-------------------------------
+ 2026-09-29 17:21:15.531237-07
+(1 row)
+
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/20_rpc_call_timed.sql:8: ERROR:  onboarding cannot be finalized automatically for this account yet — please try again shortly or contact support
+CONTEXT:  PL/pgSQL function public.finalize_onboarding_project(text,text,text) line 39 at RAISE
+           finished            
+-------------------------------
+ 2026-09-29 17:21:16.989565-07
+(1 row)
+
+[2026-09-30T00:21:17Z] EXPECTED-PASS OK: Ordering A: the RPC call rejects with 55000 after observing the committed ordinary insert
+[2026-09-30T00:21:17Z] EXPECTED-PASS OK: Ordering A: no duplicate/marked onboarding project — exactly zero marked
+[2026-09-30T00:21:17Z] EXPECTED-PASS OK: Ordering A: exactly one project total (the ordinary draft, never a second)
+[2026-09-30T00:21:17Z] EXPECTED-PASS OK: Ordering A: is_onboarded remains false (the RPC was rejected, never completed)
+[2026-09-30T00:21:17Z] -- Ordering B (item 44): RPC locks first; the ordinary createDraftProject-shaped insert waits, resumes only after finalization --
+== pg_locks mid-hold, Ordering B (session 1 — the RPC's pre-lock — should hold) ==
+ locktype |     mode     | granted |        query        | state  
+----------+--------------+---------+---------------------+--------
+ relation | RowShareLock | t       | select pg_sleep(2); | active
+(1 row)
+
+BEGIN
+ is_onboarded 
+--------------
+ f
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ 91696d3e-0c02-44ca-a521-6dd05c466240 | t
+(1 row)
+
+RESET
+COMMIT
+SET
+SET
+           started            
+------------------------------
+ 2026-09-29 17:21:17.84719-07
+(1 row)
+
+                  id                  
+--------------------------------------
+ 49e0b016-5f14-4795-adfa-f748a94532d4
+(1 row)
+
+INSERT 0 1
+           finished            
+-------------------------------
+ 2026-09-29 17:21:19.312676-07
+(1 row)
+
+SET
+SET
+           started            
+------------------------------
+ 2026-09-29 17:21:17.84719-07
+(1 row)
+
+                  id                  
+--------------------------------------
+ 49e0b016-5f14-4795-adfa-f748a94532d4
+(1 row)
+
+INSERT 0 1
+           finished            
+-------------------------------
+ 2026-09-29 17:21:19.312676-07
+(1 row)
+
+[2026-09-30T00:21:19Z] EXPECTED-PASS OK: Ordering B: the ordinary insert resumes and commits after the RPC finalizes
+[2026-09-30T00:21:19Z] EXPECTED-PASS OK: Ordering B: exactly one marked onboarding project
+[2026-09-30T00:21:19Z] EXPECTED-PASS OK: Ordering B: exactly two projects total (the RPC's own + the resumed ordinary draft)
+[2026-09-30T00:21:19Z] EXPECTED-PASS OK: Ordering B: the resumed ordinary draft is never marked
+[2026-09-30T00:21:19Z] EXPECTED-PASS OK: Ordering B: is_onboarded is true (the RPC completed before the insert resumed)
+[2026-09-30T00:21:19Z] -- A published/non-null-slug insert is unaffected by this trigger (baseline sanity) --
+INSERT 0 1
+[2026-09-30T00:21:19Z] ==========================================================================
+[2026-09-30T00:21:19Z] DB main: §5c transition matrix — reject_slug_removal_on_update (proposal §5b/§5c)
+[2026-09-30T00:21:19Z] ==========================================================================
+[2026-09-30T00:21:19Z] -- non-null -> null is rejected at the database boundary, errcode 23514 --
+SET
+SET
+ERROR:  clearing a project slug back to null is not supported
+CONTEXT:  PL/pgSQL function public.reject_slug_removal_update() line 4 at RAISE
+[2026-09-30T00:21:19Z] EXPECTED-PASS OK: UPDATE non-null slug -> null is rejected at the database boundary with errcode 23514
+[2026-09-30T00:21:19Z] -- the rejection above takes NO lock of any kind: it must fail immediately even while a
+[2026-09-30T00:21:19Z]    DIFFERENT session holds this same project's owner profile locked for 3 real seconds --
+[2026-09-30T00:21:22Z] reject-on-update elapsed while ANOTHER session held this owner's profile lock: 35ms (expected: well under the 3000ms hold, proving no profile lock was ever attempted)
+[2026-09-30T00:21:22Z] EXPECTED-PASS OK: UPDATE non-null slug -> null rejection acquired zero locks on public.profiles
+[2026-09-30T00:21:22Z] -- null -> non-null (finishing setup on a draft) and non-null -> different-non-null are unaffected --
+SET
+SET
+UPDATE 1
+SET
+SET
+UPDATE 1
+[2026-09-30T00:21:22Z] EXPECTED-PASS OK: UPDATE null -> non-null and non-null -> different-non-null transitions are unaffected
+[2026-09-30T00:21:22Z] ==========================================================================
+[2026-09-30T00:21:22Z] DB main: item 51 — corrected real-slug non-blocking gate, genuine two-session, millisecond timing
+[2026-09-30T00:21:22Z] ==========================================================================
+INSERT 0 1
+BEGIN
+ is_onboarded 
+--------------
+ f
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+1790727683087.046000
+eb7ea5e5-7f7e-4cfe-ad46-76d542ef6027
+1790727683088.522000
+[2026-09-30T00:21:25Z] item 51: real-slug insert (session B) elapsed 1ms while session A held the SAME owner's profile lock for 3000ms — expected well under 1000ms (never touches the lock)
+[2026-09-30T00:21:25Z] EXPECTED-PASS OK: item 51: real-slug insert for the SAME owner completes before session A releases the profile lock (millisecond timing)
+[2026-09-30T00:21:25Z] EXPECTED-PASS OK: item 51: real-slug insert for the SAME owner resulted in exactly one row
+[2026-09-30T00:21:25Z] -- item 51 broken variant: remove the insert trigger's early return in an isolated throwaway
+[2026-09-30T00:21:25Z]    database; the exact same two-session gate must now correctly fail by BLOCKING --
+NOTICE:  database "onboarding_val_item51_broken" does not exist, skipping
+DROP DATABASE
+CREATE DATABASE
+CREATE EXTENSION
+GRANT
+CREATE SCHEMA
+CREATE FUNCTION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+GRANT
+GRANT
+GRANT
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:7: NOTICE:  schema "private" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:14: NOTICE:  relation "onboarding_migration_acl_capture" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:25: NOTICE:  relation "onboarding_migration_acl_baseline" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:68: NOTICE:  trigger "serialize_null_slug_project_on_insert" for relation "public.projects" does not exist, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:98: NOTICE:  trigger "reject_slug_removal_on_update" for relation "public.projects" does not exist, skipping
+INSERT 0 1
+BEGIN
+ is_onboarded 
+--------------
+ f
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+1790727686373.899000
+ee2c829e-0770-430b-be22-85af3daf73a4
+1790727688861.192000
+[2026-09-30T00:21:28Z] item 51 broken variant: real-slug insert elapsed 2487ms without the early return — expected >= ~1000ms (now blocks on the profile lock, proving the gate discriminates)
+[2026-09-30T00:21:28Z] EXPECTED-PASS OK: item 51 broken variant: removing the insert trigger's early return makes this exact gate correctly fail by blocking
+[2026-09-30T00:21:28Z] -- An unrelated user's insert does not block while another owner's profile lock is held --
+[2026-09-30T00:21:30Z] unrelated-owner insert elapsed while another owner's lock was held: 0s (expected: well under the 2s hold, proving it never waited on it)
+[2026-09-30T00:21:30Z] EXPECTED-PASS OK: an unrelated user's insert does not block on another owner's held profile lock
+[2026-09-30T00:21:30Z] ==========================================================================
+[2026-09-30T00:21:30Z] DB item54: item 54 — enforced (not informational) trigger-less anti-vacuity control,
+[2026-09-30T00:21:31Z] millisecond timing, asserting the production acceptance assertions actually flip
+[2026-09-30T00:21:31Z] ==========================================================================
+NOTICE:  database "onboarding_val_item54_control" does not exist, skipping
+DROP DATABASE
+CREATE DATABASE
+CREATE EXTENSION
+GRANT
+CREATE SCHEMA
+CREATE FUNCTION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+GRANT
+GRANT
+GRANT
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/23_migration_without_trigger_TESTONLY.sql:7: NOTICE:  schema "private" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/23_migration_without_trigger_TESTONLY.sql:14: NOTICE:  relation "onboarding_migration_acl_capture" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/23_migration_without_trigger_TESTONLY.sql:25: NOTICE:  relation "onboarding_migration_acl_baseline" already exists, skipping
+INSERT 0 1
+dbf65401-7852-493c-816a-8779c5712dfd
+
+1790727693260.725000
+1790727691777.104000
+5d46b905-6f23-4351-b809-0d8fc46b07c7|t
+1790727691780.604000
+[2026-09-30T00:21:33Z] item 54 control: RPC session raw output: 1790727691777.104000|5d46b905-6f23-4351-b809-0d8fc46b07c7|t|1790727691780.604000|
+[2026-09-30T00:21:33Z] item 54 control: RPC finished at 1790727691780.604000ms; ordinary insert's ACTUAL commit at 1790727693260.725000ms (RPC must finish strictly before the commit)
+[2026-09-30T00:21:33Z] EXPECTED-PASS OK: item 54 control: WITHOUT the serialization trigger, the RPC completes before the ordinary insert's transaction commits (millisecond timing)
+[2026-09-30T00:21:33Z] EXPECTED-PASS OK: item 54 control: WITHOUT the trigger, the RPC incorrectly reports onboarded=true with a project id — the unsafe outcome under test
+[2026-09-30T00:21:33Z] item 54 control: final state without the trigger — marked=1 unmarked=1 total=2 (expected: 1 marked + 1 unmarked = 2 total, the conflicting two-project state)
+[2026-09-30T00:21:33Z] EXPECTED-PASS OK: item 54 control: WITHOUT the trigger, the later ordinary insert produces a conflicting two-project state (one marked, one unmarked)
+[2026-09-30T00:21:33Z] -- item 54 control: the SAME scenario against the REAL (fixed) migration must NOT reproduce this
+[2026-09-30T00:21:33Z]    conflicting state — reusing DB main's already-proven Ordering A result (exactly one project,
+[2026-09-30T00:21:33Z]    zero marked, is_onboarded=false; see items above) as the production acceptance assertions --
+[2026-09-30T00:21:33Z] EXPECTED-PASS OK: item 54 control: the SAME production acceptance assertions (one marked project, none conflicting) DO pass under the real fixed migration
+[2026-09-30T00:21:33Z] ==========================================================================
+[2026-09-30T00:21:33Z] DB main: item 55 — genuine deadlock-order regression test (corrected design)
+[2026-09-30T00:21:33Z] ==========================================================================
+INSERT 0 1
+INSERT 0 1
+SET
+SET
+BEGIN
+UPDATE 1
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+1790727694063.196000
+
+1790727696543.532000
+[2026-09-30T00:21:36Z] item 55: session A exit=0, session B exit=0 (both must be 0 — no deadlock, no error)
+[2026-09-30T00:21:36Z] EXPECTED-PASS OK: item 55: deadlock-order regression — session A (slug UPDATE) and session B (operator reconcile) both complete, no Postgres deadlock detected
+== pg_locks for f1/f2 after both item-55 sessions completed ==
+ locktype | mode | granted | query 
+----------+------+---------+-------
+(0 rows)
+
+[2026-09-30T00:21:36Z] EXPECTED-PASS OK: item 55: deadlock-order regression — no locks survive for either session after both complete
+[2026-09-30T00:21:36Z] item 55: final state — slug=deadlock-regression-project-renamed marked=t reconciliation=confirmed_onboarding (expected: slug=deadlock-regression-project-renamed, marked=t, reconciliation=confirmed_onboarding)
+[2026-09-30T00:21:36Z] EXPECTED-PASS OK: item 55: deadlock-order regression — final project slug, marker, and reconciliation state are all correct
+[2026-09-30T00:21:36Z] ==========================================================================
+[2026-09-30T00:21:36Z] DB olddeadlock: item 56 — isolated reproduction of revision 13's withdrawn combined trigger
+[2026-09-30T00:21:36Z] (throwaway database; NEVER combined with any correctness claim about the candidate migration)
+[2026-09-30T00:21:36Z] ==========================================================================
+NOTICE:  database "onboarding_val_old_trigger_deadlock" does not exist, skipping
+DROP DATABASE
+CREATE DATABASE
+CREATE EXTENSION
+GRANT
+CREATE SCHEMA
+CREATE FUNCTION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+GRANT
+GRANT
+GRANT
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/29_migration_with_OLD_combined_trigger_TESTONLY.sql:7: NOTICE:  schema "private" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/29_migration_with_OLD_combined_trigger_TESTONLY.sql:14: NOTICE:  relation "onboarding_migration_acl_capture" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/29_migration_with_OLD_combined_trigger_TESTONLY.sql:25: NOTICE:  relation "onboarding_migration_acl_baseline" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/29_migration_with_OLD_combined_trigger_TESTONLY.sql:72: NOTICE:  trigger "serialize_null_slug_project_before_write" for relation "public.projects" does not exist, skipping
+INSERT 0 1
+INSERT 0 1
+SET
+SET
+UPDATE 1
+BEGIN
+ is_onboarded 
+--------------
+ f
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/31_old_trigger_deadlock_session_b_operator.sql:11: ERROR:  deadlock detected
+DETAIL:  Process 38746 waits for ShareLock on transaction 1081; blocked by process 38748.
+Process 38748 waits for ShareLock on transaction 1080; blocked by process 38746.
+HINT:  See server log for query details.
+CONTEXT:  while locking tuple (0,1) in relation "projects"
+ROLLBACK
+[2026-09-30T00:21:39Z] item 56: session A output: SET|SET|UPDATE 1|
+[2026-09-30T00:21:39Z] item 56: session B output: BEGIN| is_onboarded |--------------| f|(1 row)|| pg_sleep |----------| |(1 row)||psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/31_old_trigger_deadlock_session_b_operator.sql:11: ERROR:  deadlock detected|DETAIL:  Process 38746 waits for ShareLock on transaction 1081; blocked by process 38748.|Process 38748 waits for ShareLock on transaction 1080; blocked by process 38746.|HINT:  See server log for query details.|CONTEXT:  while locking tuple (0,1) in relation "projects"|ROLLBACK|
+[2026-09-30T00:21:39Z] EXPECTED-PASS OK: item 56: isolated reproduction of the withdrawn revision-13 combined trigger produces an actual Postgres deadlock detected error
+[2026-09-30T00:21:39Z] ==========================================================================
+[2026-09-30T00:21:39Z] DB main: concurrency — forced overlap (lock-hold) and natural race
+[2026-09-30T00:21:39Z] ==========================================================================
+== pg_locks mid-hold (session 1 should hold a RowShareLock on public.profiles) ==
+ locktype |     mode     | granted |        query        | state  
+----------+--------------+---------+---------------------+--------
+ relation | RowShareLock | t       | select pg_sleep(3); | active
+(1 row)
+
+SET
+SET
+            started            
+-------------------------------
+ 2026-09-29 17:21:40.781012-07
+(1 row)
+
+              project_id              | onboarded 
+--------------------------------------+-----------
+ 5db429d2-4b09-4af6-837e-2915cd85f3fe | t
+(1 row)
+
+           finished            
+-------------------------------
+ 2026-09-29 17:21:43.014162-07
+(1 row)
+
+BEGIN
+ is_onboarded 
+--------------
+ f
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+ count |         array_agg         
+-------+---------------------------
+     1 | {"Include Wins The Race"}
+(1 row)
+
+[2026-09-30T00:21:43Z] -- genuine Include/Include race, no artificial delay --
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ aa490cdb-dd9a-4220-a702-0adab0c61fc2 | t
+(1 row)
+
+SET
+SET
+              project_id              | onboarded 
+--------------------------------------+-----------
+ aa490cdb-dd9a-4220-a702-0adab0c61fc2 | t
+(1 row)
+
+                  id                  |  title  
+--------------------------------------+---------
+ aa490cdb-dd9a-4220-a702-0adab0c61fc2 | Racer B
+(1 row)
+
+[2026-09-30T00:21:43Z] ==========================================================================
+[2026-09-30T00:21:43Z] DB main: Rollback + strict ACL equality
+[2026-09-30T00:21:43Z] ==========================================================================
+BEGIN
+DO
+COMMIT
+== ACL after rollback ==
+                                 relacl                                  
+-------------------------------------------------------------------------
+ {postgres=arwdDxt/postgres,authenticated=arwd/postgres,anon=r/postgres}
+(1 row)
+
+ attname | attacl 
+---------+--------
+(0 rows)
+
+[2026-09-30T00:21:43Z] EXPECTED-PASS OK: strict OID ACL equality after rollback (main db) returns zero rows
+[2026-09-30T00:21:43Z] -- both §5b triggers/functions are gone after rollback, and their absence never introduced a
+[2026-09-30T00:21:43Z]    table/column grant on projects for authenticated to begin with --
+[2026-09-30T00:21:43Z] EXPECTED-PASS OK: serialize_null_slug_project_on_insert trigger is gone after rollback
+[2026-09-30T00:21:43Z] EXPECTED-PASS OK: serialize_null_slug_project_insert function is gone after rollback
+[2026-09-30T00:21:43Z] EXPECTED-PASS OK: reject_slug_removal_on_update trigger is gone after rollback
+[2026-09-30T00:21:43Z] EXPECTED-PASS OK: reject_slug_removal_update function is gone after rollback
+[2026-09-30T00:21:43Z] ==========================================================================
+[2026-09-30T00:21:43Z] DB acl: PUBLIC + grant option + mixed-case role + downstream grantor
+[2026-09-30T00:21:43Z] ==========================================================================
+NOTICE:  database "onboarding_val_acl" does not exist, skipping
+DROP DATABASE
+CREATE DATABASE
+CREATE EXTENSION
+GRANT
+CREATE SCHEMA
+CREATE FUNCTION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+SET
+GRANT
+RESET
+CREATE SCHEMA
+REVOKE
+GRANT
+CREATE TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+REVOKE
+REVOKE
+GRANT
+GRANT
+                to_regclass                
+-------------------------------------------
+ private.onboarding_migration_acl_baseline
+(1 row)
+
+INSERT 0 1
+INSERT 0 8
+INSERT 0 3
+ count 
+-------
+    11
+(1 row)
+
+== captured baseline (edge-case db), resolved to role names for readability ==
+ grantor_oid |  grantor_name  | grantee_oid |  grantee_name   | column_name | privilege_type | is_grantable 
+-------------+----------------+-------------+-----------------+-------------+----------------+--------------
+          10 | postgres       |           0 | PUBLIC          |             | INSERT         | f
+          10 | postgres       |           0 | PUBLIC          | slug        | UPDATE         | f
+          10 | postgres       |       16390 | Weird Role Name |             | INSERT         | f
+          10 | postgres       |       16390 | Weird Role Name | title       | UPDATE         | f
+          10 | postgres       |       16385 | authenticated   |             | INSERT         | f
+          10 | postgres       |       16385 | authenticated   |             | UPDATE         | f
+          10 | postgres       |          10 | postgres        |             | INSERT         | f
+          10 | postgres       |          10 | postgres        |             | UPDATE         | f
+          10 | postgres       |       16389 | test_grantee_h  | title       | INSERT         | f
+          10 | postgres       |       16387 | test_grantor_g  |             | INSERT         | t
+       16387 | test_grantor_g |       16389 | test_grantee_h  |             | INSERT         | f
+(11 rows)
+
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/04_guard.sql:30: ERROR:  unexpected INSERT/UPDATE grantee(s) (possibly PUBLIC) on public.projects — abort, inspect private.onboarding_migration_acl_baseline
+CONTEXT:  PL/pgSQL function inline_code_block line 18 at RAISE
+[2026-09-30T00:21:43Z] EXPECTED-FAIL OK (exit 3): Guard rejects the PUBLIC + extra-grantee state captured above
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:7: NOTICE:  schema "private" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:14: NOTICE:  relation "onboarding_migration_acl_capture" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:25: NOTICE:  relation "onboarding_migration_acl_baseline" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:68: NOTICE:  trigger "serialize_null_slug_project_on_insert" for relation "public.projects" does not exist, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:98: NOTICE:  trigger "reject_slug_removal_on_update" for relation "public.projects" does not exist, skipping
+BEGIN
+DO
+COMMIT
+== raw ACL after rollback (edge-case db): PUBLIC, grant option, mixed-case role, downstream grantor must all be restored exactly ==
+                                                                                     relacl                                                                                      
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {postgres=arwdDxt/postgres,authenticated=arwd/postgres,anon=r/postgres,test_grantor_g=a*/postgres,"\"Weird Role Name\"=a/postgres",test_grantee_h=a/test_grantor_g,=a/postgres}
+(1 row)
+
+ attname |                            attacl                            
+---------+--------------------------------------------------------------
+ slug    | {=w/postgres}
+ title   | {test_grantee_h=a/postgres,"\"Weird Role Name\"=w/postgres"}
+(2 rows)
+
+[2026-09-30T00:21:43Z] EXPECTED-PASS OK: strict OID ACL equality after rollback (edge-case db) returns zero rows
+[2026-09-30T00:21:43Z] ==========================================================================
+[2026-09-30T00:21:43Z] DB missing: dropped grantee role must fail rollback before Step 2 (destructive work)
+[2026-09-30T00:21:43Z] ==========================================================================
+DO
+NOTICE:  database "onboarding_val_missing" does not exist, skipping
+DROP DATABASE
+CREATE DATABASE
+CREATE EXTENSION
+GRANT
+CREATE SCHEMA
+CREATE FUNCTION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+GRANT
+GRANT
+GRANT
+GRANT
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:7: NOTICE:  schema "private" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:14: NOTICE:  relation "onboarding_migration_acl_capture" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:25: NOTICE:  relation "onboarding_migration_acl_baseline" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:68: NOTICE:  trigger "serialize_null_slug_project_on_insert" for relation "public.projects" does not exist, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:98: NOTICE:  trigger "reject_slug_removal_on_update" for relation "public.projects" does not exist, skipping
+REVOKE
+DROP ROLE
+BEGIN
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/06_rollback.sql:220: ERROR:  one or more captured roles (grantor or grantee) no longer exist — resolve manually before rollback
+CONTEXT:  PL/pgSQL function inline_code_block line 51 at RAISE
+[2026-09-30T00:21:44Z] EXPECTED-FAIL OK (exit 3): rollback fails before destructive work when a captured role no longer exists
+ ?column? 
+----------
+        1
+(1 row)
+
+[2026-09-30T00:21:44Z] EXPECTED-PASS OK: migration objects still present after the missing-role failure
+[2026-09-30T00:21:44Z] ==========================================================================
+[2026-09-30T00:21:44Z] DB setrole: rollback under a pre-existing SET ROLE is rejected before mutation
+[2026-09-30T00:21:44Z] ==========================================================================
+NOTICE:  database "onboarding_val_setrole" does not exist, skipping
+DROP DATABASE
+CREATE DATABASE
+CREATE EXTENSION
+GRANT
+CREATE SCHEMA
+CREATE FUNCTION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+GRANT
+GRANT
+GRANT
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:7: NOTICE:  schema "private" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:14: NOTICE:  relation "onboarding_migration_acl_capture" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:25: NOTICE:  relation "onboarding_migration_acl_baseline" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:68: NOTICE:  trigger "serialize_null_slug_project_on_insert" for relation "public.projects" does not exist, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:98: NOTICE:  trigger "reject_slug_removal_on_update" for relation "public.projects" does not exist, skipping
+SET
+BEGIN
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/06_rollback.sql:220: ERROR:  rollback refused: current_user (test_grantor_g) differs from session_user (postgres) — run this rollback from a fresh connection with no prior SET ROLE in effect
+CONTEXT:  PL/pgSQL function inline_code_block line 20 at RAISE
+[2026-09-30T00:21:45Z] EXPECTED-FAIL OK (exit 3): rollback under a pre-existing SET ROLE aborts at the Step 0 precondition
+ ?column? 
+----------
+        1
+(1 row)
+
+[2026-09-30T00:21:45Z] EXPECTED-PASS OK: migration objects still present after the pre-existing-SET-ROLE rejection
+[2026-09-30T00:21:45Z] ==========================================================================
+[2026-09-30T00:21:45Z] DB failclosed (non-superuser rollback_operator): second-grantor failure must roll back ALL earlier work
+[2026-09-30T00:21:45Z] ==========================================================================
+GRANT ROLE
+NOTICE:  database "onboarding_val_failclosed" does not exist, skipping
+DROP DATABASE
+CREATE DATABASE
+GRANT
+SET
+GRANT
+RESET
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:7: NOTICE:  schema "private" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:14: NOTICE:  relation "onboarding_migration_acl_capture" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:25: NOTICE:  relation "onboarding_migration_acl_baseline" already exists, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:68: NOTICE:  trigger "serialize_null_slug_project_on_insert" for relation "public.projects" does not exist, skipping
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/05_migration.sql:98: NOTICE:  trigger "reject_slug_removal_on_update" for relation "public.projects" does not exist, skipping
+      rolname      
+-------------------
+ test_grantor_x
+ rollback_operator
+(2 rows)
+
+REVOKE ROLE
+ERROR:  permission denied to set role "test_grantor_x"
+[2026-09-30T00:21:46Z] EXPECTED-FAIL OK (exit 1): rollback_operator (non-superuser) can no longer SET ROLE test_grantor_x
+BEGIN
+psql:/Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation/sql/06_rollback.sql:220: ERROR:  permission denied to set role "test_grantor_x"
+CONTEXT:  SQL statement "set local role test_grantor_x"
+PL/pgSQL function inline_code_block line 146 at EXECUTE
+[2026-09-30T00:21:46Z] EXPECTED-FAIL OK (exit 3): second-grantor failure aborts the WHOLE rollback transaction (real non-superuser role)
+ ?column? 
+----------
+        1
+(1 row)
+
+[2026-09-30T00:21:46Z] EXPECTED-PASS OK: ALL migration objects still present after the second-grantor failure (private schema)
+ ?column? 
+----------
+        1
+(1 row)
+
+[2026-09-30T00:21:46Z] EXPECTED-PASS OK: ALL migration objects still present after the second-grantor failure (reconciliation table)
+ ?column? 
+----------
+        1
+(1 row)
+
+[2026-09-30T00:21:46Z] EXPECTED-PASS OK: ALL migration objects still present after the second-grantor failure (function)
+ ?column? 
+----------
+        1
+(1 row)
+
+[2026-09-30T00:21:46Z] EXPECTED-PASS OK: ALL migration objects still present after the second-grantor failure (marker column)
+ authenticated_insert_still_revoked 
+------------------------------------
+ f
+(1 row)
+
+== pg_locks for rollback_operator after the failed session ended ==
+ surviving_locks 
+-----------------
+               0
+(1 row)
+
+[2026-09-30T00:21:47Z] ==========================================================================
+[2026-09-30T00:21:47Z] DB dependent: a downstream dependent grant blocks a plain (non-CASCADE) revoke
+[2026-09-30T00:21:47Z] ==========================================================================
+NOTICE:  database "onboarding_val_dependent" does not exist, skipping
+DROP DATABASE
+CREATE DATABASE
+CREATE EXTENSION
+GRANT
+CREATE SCHEMA
+CREATE FUNCTION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+GRANT
+GRANT
+GRANT
+GRANT
+SET
+GRANT
+RESET
+ERROR:  dependent privileges exist
+HINT:  Use CASCADE to revoke them too.
+[2026-09-30T00:21:47Z] EXPECTED-FAIL OK (exit 1): plain REVOKE fails loudly when a downstream grant depends on it (no CASCADE)
+[2026-09-30T00:21:47Z] ==========================================================================
+[2026-09-30T00:21:47Z] All scenarios complete. Writing machine-readable summary.
+[2026-09-30T00:21:47Z] ==========================================================================
+wrote results.json with 75 gate(s), 75 PASS
+[2026-09-30T00:21:47Z] Gate summary (see results/gates.tsv and results/results.json for full detail):
+stock ACL baseline passes Guard	PASS	exit_code=0
+authenticated has NO EXECUTE on finalize_onboarding_project before migration	PASS	exit_code=0
+authenticated HAS EXECUTE on finalize_onboarding_project after migration	PASS	exit_code=0
+the specific function version authenticated was granted EXECUTE on already contains the 55000 guard	PASS	exit_code=0
+user A (zero candidates) is never a member of onboarding_unresolved_candidates	PASS	exit_code=0
+user B (zero candidates) is never a member of onboarding_unresolved_candidates (Skip path unaffected too)	PASS	exit_code=0
+anon calling finalize_onboarding_project is denied	PASS	exit_code=1 (failure expected and observed)
+anon calling admin_reconcile_onboarding is denied	PASS	exit_code=1 (failure expected and observed)
+authenticated calling admin_reconcile_onboarding is denied	PASS	exit_code=1 (failure expected and observed)
+cross-account: authenticated B's unauthorized update on A's profile affects zero rows	PASS	exit_code=0
+cross-account: user A's is_onboarded is byte-for-byte unchanged after B's unauthorized attempt	PASS	exit_code=0
+harness self-test: scalar assertion PASSES for a secure outcome (0 changed rows)	PASS	exit_code=0
+harness self-test: scalar assertion FAILS for an insecure outcome (1 changed row) — proves the check is not vacuous	PASS	exit_code=1 (failure expected and observed)
+hard-abort gate blocks rollout with unresolved legacy candidates	PASS	exit_code=1 (failure expected and observed)
+hard-abort gate passes once BOTH legacy candidates are reconciled	PASS	exit_code=0
+correction after onboarding completes is rejected	PASS	exit_code=1 (failure expected and observed)
+G1: unresolved single-candidate account is rejected by the RPC	PASS	exit_code=0
+G1: rejection carries SQLSTATE 55000	PASS	exit_code=0
+G1: no project marked for the rejected account	PASS	exit_code=0
+G1: profile is_onboarded remains false after the rejected attempt	PASS	exit_code=0
+G1: no new project row was inserted (still exactly the one seeded candidate)	PASS	exit_code=0
+G1: the error text does not mention the candidate's project id	PASS	exit_code=1 (failure expected and observed)
+G1: the error text does not mention the candidate's project title	PASS	exit_code=1 (failure expected and observed)
+G2: unresolved ambiguous account is rejected by the RPC, same as a single candidate	PASS	exit_code=0
+G2: no new project row was inserted (still exactly the two seeded candidates)	PASS	exit_code=0
+G3: reconciled confirmed_onboarding account's RPC call returns the reconciled project id	PASS	exit_code=0
+G3: no NEW project was created — still exactly the one reconciled candidate	PASS	exit_code=0
+G4: exactly one marked project after Include	PASS	exit_code=0
+G4: two projects total — the pre-existing not-onboarding candidate plus the new one	PASS	exit_code=0
+G4: the pre-existing not-onboarding candidate was never marked	PASS	exit_code=0
+no argument shape to finalize_onboarding_project lets G1 bypass the operator workflow	PASS	exit_code=1 (failure expected and observed)
+G5: concurrent RPC call observes the committed reconciliation, returns the reconciled project id, no duplicate	PASS	exit_code=0
+G5: exactly one project exists for the account after the concurrent race	PASS	exit_code=0
+Ordering A: the RPC call rejects with 55000 after observing the committed ordinary insert	PASS	exit_code=0
+Ordering A: no duplicate/marked onboarding project — exactly zero marked	PASS	exit_code=0
+Ordering A: exactly one project total (the ordinary draft, never a second)	PASS	exit_code=0
+Ordering A: is_onboarded remains false (the RPC was rejected, never completed)	PASS	exit_code=0
+Ordering B: the ordinary insert resumes and commits after the RPC finalizes	PASS	exit_code=0
+Ordering B: exactly one marked onboarding project	PASS	exit_code=0
+Ordering B: exactly two projects total (the RPC's own + the resumed ordinary draft)	PASS	exit_code=0
+Ordering B: the resumed ordinary draft is never marked	PASS	exit_code=0
+Ordering B: is_onboarded is true (the RPC completed before the insert resumed)	PASS	exit_code=0
+UPDATE non-null slug -> null is rejected at the database boundary with errcode 23514	PASS	exit_code=0
+UPDATE non-null slug -> null rejection acquired zero locks on public.profiles	PASS	exit_code=0
+UPDATE null -> non-null and non-null -> different-non-null transitions are unaffected	PASS	exit_code=0
+item 51: real-slug insert for the SAME owner completes before session A releases the profile lock (millisecond timing)	PASS	exit_code=0
+item 51: real-slug insert for the SAME owner resulted in exactly one row	PASS	exit_code=0
+item 51 broken variant: removing the insert trigger's early return makes this exact gate correctly fail by blocking	PASS	exit_code=0
+an unrelated user's insert does not block on another owner's held profile lock	PASS	exit_code=0
+item 54 control: WITHOUT the serialization trigger, the RPC completes before the ordinary insert's transaction commits (millisecond timing)	PASS	exit_code=0
+item 54 control: WITHOUT the trigger, the RPC incorrectly reports onboarded=true with a project id — the unsafe outcome under test	PASS	exit_code=0
+item 54 control: WITHOUT the trigger, the later ordinary insert produces a conflicting two-project state (one marked, one unmarked)	PASS	exit_code=0
+item 54 control: the SAME production acceptance assertions (one marked project, none conflicting) DO pass under the real fixed migration	PASS	exit_code=0
+item 55: deadlock-order regression — session A (slug UPDATE) and session B (operator reconcile) both complete, no Postgres deadlock detected	PASS	exit_code=0
+item 55: deadlock-order regression — no locks survive for either session after both complete	PASS	exit_code=0
+item 55: deadlock-order regression — final project slug, marker, and reconciliation state are all correct	PASS	exit_code=0
+item 56: isolated reproduction of the withdrawn revision-13 combined trigger produces an actual Postgres deadlock detected error	PASS	exit_code=0
+strict OID ACL equality after rollback (main db) returns zero rows	PASS	exit_code=0
+serialize_null_slug_project_on_insert trigger is gone after rollback	PASS	exit_code=0
+serialize_null_slug_project_insert function is gone after rollback	PASS	exit_code=0
+reject_slug_removal_on_update trigger is gone after rollback	PASS	exit_code=0
+reject_slug_removal_update function is gone after rollback	PASS	exit_code=0
+Guard rejects the PUBLIC + extra-grantee state captured above	PASS	exit_code=3 (failure expected and observed)
+strict OID ACL equality after rollback (edge-case db) returns zero rows	PASS	exit_code=0
+rollback fails before destructive work when a captured role no longer exists	PASS	exit_code=3 (failure expected and observed)
+migration objects still present after the missing-role failure	PASS	exit_code=0
+rollback under a pre-existing SET ROLE aborts at the Step 0 precondition	PASS	exit_code=3 (failure expected and observed)
+migration objects still present after the pre-existing-SET-ROLE rejection	PASS	exit_code=0
+rollback_operator (non-superuser) can no longer SET ROLE test_grantor_x	PASS	exit_code=1 (failure expected and observed)
+second-grantor failure aborts the WHOLE rollback transaction (real non-superuser role)	PASS	exit_code=3 (failure expected and observed)
+ALL migration objects still present after the second-grantor failure (private schema)	PASS	exit_code=0
+ALL migration objects still present after the second-grantor failure (reconciliation table)	PASS	exit_code=0
+ALL migration objects still present after the second-grantor failure (function)	PASS	exit_code=0
+ALL migration objects still present after the second-grantor failure (marker column)	PASS	exit_code=0
+plain REVOKE fails loudly when a downstream grant depends on it (no CASCADE)	PASS	exit_code=1 (failure expected and observed)
+[2026-09-30T00:21:47Z] RESULT: all 75 expected gates recorded, all PASS
+[2026-09-30T00:21:47Z] cleanup: begin (script exit code so far: 0)
+waiting for server to shut down.... done
+server stopped
+[2026-09-30T00:21:49Z] cleanup: disposable data directory and socket removed (/var/folders/vl/m1q1j_715vxck49vxwrm5m3r0000gn/T//onb_val.WCddlO, /tmp/onb_val_sock.mUPoxy)
+[2026-09-30T00:21:49Z] cleanup: confirming no postgres process remains for this run
+[2026-09-30T00:21:49Z] cleanup: confirmed — no postgres process remains for this run
+[2026-09-30T00:21:49Z] cleanup: done. Evidence package (SQL, README, results/) is preserved at: /Users/deeppatel/glyph/design/evidence/onboarding-idempotency-validation

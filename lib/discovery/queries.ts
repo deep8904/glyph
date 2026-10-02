@@ -212,6 +212,15 @@ export async function searchOpportunities(supabase: SupabaseClient, q: string, l
   return { rows: data ?? [], total: count ?? 0, error: false }
 }
 
+/** One project's public row by its canonical (username, slug) pair — same `discoverable_projects`
+ * view and visibility rules as exploreProjects. Used by the landing page to show the project behind
+ * the devlog it picked as its build-record proof. */
+export async function projectByUsernameSlug(supabase: SupabaseClient, username: string, slug: string): Promise<{ project: ProjectRowData | null; error: boolean }> {
+  const { data, error } = await supabase.from('discoverable_projects').select(PROJECT_COLS).eq('username', username).eq('slug', slug).maybeSingle<ProjectRowData>()
+  if (error) return { project: null, error: true }
+  return { project: data, error: false }
+}
+
 /** Which of these developers the viewer already follows — one query for a whole page. */
 export async function followedAmong(supabase: SupabaseClient, viewerId: string | null, developerIds: string[]): Promise<Set<string>> {
   if (!viewerId || developerIds.length === 0) return new Set()

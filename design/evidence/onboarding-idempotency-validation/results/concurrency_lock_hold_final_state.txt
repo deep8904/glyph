@@ -1,0 +1,5 @@
+ count |         array_agg         
+-------+---------------------------
+     1 | {"Include Wins The Race"}
+(1 row)
+

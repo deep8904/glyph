@@ -1,0 +1,6 @@
+== pg_locks mid-hold for G5 (session 1 should hold RowShareLock while reconciling) ==
+ locktype |     mode     | granted |        query        | state  
+----------+--------------+---------+---------------------+--------
+ relation | RowShareLock | t       | select pg_sleep(2); | active
+(1 row)
+

@@ -1,0 +1,5 @@
+== pg_locks for f1/f2 after both item-55 sessions completed ==
+ locktype | mode | granted | query 
+----------+------+---------+-------
+(0 rows)
+
